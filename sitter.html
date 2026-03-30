@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>貓窩裏🐾 保母專區</title>
+<title>貓窩裏🎉 保母專區</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{
@@ -244,15 +244,15 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);m
     <div class="l-sub">貓窩裏 到府寵物褓姆</div>
     <select class="l-sel" id="sitterSel">
       <option value="">— 選擇您的名字 —</option>
-      <option value="Ying">🐱 Ying</option>
-      <option value="小汶">🌟 小汶</option>
-      <option value="菓菓">🍎 菓菓</option>
-      <option value="小茹">🐕 小茹</option>
-      <option value="阿瑛">🌺 阿瑛</option>
+      <option value="Ying">🦊 Ying</option>
+      <option value="小汶">🐰 小汶</option>
+      <option value="菓菓">🦔 菓菓</option>
+      <option value="小茹">🐿️ 小茹</option>
+      <option value="阿瑛">🐶 阿瑛</option>
     </select>
     <input class="l-in" type="password" id="sitterPw" placeholder="個人密碼" onkeydown="if(event.key==='Enter')login()">
     <button class="l-btn" onclick="login()">登入保母專區 →</button>
-    <div class="l-err" id="loginErr">名字或密碼錯誤 🐾</div>
+    <div class="l-err" id="loginErr">名字或密碼錯誤 🐈️</div>
   </div>
 </div>
 
@@ -309,7 +309,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);m
     <div class="sec">
       <div class="sec-title">🧴 進門前消毒準備（每次必做）</div>
       <div class="cbgrid" id="disinfectChecks">
-        <label class="cblabel"><input type="checkbox" value="換上工作服/更衣">👕 換上工作服</label>
+        <label class="cblabel"><input type="checkbox" value="換上工作服/更衣">👩🏻‍⚕️ 換上工作服</label>
         <label class="cblabel"><input type="checkbox" value="手部酒精消毒">🙌 手部酒精消毒</label>
         <label class="cblabel"><input type="checkbox" value="攜帶備用消毒液">🧴 攜帶消毒液</label>
         <label class="cblabel"><input type="checkbox" value="鞋底消毒踩墊">👟 鞋底消毒踩墊</label>
@@ -321,7 +321,7 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);m
 
     <!-- 寵物選擇區 -->
     <div class="sec">
-      <div class="sec-title">🐾 選擇要回報的毛孩</div>
+      <div class="sec-title">🐈️ 選擇要回報的毛孩</div>
       <div class="pet-tabs" id="petTabs"></div>
       <div id="petReportArea">
         <!-- 每隻寵物的回報會在這裡切換 -->
@@ -498,11 +498,11 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);m
 
 <script>
 const SITTERS={
-  Ying:{pw:'ying0002',role:'資深貓咪照護',av:'🐱'},
-  小汶:{pw:'xiaowen0003',role:'老年寵物照護',av:'🌟'},
-  菓菓:{pw:'guoguo0004',role:'中途志工',av:'🍎'},
-  小茹:{pw:'xiaoru0005',role:'中途志工',av:'🐕'},
-  阿瑛:{pw:'aying0006',role:'中途志工',av:'🌺'},
+  Ying:{pw:'6666',role:'資深貓咪照護',av:'🌸'},
+  小汶:{pw:'5555',role:'老年寵物照護',av:'🌹'},
+  菓菓:{pw:'8888',role:'中途志工',av:'🍉'},
+  小茹:{pw:'0000',role:'中途志工',av:'🍓'},
+  阿瑛:{pw:'1111',role:'中途志工',av:'🍀'},
 };
 
 // 薪資：每0.5H $200 + 車馬費（不顯示客戶付的細節）

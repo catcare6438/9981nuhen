@@ -1,135 +1,219 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓窩裏🎉 保母工作系統</title>
-    <style>
-        :root { --p1: #FF8FA3; --bg: #FFF5F8; --border: #FFD6E0; --text: #5A4A4A; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
-        
-        /* 登入介面 */
-        #loginScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-        .lbox { background: white; border: 2px solid var(--border); border-radius: 24px; padding: 35px; width: 340px; text-align:center; box-shadow: 0 10px 25px rgba(255,143,163,0.2); }
-        .l-title { color: var(--p1); font-weight: 900; font-size: 1.4rem; margin-bottom: 20px; }
-        select, input { width: 100%; padding: 12px; margin: 8px 0; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; outline: none; }
-        .btn-main { width: 100%; padding: 13px; background: var(--p1); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; margin-top: 10px; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>貓窩裏🎉 保母工作管理系統</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{--p1:#FF8FA3;--bg:#FFF5F8;--border:#FFD6E0;--t:#5A4A4A;--card:#FFFFFF;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);}
 
-        /* 主介面 */
-        #mainScreen { display: none; }
-        .nav { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
-        .tabs { display: flex; background: #FFE8EF; padding: 5px; margin: 15px; border-radius: 12px; }
-        .tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 10px; color: #8B687A; }
-        .tab.active { background: var(--p1); color: white; }
+/* ── LOGIN ── */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;}
+.lbox{background:#fff;border:2px solid var(--border);border-radius:24px;padding:35px;width:340px;text-align:center;box-shadow:0 10px 25px rgba(255,143,163,0.2);}
+.l-title{color:var(--p1);font-weight:900;font-size:1.4rem;margin-bottom:20px;}
+select,input{width:100%;padding:12px;margin:8px 0;border:1.5px solid var(--border);border-radius:10px;font-size:1rem;outline:none;}
+.btn-main{width:100%;padding:13px;background:var(--p1);color:white;border:none;border-radius:12px;font-weight:bold;cursor:pointer;font-size:1.1rem;margin-top:10px;}
 
-        /* 案件卡片 */
-        .container { padding: 0 15px 100px; }
-        .card { background: white; border: 1.5px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
-        .c-tag { background: #FFF0F4; color: var(--p1); font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: bold; }
-        .c-name { font-size: 1.2rem; font-weight: 900; margin: 8px 0; display: block; }
-        .c-info { font-size: 0.9rem; line-height: 1.6; color: #7A6A6A; }
+/* ── MAIN ── */
+#mainScreen{display:none;}
+.nav{background:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--border);position:sticky;top:0;z-index:10;}
+.tabs{display:flex;background:#FFE8EF;padding:5px;margin:15px;border-radius:12px;}
+.tab{flex:1;text-align:center;padding:10px;font-weight:bold;cursor:pointer;border-radius:10px;color:#8B687A;font-size:0.85rem;}
+.tab.active{background:var(--p1);color:white;}
 
-        /* 回報彈窗 */
-        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; justify-content: center; }
-        .m-box { background: white; width: 100%; max-width: 500px; border-radius: 25px 25px 0 0; padding: 25px; max-height: 85vh; overflow-y: auto; }
-        .m-title { color: var(--p1); font-weight: 900; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
-        .sec { margin-bottom: 15px; }
-        .sec-label { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; display: block; color: var(--p1); }
-        textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; box-sizing: border-box; }
-        
-        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
-        .photo-btn { border: 2px dashed var(--border); border-radius: 12px; height: 100px; display: flex; align-items: center; justify-content: center; position: relative; background: #FAFAFA; overflow: hidden; }
-        .photo-btn img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
-        .photo-btn input { opacity: 0; position: absolute; inset: 0; cursor: pointer; }
-    </style>
+/* ── CONTENT ── */
+.container{padding:0 15px 100px;}
+.card{background:#fff;border:1.5px solid var(--border);border-radius:18px;padding:18px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,0.03);}
+.c-tag{background:#FFF0F4;color:var(--p1);font-size:0.75rem;padding:3px 10px;border-radius:20px;font-weight:bold;}
+.c-name{font-size:1.2rem;font-weight:900;margin:8px 0;display:block;}
+
+/* ── SALARY TABLE ── */
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:0.85rem;}
+th,td{padding:10px;border-bottom:1px solid var(--border);text-align:left;}
+th{background:var(--bg);color:var(--p1);}
+
+/* ── FORM MODAL ── */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;align-items:flex-end;justify-content:center;}
+.m-box{background:white;width:100%;max-width:550px;border-radius:25px 25px 0 0;padding:20px;max-height:90vh;overflow-y:auto;}
+.sec{margin-bottom:18px;background:var(--bg);padding:15px;border-radius:15px;}
+.sec-title{font-weight:bold;color:var(--p1);margin-bottom:10px;display:block;border-bottom:1px solid var(--border);padding-bottom:5px;}
+.q-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:0.9rem;}
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.photo-btn{border:2px dashed var(--border);border-radius:12px;height:100px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;overflow:hidden;font-size:0.75rem;color:#999;}
+.photo-btn img{width:100%;height:100%;object-fit:cover;position:absolute;}
+.photo-btn input{opacity:0;position:absolute;inset:0;cursor:pointer;}
+</style>
 </head>
 <body>
 
 <div id="loginScreen">
-    <div class="lbox">
-        <div class="l-title">🐾 貓窩裏保母登入</div>
-        <select id="sitterSel">
-            <option value="">— 請選擇您的名字 —</option>
-            <option value="Ying">🦊 Ying</option>
-            <option value="小汶">🐰 小汶</option>
-            <option value="菓菓">🦔 菓菓</option>
-            <option value="小茹">🐿️ 小茹</option>
-            <option value="阿瑛">🐶 阿瑛</option>
-        </select>
-        <input type="password" id="pwIn" placeholder="請輸入密碼 (715715)">
-        <button class="btn-main" onclick="doLogin()">確認登入</button>
-    </div>
+  <div class="lbox">
+    <div class="l-title">🐾 貓窩裏保母系統</div>
+    <select id="sitterSel">
+      <option value="">— 請選擇保母姓名 —</option>
+      <option value="Ying">🦊 Ying</option>
+      <option value="小汶">🐰 小汶</option>
+      <option value="菓菓">🦔 菓菓</option>
+      <option value="小茹">🐿️ 小茹</option>
+      <option value="阿瑛">🐶 阿瑛</option>
+    </select>
+    <input type="password" id="pwIn" placeholder="請輸入密碼 (715715)">
+    <button class="btn-main" onclick="doLogin()">確認登入</button>
+  </div>
 </div>
 
 <div id="mainScreen">
-    <div class="nav">
-        <b id="who" style="color:var(--p1); font-size:1.1rem;"></b>
-        <button onclick="location.reload()" style="background:none; border:1px solid #ddd; padding:5px 10px; border-radius:8px;">登出</button>
-    </div>
+  <div class="nav">
+    <b id="who" style="color:var(--p1);"></b>
+    <button onclick="location.reload()" style="background:none; border:1px solid #ddd; padding:5px 10px; border-radius:8px; font-size:0.8rem;">登出</button>
+  </div>
 
-    <div class="tabs">
-        <div class="tab active" id="tab1" onclick="switchTab(1)">📋 待處理案件</div>
-        <div class="tab" id="tab2" onclick="switchTab(2)">📝 回報紀錄</div>
-    </div>
+  <div class="tabs">
+    <div class="tab active" id="tab1" onclick="switchTab(1)">📋 待處理</div>
+    <div class="tab" id="tab2" onclick="switchTab(2)">📝 回報紀錄</div>
+    <div class="tab" id="tab3" onclick="switchTab(3)">💰 薪資查詢</div>
+  </div>
 
-    <div class="container" id="caseList">
-        </div>
+  <div class="container" id="contentArea"></div>
 </div>
 
 <div class="modal" id="reportModal">
-    <div class="m-box">
-        <div class="m-title">📝 照護回報單</div>
-        <div class="sec">
-            <span class="sec-label">📸 環境/砂盆對比照</span>
-            <div class="photo-grid">
-                <div class="photo-btn"><span>📷 清潔前</span><input type="file" accept="image/*" onchange="preview(this)"><img></div>
-                <div class="photo-btn"><span>✅ 清潔後</span><input type="file" accept="image/*" onchange="preview(this)"><img></div>
-            </div>
-        </div>
-        <div class="sec">
-            <span class="sec-label">💬 補充備註</span>
-            <textarea id="noteIn" rows="4" placeholder="請描述今日毛孩活動力、食慾或環境狀況..."></textarea>
-        </div>
-        <button class="btn-main" onclick="submitFinal()">完成並送出回報</button>
-        <button onclick="closeModal()" style="width:100%; background:none; border:none; margin-top:10px; color:#999;">取消返回</button>
+  <div class="m-box">
+    <h3 style="color:var(--p1);margin-bottom:15px;text-align:center;">📋 專業照護回報單</h3>
+    
+    <div class="sec">
+      <span class="sec-title">🧴 1. 進門準備</span>
+      <div class="q-row"><input type="checkbox"> 已酒精消毒雙手</div>
+      <div class="q-row"><input type="checkbox"> 已更換工作服/襪</div>
+      <div class="q-row"><input type="checkbox"> 已確認門窗關妥</div>
     </div>
+
+    <div class="sec">
+      <span class="sec-title">📸 2. 環境對比 (清砂/清潔)</span>
+      <div class="photo-grid">
+        <div class="photo-btn"><span>📷 清潔前照片</span><input type="file" onchange="preview(this)"><img></div>
+        <div class="photo-btn"><span>✅ 清潔後照片</span><input type="file" onchange="preview(this)"><img></div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <span class="sec-title">🍱 3. 飲食紀錄</span>
+      <div class="q-row">食慾狀況：
+        <select style="width:auto; padding:5px; margin:0;"><option>良好</option><option>普通</option><option>較差</option></select>
+      </div>
+      <div class="q-row"><input type="checkbox"> 已更換新鮮飲水</div>
+      <div class="q-row"><input type="checkbox"> 已清洗食碗/水杯</div>
+    </div>
+
+    <div class="sec">
+      <span class="sec-title">📝 4. 綜合觀察備註</span>
+      <textarea id="noteIn" rows="3" placeholder="請填寫毛孩活動力、排泄狀況或其他交辦事項..."></textarea>
+    </div>
+
+    <button class="btn-main" onclick="submitFinal()">完成並送出回報</button>
+    <button onclick="closeModal()" style="width:100%; background:none; border:none; margin-top:10px; color:#999;">取消返回</button>
+  </div>
 </div>
 
 <script>
-    // 預設案件資料庫 (確保每位保母都有案件)
-    const allData = [
-        { id: 1, sitter: 'Ying', client: '王小姐', pets: '咪咪、花花(貓)', time: '09:00', addr: '苓雅區青年路...' },
-        { id: 2, sitter: 'Ying', client: '李先生', pets: '妞妞(柴犬)', time: '14:00', addr: '新興區中正路...' },
-        { id: 3, sitter: '小汶', client: '陳太太', pets: '阿肥(貓)', time: '10:30', addr: '左營區博愛路...' },
-        { id: 4, sitter: '菓菓', client: '張小姐', pets: '小黑(貓)', time: '11:00', addr: '三民區河堤路...' },
-        { id: 5, sitter: '小茹', client: '許太太', pets: '球球(貓)', time: '16:00', addr: '鳳山區中山路...' },
-        { id: 6, sitter: '阿瑛', client: '趙先生', pets: 'Momo(貓)', time: '13:00', addr: '前鎮區一心路...' }
-    ];
+// 1. 確保所有保母案件 (測試資料)
+const allData = [
+  { id: 1, sitter: 'Ying', client: '陳小姐', pets: '咪咪(貓)', time: '09:00', addr: '苓雅區...', fee: 400 },
+  { id: 2, sitter: 'Ying', client: '王先生', pets: '妞妞(柴犬)', time: '13:00', addr: '新興區...', fee: 500 },
+  { id: 3, sitter: '小汶', client: '李太太', pets: '阿肥(貓)', time: '10:30', addr: '左營區...', fee: 400 },
+  { id: 4, sitter: '菓菓', client: '張小姐', pets: '小黑(貓)', time: '11:00', addr: '三民區...', fee: 400 },
+  { id: 5, sitter: '小茹', client: '許太太', pets: '球球(貓)', time: '16:00', addr: '鳳山區...', fee: 400 },
+  { id: 6, sitter: '阿瑛', client: '趙先生', pets: 'Momo(貓)', time: '13:00', addr: '前鎮區...', fee: 400 }
+];
 
-    let currentSitter = "";
-    let historyData = [];
+let currentSitter = "";
+let historyData = [];
 
-    function doLogin() {
-        const name = document.getElementById('sitterSel').value;
-        const pw = document.getElementById('pwIn').value;
-        if (name && pw === "715715") {
-            currentSitter = name;
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainScreen').style.display = 'block';
-            document.getElementById('who').innerText = "保母：" + name;
-            renderCases();
-        } else {
-            alert("資訊有誤，請重新選擇或輸入密碼！");
-        }
-    }
+function doLogin() {
+  const name = document.getElementById('sitterSel').value;
+  const pw = document.getElementById('pwIn').value;
+  if (name && pw === "715715") {
+    currentSitter = name;
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('mainScreen').style.display = 'block';
+    document.getElementById('who').innerText = "保母：" + name;
+    switchTab(1);
+  } else { alert("登入失敗，請檢查保母姓名與密碼。"); }
+}
 
-    function renderCases() {
-        const list = document.getElementById('caseList');
-        const mine = allData.filter(d => d.sitter === currentSitter);
-        
-        if(mine.length === 0) {
-            list.innerHTML = "<div style='text-align:center; padding:50px; color:#999;'>今日暫無排定案件 🐾</div>";
-            return;
-        }
+function switchTab(n) {
+  const area = document.getElementById('contentArea');
+  document.querySelectorAll('.tab').forEach((t, i) => t.className = (i+1===n) ? 'tab active' : 'tab');
+  
+  if(n === 1) renderCases(area);
+  else if(n === 2) renderHistory(area);
+  else if(n === 3) renderSalary(area);
+}
 
-        list.innerHTML = mine.
+function renderCases(area) {
+  const mine = allData.filter(d => d.sitter === currentSitter);
+  area.innerHTML = mine.length ? mine.map(c => `
+    <div class="card">
+      <span class="c-tag">待處理案件</span>
+      <span class="c-name">${c.client} (${c.pets})</span>
+      <div style="font-size:0.85rem; color:#777; margin-bottom:10px;">⏰ 時間：${c.time} | 📍 ${c.addr}</div>
+      <button class="btn-main" style="padding:8px; font-size:0.9rem;" onclick="openModal(${c.id})">填寫回報單</button>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:50px;">今日暫無案件 🐾</div>';
+}
+
+function renderHistory(area) {
+  area.innerHTML = historyData.length ? historyData.map(h => `
+    <div class="card" style="opacity:0.8">
+      <span class="c-tag" style="background:#eee;color:#666;">已完成</span>
+      <span class="c-name">${h.client}</span>
+      <div style="font-size:0.85rem;">📝 備註：${h.note || '無'}<br>📅 時間：${h.doneTime}</div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:50px;">尚無完成紀錄</div>';
+}
+
+function renderSalary(area) {
+  const mine = historyData; // 這裡模擬以完成的案件計算
+  const total = mine.reduce((sum, item) => sum + item.fee, 0);
+  area.innerHTML = `
+    <div class="card">
+      <h3 style="color:var(--p1);margin-bottom:10px;">💰 本期薪資明細</h3>
+      <table>
+        <thead><tr><th>日期/客戶</th><th>項目</th><th>金額</th></tr></thead>
+        <tbody>
+          ${mine.map(h => `<tr><td>${h.client}</td><td>到府照護</td><td>$${h.fee}</td></tr>`).join('')}
+          <tr style="font-weight:bold; color:var(--p1);"><td>合計</td><td></td><td>$${total}</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:0.75rem; color:#999; margin-top:15px;">* 薪資結算週期請參考內部公告。</p>
+    </div>
+  `;
+}
+
+let activeCaseId = null;
+function openModal(id) { activeCaseId = id; document.getElementById('reportModal').style.display = 'flex'; }
+function closeModal() { document.getElementById('reportModal').style.display = 'none'; }
+function preview(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { input.nextElementSibling.src = e.target.result; input.nextElementSibling.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+function submitFinal() {
+  const idx = allData.findIndex(c => c.id === activeCaseId);
+  const target = allData[idx];
+  historyData.unshift({ ...target, note: document.getElementById('noteIn').value, doneTime: new Date().toLocaleTimeString() });
+  allData.splice(idx, 1);
+  alert("回報成功！資料已同步至紀錄與薪資頁面。");
+  document.getElementById('noteIn').value = "";
+  closeModal();
+  switchTab(2);
+}
+</script>
+</body>
+</html>

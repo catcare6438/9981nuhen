@@ -1,268 +1,218 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>貓窩裏🐾 專業褓姆愛心系統</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-<style>
-:root{--p1:#FF8FA3;--p2:#FFB6C1;--bg:#FFF5F8;--border:#FFD6E0;--t:#3D2B35;--tl:#8B687A;--y:#FFCC33;}
-*{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.5;}
-
-/* ── 可愛風裝飾 ── */
-.kawaii-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3; pointer-events: none; }
-
-/* ── LOGIN ── */
-#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 100%);}
-.lbox{background:#fff;border:3px solid var(--border);border-radius:30px;padding:40px 30px;width:340px;text-align:center;box-shadow:0 15px 40px rgba(255,143,163,0.3);position:relative;}
-.lbox::after { content: '🐱'; position: absolute; top: -20px; right: -10px; font-size: 40px; transform: rotate(15deg); }
-.l-title{font-family: 'ZCOOL KuaiLe', cursive; font-size: 1.8rem; color: var(--p1); margin-bottom: 20px;}
-select,input{width:100%;padding:12px;margin:8px 0;border:2px solid var(--border);border-radius:15px;outline:none;font-size:1rem;}
-.btn-main{width:100%;padding:14px;background:linear-gradient(135deg, var(--p1), #FF6B8A);color:white;border:none;border-radius:15px;font-weight:900;cursor:pointer;font-size:1.1rem;box-shadow: 0 4px 10px rgba(255,107,138,0.3);}
-
-/* ── NAV & TABS ── */
-#mainScreen{display:none;}
-.nav{background:#fff;padding:12px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--border);position:sticky;top:0;z-index:100;}
-.tabs{display:flex;background:#FFE8EF;padding:5px;margin:15px;border-radius:20px;gap:5px;}
-.tab{flex:1;text-align:center;padding:12px;font-weight:bold;cursor:pointer;border-radius:15px;color:var(--tl);font-size:0.85rem;transition:0.3s;}
-.tab.active{background:var(--p1);color:white;box-shadow: 0 4px 8px rgba(255,143,163,0.3);}
-
-/* ── CONTAINER & CARDS ── */
-.container{padding:0 15px 100px;}
-.card{background:#fff;border:2px solid var(--border);border-radius:20px;padding:20px;margin-bottom:15px;box-shadow:0 6px 15px rgba(0,0,0,0.02);position:relative;}
-.card-edit-btn { position: absolute; top: 15px; right: 15px; background: var(--bg); color: var(--p1); border: 1px solid var(--p1); border-radius: 8px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; }
-.c-tag{background:var(--y);color:#fff;font-size:0.7rem;padding:3px 12px;border-radius:20px;font-weight:900;}
-
-/* ── ULTRA DETAILED MODAL ── */
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
-.m-box{background:#fff;width:100%;max-width:600px;border-radius:30px 30px 0 0;padding:25px;max-height:92vh;overflow-y:auto;}
-.sec{margin-bottom:20px;padding:18px;background:var(--bg);border-radius:20px;border:1.5px dashed var(--border);}
-.sec-title{font-weight:900;color:var(--p1);margin-bottom:15px;display:block;font-size:1.1rem;display:flex;align-items:center;gap:8px;}
-
-.q-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:0.95rem;cursor:pointer;background:#fff;padding:10px;border-radius:12px;}
-.q-row input[type="checkbox"]{width:20px;height:20px;accent-color:var(--p1);}
-
-.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin:15px 0;}
-.photo-btn{border:2.5px dashed var(--border);border-radius:15px;height:140px;display:flex;align-items:center;justify-content:center;position:relative;background:#fff;overflow:hidden;font-size:0.8rem;color:var(--tl);flex-direction:column;}
-.photo-btn img{width:100%;height:100%;object-fit:cover;position:absolute;z-index:2;}
-.photo-btn input{opacity:0;position:absolute;inset:0;cursor:pointer;z-index:3;}
-
-textarea{width:100%;border:2px solid var(--border);border-radius:15px;padding:12px;font-size:1rem;margin-top:10px;outline:none;}
-table{width:100%;border-collapse:separate;border-spacing:0 8px;}
-th,td{padding:12px;text-align:left;font-size:0.9rem;}
-tr{background:#fff;border-radius:12px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>貓窩裏🐾 雲端專業回報系統</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root{--p1:#FF8FA3;--bg:#FFF5F8;--border:#FFD6E0;--t:#3D2B35;--tl:#8B687A;}
+        *{box-sizing:border-box;margin:0;padding:0;}
+        body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.5;padding-bottom:80px;}
+        
+        /* 可愛導航與分頁 */
+        .nav{background:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--border);position:sticky;top:0;z-index:100;}
+        .tabs{display:flex;background:#FFE8EF;padding:5px;margin:15px;border-radius:20px;gap:5px;}
+        .tab{flex:1;text-align:center;padding:12px;font-weight:bold;cursor:pointer;border-radius:15px;color:var(--tl);font-size:0.9rem;}
+        .tab.active{background:var(--p1);color:white;box-shadow:0 4px 10px rgba(255,143,163,0.2);}
+        
+        /* 任務卡片 */
+        .container{padding:0 15px;}
+        .card{background:#fff;border:2px solid var(--border);border-radius:22px;padding:20px;margin-bottom:15px;box-shadow:0 6px 15px rgba(0,0,0,0.02);position:relative;}
+        .c-title{font-size:1.2rem;font-weight:900;color:var(--p1);margin-bottom:8px;}
+        .btn-main{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),#FF6B8A);color:white;border:none;border-radius:15px;font-weight:900;cursor:pointer;font-size:1rem;}
+        
+        /* 回報彈窗樣式 */
+        .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
+        .m-box{background:#fff;width:100%;max-width:600px;border-radius:30px 30px 0 0;padding:25px;max-height:92vh;overflow-y:auto;}
+        .sec{margin-bottom:15px;padding:15px;background:var(--bg);border-radius:20px;border:1.5px dashed var(--border);}
+        .sec-label{font-weight:900;color:var(--p1);display:block;margin-bottom:8px;}
+        input, select, textarea { width:100%; padding:12px; border-radius:12px; border:1.5px solid var(--border); margin-top:5px; outline:none; font-family:inherit;}
+        
+        /* 歷史紀錄細節 */
+        .history-p{font-size:0.85rem; border-left:3px solid var(--p1); padding-left:12px; margin-top:10px; color:var(--tl);}
+    </style>
 </head>
 <body>
 
-<div class="kawaii-bg">🌸 🐾 🎀 🎈 🍭 🐱 🐶 🦄 🧁 🍀</div>
-
-<div id="loginScreen">
-  <div class="lbox">
-    <div class="l-title">貓窩裏🐾保母工作站</div>
-    <select id="sitterSel">
-      <option value="">🍬 我是哪位可愛保母？</option>
-      <option value="Ying">🦊 Ying</option>
-      <option value="小汶">🐰 小汶</option>
-      <option value="菓菓">🦔 菓菓</option>
-      <option value="小茹">🐿️ 小茹</option>
-      <option value="阿瑛">🐶 阿瑛</option>
-    </select>
-    <input type="password" id="pwIn" placeholder="輸入通關密碼 (715715)">
-    <button class="btn-main" onclick="doLogin()">出發照顧毛孩 ✨</button>
-  </div>
+<div id="loginScreen" style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 100%);">
+    <div style="background:#fff; padding:40px; border-radius:30px; border:3px solid var(--border); text-align:center; width:340px; box-shadow:0 15px 35px rgba(0,0,0,0.1);">
+        <h2 style="color:var(--p1); margin-bottom:20px;">貓窩裏🐾 雲端站</h2>
+        <select id="sitterSel">
+            <option value="Ying">🦊 Ying</option>
+            <option value="小汶">🐰 小汶</option>
+            <option value="菓菓">🦔 菓菓</option>
+            <option value="小茹">🐿️ 小茹</option>
+            <option value="阿瑛">🐶 阿瑛</option>
+        </select>
+        <input type="password" id="pwIn" placeholder="通關密碼 (715715)">
+        <button class="btn-main" style="margin-top:20px;" onclick="doLogin()">連線系統 ✨</button>
+    </div>
 </div>
 
-<div id="mainScreen">
-  <div class="nav">
-    <b id="who" style="color:var(--p1); font-size:1.2rem;"></b>
-    <button onclick="location.reload()" style="background:var(--bg); border:none; padding:8px 15px; border-radius:15px; color:var(--tl); font-weight:bold;">登出 🚪</button>
-  </div>
-  <div class="tabs">
-    <div class="tab active" id="tab1" onclick="switchTab(1)">🐣 任務清單</div>
-    <div class="tab" id="tab2" onclick="switchTab(2)">📝 照護紀錄</div>
-    <div class="tab" id="tab3" onclick="switchTab(3)">💰 小錢包</div>
-  </div>
-  <div class="container" id="viewArea"></div>
+<div id="mainScreen" style="display:none;">
+    <div class="nav">
+        <b id="who" style="color:var(--p1); font-size:1.1rem;"></b>
+        <button onclick="location.reload()" style="background:none; border:none; color:#999; font-weight:bold;">登出</button>
+    </div>
+    <div class="tabs">
+        <div class="tab active" id="t1" onclick="switchTab(1, this)">📋 今日任務</div>
+        <div class="tab" id="t2" onclick="switchTab(2, this)">📝 雲端紀錄</div>
+    </div>
+    <div class="container" id="viewArea"></div>
 </div>
 
 <div class="modal" id="reportModal">
-  <div class="m-box">
-    <h2 style="color:var(--p1);margin-bottom:20px;text-align:center;">✨ 毛孩照護回報 ✨</h2>
-    
-    <div class="sec">
-      <span class="sec-title">🧼 1. 衛生與安全準備</span>
-      <label class="q-row"><input type="checkbox" id="q_dis"> 雙手已酒精消毒</label>
-      <label class="q-row"><input type="checkbox" id="q_cloth"> 更換工作服與襪子</label>
-      <label class="q-row"><input type="checkbox" id="q_door"> 檢查所有窗戶、門鎖安全</label>
-      <label class="q-row"><input type="checkbox" id="q_cam"> 已確認攝影機位置正常</label>
-    </div>
+    <div class="m-box">
+        <h3 id="mTitle" style="text-align:center; color:var(--p1); margin-bottom:20px;">✨ 專業照護回報</h3>
+        
+        <div class="sec">
+            <span class="sec-label">🌡️ 1. 環境數值</span>
+            <input type="number" id="f_temp" placeholder="目前室溫°C">
+            <input type="text" id="f_items" placeholder="備品補充 (如：砂剩2包)">
+        </div>
 
-    <div class="sec">
-      <span class="sec-title">🚽 2. 環境與廁所清潔</span>
-      <div class="photo-grid">
-        <div class="photo-btn"><span>📸 清潔前照片</span><input type="file" onchange="preview(this)" id="img_pre"><img></div>
-        <div class="photo-btn"><span>✨ 清潔後照片</span><input type="file" onchange="preview(this)" id="img_post"><img></div>
-      </div>
-      <label class="q-row"><input type="checkbox" id="q_sand"> 鏟除砂團/排泄物並補砂</label>
-      <label class="q-row"><input type="checkbox" id="q_floor"> 地板落砂掃除、擦拭汙漬</label>
-      <label class="q-row"><input type="checkbox" id="q_vomit"> 巡視是否有嘔吐物並清理</label>
-    </div>
+        <div class="sec">
+            <span class="sec-label">🍛 2. 飲食紀錄</span>
+            <select id="f_food">
+                <option value="全部吃完">😋 全部吃完</option>
+                <option value="剩餘一點">🙂 剩餘一點</option>
+                <option value="剩餘一半">😐 剩餘一半</option>
+                <option value="幾乎沒吃">😰 幾乎沒吃</option>
+            </select>
+        </div>
 
-    <div class="sec">
-      <span class="sec-title">🍱 3. 飽飽飲食紀錄</span>
-      <label class="q-row"><input type="checkbox" id="q_wash"> 食碗/水杯已確實清洗</label>
-      <label class="q-row"><input type="checkbox" id="q_water"> 已更換新鮮過濾飲水</label>
-      <div style="padding:10px; background:#fff; border-radius:12px;">
-        <p style="font-size:0.9rem;">🥣 剩食狀況：</p>
-        <select id="food_status" class="full"><option>光光沒剩</option><option>剩一點點</option><option>剩下一半</option><option>幾乎沒吃</option></select>
-      </div>
-    </div>
+        <div class="sec">
+            <span class="sec-label">🩺 3. 毛孩狀態與備註</span>
+            <textarea id="f_note" rows="5" placeholder="詳細記錄今天毛孩的精神、排泄狀況與互動細節..."></textarea>
+        </div>
 
-    <div class="sec">
-      <span class="sec-title">🩺 4. 毛孩細膩觀察</span>
-      <p style="font-size:0.85rem; color:var(--tl); margin-bottom:8px;">(飼主最在意的細節)</p>
-      <label class="q-row"><input type="checkbox" id="q_poo"> 便便形狀漂亮 (條狀)</label>
-      <label class="q-row"><input type="checkbox" id="q_pee"> 尿量顏色正常</label>
-      <label class="q-row"><input type="checkbox" id="q_eye"> 眼睛無異常分泌物/噴嚏</label>
-      <textarea id="noteIn" rows="4" placeholder="在這裡寫下給爸媽的話：例如今天有跟誰玩逗貓棒、誰今天心情特別好、或是發現的小祕密..."></textarea>
+        <button class="btn-main" id="subBtn" onclick="submitToCloud()">確認無誤・同步雲端 💌</button>
+        <button onclick="closeModal()" style="width:100%; border:none; background:none; margin-top:15px; color:#999; font-size:0.9rem;">返回修改</button>
     </div>
-
-    <button class="btn-main" onclick="submitFinal()">確認送出，讓爸媽安心 💌</button>
-    <button onclick="closeModal()" style="width:100%; background:none; border:none; margin-top:15px; color:#999; font-size:0.9rem;">我還要再改一下</button>
-  </div>
 </div>
 
 <script>
+// --- 🔑 已自動帶入您的連線金鑰 ---
+const SB_URL = "https://cswejuvithewfyhmisfc.supabase.co"; 
+const SB_KEY = "sb_publishable_SHEt60Pl_LoqDHp2PLLqIg_ASjK72vz"; 
+const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
+
 const allCases = [
-  { id: 1, sitter: 'Ying', client: '陳小姐', pets: '咪咪(貓)', time: '09:00', addr: '苓雅區...', fee: 450 },
-  { id: 2, sitter: 'Ying', client: '王先生', pets: '大黃(狗)', time: '13:00', addr: '新興區...', fee: 600 },
-  { id: 3, sitter: '小汶', client: '李太太', pets: '阿肥(貓)', time: '10:30', addr: '左營區...', fee: 450 }
+    { client: '陳小姐', pets: '咪咪(貓)', addr: '苓雅區...' },
+    { client: '林先生', pets: '多多(狗)', addr: '左營區...' }
 ];
 
 let curSitter = "";
-let historyRecords = [];
+let activeClient = "";
 let editingId = null;
 
 function doLogin() {
-  const name = document.getElementById('sitterSel').value;
-  const pw = document.getElementById('pwIn').value;
-  if(name && pw === "715715") {
-    curSitter = name;
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainScreen').style.display = 'block';
-    document.getElementById('who').innerText = "🎈 " + name + " 保母";
-    switchTab(1);
-  } else { alert("密碼不對喔～喵！🐾"); }
+    if(document.getElementById('pwIn').value === "715715") {
+        curSitter = document.getElementById('sitterSel').value;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('mainScreen').style.display = 'block';
+        document.getElementById('who').innerText = "📍 " + curSitter + " 保母";
+        switchTab(1);
+    } else { alert("密碼錯誤喔！🐾"); }
 }
 
-function switchTab(n) {
-  const area = document.getElementById('viewArea');
-  document.querySelectorAll('.tab').forEach((t, i) => t.className = (i+1===n) ? 'tab active' : 'tab');
-  if(n === 1) renderCases(area);
-  else if(n === 2) renderHistory(area);
-  else if(n === 3) renderSalary(area);
+async function switchTab(n, el) {
+    if(el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+    const area = document.getElementById('viewArea');
+    area.innerHTML = "<p style='text-align:center; padding:50px; color:#999;'>雲端連線中...</p>";
+
+    if(n === 1) renderCases(area);
+    else await renderHistory(area);
 }
 
 function renderCases(area) {
-  const mine = allCases.filter(c => c.sitter === curSitter);
-  area.innerHTML = mine.map(c => `
-    <div class="card">
-      <span class="c-tag">🐣 待照護</span>
-      <div style="font-size:1.3rem; font-weight:900; color:var(--p1); margin:10px 0;">${c.client} 家的毛寶貝</div>
-      <div style="font-size:0.9rem; color:var(--tm); background:var(--bg); padding:10px; border-radius:12px;">
-        🐱 毛孩：${c.pets}<br>🕒 時間：${c.time}<br>📍 地址：${c.addr}
-      </div>
-      <button class="btn-main" style="margin-top:15px;" onclick="openModal(${c.id})">開始這趟照護之旅 🚀</button>
-    </div>
-  `).join('');
+    area.innerHTML = allCases.map(c => `
+        <div class="card">
+            <div class="c-title">${c.client} 家</div>
+            <p style="color:var(--tl); font-size:0.9rem;">🐾 毛孩：${c.pets}<br>📍 地址：${c.addr}</p>
+            <button class="btn-main" style="margin-top:15px;" onclick="openModal('${c.client}')">開始照護之旅 🚀</button>
+        </div>
+    `).join('');
 }
 
-function renderHistory(area) {
-  area.innerHTML = historyRecords.length ? historyRecords.map(r => `
-    <div class="card">
-      <button class="card-edit-btn" onclick="editRecord(${r.id})">修改紀錄 ✏️</button>
-      <span class="c-tag" style="background:#BEE3F8; color:#2B6CB0;">✅ 已完成回報</span>
-      <div style="font-weight:900; color:var(--p1); margin:10px 0;">${r.client} (${r.pets})</div>
-      <div style="font-size:0.85rem; border-top:1px dashed var(--border); padding-top:10px;">
-        <b>📝 你的溫馨備註：</b><br>${r.note || '未填寫'}<br>
-        <span style="color:#999; font-size:0.7rem;">完成時間：${r.doneTime}</span>
-      </div>
-    </div>
-  `).join('') : '<div style="text-align:center;padding:80px;color:#999;">還沒有完成紀錄喔～加油！🌻</div>';
+async function renderHistory(area) {
+    const { data, error } = await supabaseClient.from('reports').select('*').eq('sitter_name', curSitter).order('created_at', {ascending: false});
+    
+    if(data && data.length > 0) {
+        area.innerHTML = data.map(r => `
+            <div class="card">
+                <button onclick="loadForEdit(${r.id})" style="position:absolute; top:15px; right:15px; border:1.5px solid var(--p1); color:var(--p1); background:#fff; padding:4px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold;">修改 ✏️</button>
+                <div class="c-title" style="font-size:1rem;">${r.client_name} - 回報完成</div>
+                <div class="history-p">
+                    🌡️ 溫度：${r.temp}°C | 🍱 飲食：${r.food_status}<br>
+                    📝 紀錄：${r.note || '未填寫'}<br>
+                    📦 備品：${r.items || '正常'}<br>
+                    <small style="color:#ccc;">存檔時間：${new Date(r.created_at).toLocaleString()}</small>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        area.innerHTML = "<p style='text-align:center; padding:50px; color:#999;'>雲端目前無紀錄 🌿</p>";
+    }
 }
 
-function renderSalary(area) {
-  const total = historyRecords.reduce((s, r) => s + r.fee, 0);
-  area.innerHTML = `
-    <div class="card" style="text-align:center;">
-      <div style="font-size:3rem;">💰</div>
-      <h3 style="color:var(--p1);">本期累積小獎勵</h3>
-      <div style="font-size:2.5rem; font-weight:900; color:var(--p1); margin:10px 0;">$${total}</div>
-      <p style="font-size:0.8rem; color:#999;">(包含已完成的 ${historyRecords.length} 筆案件)</p>
-    </div>
-  `;
+function openModal(client) {
+    editingId = null;
+    activeClient = client;
+    document.getElementById('mTitle').innerText = "✨ " + client + " 照護回報";
+    document.getElementById('reportModal').style.display = 'flex';
 }
 
-function openModal(id) { 
-  editingId = id; 
-  document.getElementById('reportModal').style.display = 'flex'; 
+async function loadForEdit(id) {
+    const { data } = await supabaseClient.from('reports').select('*').eq('id', id).single();
+    editingId = id;
+    activeClient = data.client_name;
+    document.getElementById('f_temp').value = data.temp;
+    document.getElementById('f_food').value = data.food_status;
+    document.getElementById('f_items').value = data.items;
+    document.getElementById('f_note').value = data.note;
+    document.getElementById('reportModal').style.display = 'flex';
 }
 
-function closeModal() { 
-  document.getElementById('reportModal').style.display = 'none'; 
-  resetForm();
+function closeModal() {
+    document.getElementById('reportModal').style.display = 'none';
+    document.querySelectorAll('.modal input, .modal textarea').forEach(i => i.value = "");
 }
 
-function preview(input) {
-  if (input.files && input.files[0]) {
-    const reader = new FileReader();
-    reader.onload = e => { 
-        const img = input.nextElementSibling;
-        img.src = e.target.result; 
-        img.style.display = 'block'; 
+async function submitToCloud() {
+    const btn = document.getElementById('subBtn');
+    btn.innerText = "連線中..."; btn.disabled = true;
+
+    const row = {
+        sitter_name: curSitter,
+        client_name: activeClient,
+        temp: document.getElementById('f_temp').value,
+        food_status: document.getElementById('f_food').value,
+        items: document.getElementById('f_items').value,
+        note: document.getElementById('f_note').value
     };
-    reader.readAsDataURL(input.files[0]);
-  }
-}
 
-function resetForm() {
-  const checkboxes = document.querySelectorAll('#reportModal input[type="checkbox"]');
-  checkboxes.forEach(c => c.checked = false);
-  document.getElementById('noteIn').value = "";
-  document.querySelectorAll('.photo-btn img').forEach(img => { img.src=""; img.style.display="none"; });
-}
+    let response;
+    if(editingId) {
+        response = await supabaseClient.from('reports').update(row).eq('id', editingId);
+    } else {
+        response = await supabaseClient.from('reports').insert([row]);
+    }
 
-function submitFinal() {
-  const idx = allCases.findIndex(c => c.id === editingId);
-  const target = idx > -1 ? allCases[idx] : historyRecords.find(r => r.id === editingId);
-  
-  const record = {
-    ...target,
-    note: document.getElementById('noteIn').value,
-    doneTime: new Date().toLocaleString(),
-    // 這裡可以擴展存儲勾選狀態
-  };
-
-  if(idx > -1) {
-    historyRecords.unshift(record);
-    allCases.splice(idx, 1);
-  } else {
-    const hIdx = historyRecords.findIndex(r => r.id === editingId);
-    historyRecords[hIdx] = record;
-  }
-
-  alert("💌 回報成功！已經傳達給爸媽囉！");
-  closeModal();
-  switchTab(2);
-}
-
-function editRecord(id) {
-  const r = historyRecords.find(item => item.id === id);
-  editingId = id;
-  document.getElementById('noteIn').value = r.note;
-  document.getElementById('reportModal').style.display = 'flex';
+    if(response.error) {
+        alert("同步失敗：" + response.error.message);
+        btn.innerText = "重試一次"; btn.disabled = false;
+    } else {
+        alert("🎉 成功同步至雲端！");
+        closeModal();
+        switchTab(2);
+        btn.innerText = "確認無誤・同步雲端 💌"; btn.disabled = false;
+    }
 }
 </script>
 </body>

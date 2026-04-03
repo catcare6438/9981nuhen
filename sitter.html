@@ -3,42 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-    <title>貓窩裏🐾 雲端專業回報系統</title>
+    <title>貓窩裏🐾 懶人專業回報系統</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        :root{--p1:#FF8FA3;--bg:#FFF5F8;--border:#FFD6E0;--t:#3D2B35;--tl:#8B687A;}
+        :root{--p1:#FF8FA3;--p2:#FFB6C1;--bg:#FFF5F8;--border:#FFD6E0;--t:#3D2B35;--tl:#8B687A;}
         *{box-sizing:border-box;margin:0;padding:0;}
-        body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.5;padding-bottom:80px;}
-        
-        /* 可愛導航與分頁 */
-        .nav{background:#fff;padding:15px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--border);position:sticky;top:0;z-index:100;}
+        body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);padding-bottom:100px;}
+        .nav{background:#fff;padding:15px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid var(--border);position:sticky;top:0;z-index:100;}
         .tabs{display:flex;background:#FFE8EF;padding:5px;margin:15px;border-radius:20px;gap:5px;}
-        .tab{flex:1;text-align:center;padding:12px;font-weight:bold;cursor:pointer;border-radius:15px;color:var(--tl);font-size:0.9rem;}
-        .tab.active{background:var(--p1);color:white;box-shadow:0 4px 10px rgba(255,143,163,0.2);}
-        
-        /* 任務卡片 */
+        .tab{flex:1;text-align:center;padding:12px;font-weight:bold;cursor:pointer;border-radius:15px;color:var(--tl);font-size:0.85rem;}
+        .tab.active{background:var(--p1);color:white;}
         .container{padding:0 15px;}
         .card{background:#fff;border:2px solid var(--border);border-radius:22px;padding:20px;margin-bottom:15px;box-shadow:0 6px 15px rgba(0,0,0,0.02);position:relative;}
-        .c-title{font-size:1.2rem;font-weight:900;color:var(--p1);margin-bottom:8px;}
+        .c-title{font-size:1.1rem;font-weight:900;color:var(--p1);margin-bottom:5px;}
         .btn-main{width:100%;padding:14px;background:linear-gradient(135deg,var(--p1),#FF6B8A);color:white;border:none;border-radius:15px;font-weight:900;cursor:pointer;font-size:1rem;}
         
-        /* 回報彈窗樣式 */
+        /* 彈窗與表單 */
         .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px);}
         .m-box{background:#fff;width:100%;max-width:600px;border-radius:30px 30px 0 0;padding:25px;max-height:92vh;overflow-y:auto;}
-        .sec{margin-bottom:15px;padding:15px;background:var(--bg);border-radius:20px;border:1.5px dashed var(--border);}
-        .sec-label{font-weight:900;color:var(--p1);display:block;margin-bottom:8px;}
-        input, select, textarea { width:100%; padding:12px; border-radius:12px; border:1.5px solid var(--border); margin-top:5px; outline:none; font-family:inherit;}
+        .sec{margin-bottom:12px;padding:15px;background:var(--bg);border-radius:20px;border:1px dashed var(--border);}
+        .sec-title{font-weight:900;color:var(--p1);margin-bottom:10px;display:block;font-size:0.9rem;}
+        select, input, textarea { width:100%; padding:12px; border-radius:12px; border:1.5px solid var(--border); margin-top:5px; font-size:0.95rem; background:#fff;}
         
-        /* 歷史紀錄細節 */
-        .history-p{font-size:0.85rem; border-left:3px solid var(--p1); padding-left:12px; margin-top:10px; color:var(--tl);}
+        /* 導出預覽層 */
+        #exportOverlay{display:none; position:fixed; inset:0; background:rgba(255,255,255,0.95); z-index:300; padding:30px; overflow-y:auto;}
+        .export-content{background:white; border:2px solid var(--p1); padding:20px; border-radius:15px; font-size:0.9rem; white-space:pre-wrap; color:#555;}
     </style>
 </head>
 <body>
 
-<div id="loginScreen" style="min-height:100vh; display:flex; align-items:center; justify-content:center; background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 100%);">
-    <div style="background:#fff; padding:40px; border-radius:30px; border:3px solid var(--border); text-align:center; width:340px; box-shadow:0 15px 35px rgba(0,0,0,0.1);">
-        <h2 style="color:var(--p1); margin-bottom:20px;">貓窩裏🐾 雲端站</h2>
+<div id="loginScreen" style="min-height:100vh; display:flex; align-items:center; justify-content:center;">
+    <div style="background:#fff; padding:40px; border-radius:30px; border:3px solid var(--border); text-align:center; width:320px;">
+        <h2 style="color:var(--p1);">貓窩裏🐾 專業端</h2>
         <select id="sitterSel">
             <option value="Ying">🦊 Ying</option>
             <option value="小汶">🐰 小汶</option>
@@ -47,173 +44,154 @@
             <option value="阿瑛">🐶 阿瑛</option>
         </select>
         <input type="password" id="pwIn" placeholder="通關密碼 (715715)">
-        <button class="btn-main" style="margin-top:20px;" onclick="doLogin()">連線系統 ✨</button>
+        <button class="btn-main" style="margin-top:20px;" onclick="doLogin()">登入</button>
     </div>
 </div>
 
 <div id="mainScreen" style="display:none;">
-    <div class="nav">
-        <b id="who" style="color:var(--p1); font-size:1.1rem;"></b>
-        <button onclick="location.reload()" style="background:none; border:none; color:#999; font-weight:bold;">登出</button>
-    </div>
+    <div class="nav"><b id="who" style="color:var(--p1);"></b><button onclick="location.reload()" style="background:none; border:none; color:#999;">登出</button></div>
     <div class="tabs">
-        <div class="tab active" id="t1" onclick="switchTab(1, this)">📋 今日任務</div>
-        <div class="tab" id="t2" onclick="switchTab(2, this)">📝 雲端紀錄</div>
+        <div class="tab active" onclick="switchTab(1, this)">📋 任務</div>
+        <div class="tab" onclick="switchTab(2, this)">📝 紀錄</div>
+        <div class="tab" onclick="switchTab(3, this)">💰 薪資</div>
     </div>
     <div class="container" id="viewArea"></div>
 </div>
 
 <div class="modal" id="reportModal">
     <div class="m-box">
-        <h3 id="mTitle" style="text-align:center; color:var(--p1); margin-bottom:20px;">✨ 專業照護回報</h3>
+        <h3 style="text-align:center; color:var(--p1); margin-bottom:15px;">🐾 快速回報單</h3>
         
         <div class="sec">
-            <span class="sec-label">🌡️ 1. 環境數值</span>
-            <input type="number" id="f_temp" placeholder="目前室溫°C">
-            <input type="text" id="f_items" placeholder="備品補充 (如：砂剩2包)">
+            <span class="sec-title">🌡️ 環境：<input type="number" id="f_temp" style="display:inline; width:60px; padding:5px;"> °C</span>
+            <select id="f_items"><option value="充足">📦 備品：充足</option><option value="即將用完">📦 備品：需補充</option></select>
         </div>
 
         <div class="sec">
-            <span class="sec-label">🍛 2. 飲食紀錄</span>
+            <span class="sec-title">🍽️ 飲食與排泄</span>
             <select id="f_food">
-                <option value="全部吃完">😋 全部吃完</option>
-                <option value="剩餘一點">🙂 剩餘一點</option>
-                <option value="剩餘一半">😐 剩餘一半</option>
-                <option value="幾乎沒吃">😰 幾乎沒吃</option>
+                <option value="食慾極佳，全部吃光">🍲 食慾：掃盤吃光</option>
+                <option value="食慾一般，剩一點點">🍲 食慾：剩一點點</option>
+                <option value="沒什麼食慾">🍲 食慾：幾乎沒吃</option>
+            </select>
+            <select id="f_poo">
+                <option value="排泄狀況非常健康">💩 排泄：漂亮成形</option>
+                <option value="有一點軟便">💩 排泄：微軟便</option>
+                <option value="今日未排便">💩 排泄：未觀察到</option>
             </select>
         </div>
 
         <div class="sec">
-            <span class="sec-label">🩺 3. 毛孩狀態與備註</span>
-            <textarea id="f_note" rows="5" placeholder="詳細記錄今天毛孩的精神、排泄狀況與互動細節..."></textarea>
+            <span class="sec-title">😺 毛孩心情</span>
+            <select id="f_mood">
+                <option value="心情超好，熱情撒嬌">💕 心情：主動蹭人/熱情</option>
+                <option value="放鬆自在，安靜陪伴">自在：穩定/懶洋洋</option>
+                <option value="有點害羞，躲藏观察">害羞：躲起來/觀察中</option>
+                <option value="情緒興奮，一直想玩">興奮：瘋狂玩玩具</option>
+            </select>
         </div>
 
-        <button class="btn-main" id="subBtn" onclick="submitToCloud()">確認無誤・同步雲端 💌</button>
-        <button onclick="closeModal()" style="width:100%; border:none; background:none; margin-top:15px; color:#999; font-size:0.9rem;">返回修改</button>
+        <div class="sec">
+            <span class="sec-title">✍️ 額外備註 (選填)</span>
+            <textarea id="f_note" rows="2" placeholder="有什麼特別想跟家長說的？"></textarea>
+        </div>
+
+        <button class="btn-main" id="subBtn" onclick="submitToCloud()">同步雲端存檔 💌</button>
+        <button onclick="closeModal()" style="width:100%; border:none; background:none; margin-top:10px; color:#999;">返回</button>
     </div>
 </div>
 
+<div id="exportOverlay">
+    <h3 style="text-align:center; color:var(--p1);">💌 給家長的回報訊息</h3>
+    <p style="text-align:center; font-size:0.8rem; color:#888; margin-bottom:10px;">(複製以下文字發送到 Line 即可)</p>
+    <div class="export-content" id="exportTarget"></div>
+    <button class="btn-main" style="margin-top:20px;" onclick="copyText()">複製文字並關閉</button>
+</div>
+
 <script>
-// --- 🔑 已自動帶入您的連線金鑰 ---
 const SB_URL = "https://cswejuvithewfyhmisfc.supabase.co"; 
 const SB_KEY = "sb_publishable_SHEt60Pl_LoqDHp2PLLqIg_ASjK72vz"; 
 const supabaseClient = supabase.createClient(SB_URL, SB_KEY);
 
 const allCases = [
-    { client: '陳小姐', pets: '咪咪(貓)', addr: '苓雅區...' },
-    { client: '林先生', pets: '多多(狗)', addr: '左營區...' }
+    { client: '陳小姐', pets: '咪咪(貓)', fee: 450 },
+    { client: '王先生', pets: '小黑(狗)', fee: 550 }
 ];
 
-let curSitter = "";
-let activeClient = "";
-let editingId = null;
+let curSitter = "", activeClient = "", currentFee = 0;
 
 function doLogin() {
     if(document.getElementById('pwIn').value === "715715") {
         curSitter = document.getElementById('sitterSel').value;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('mainScreen').style.display = 'block';
-        document.getElementById('who').innerText = "📍 " + curSitter + " 保母";
+        document.getElementById('who').innerText = "📍 保母：" + curSitter;
         switchTab(1);
-    } else { alert("密碼錯誤喔！🐾"); }
+    } else { alert("密碼錯誤"); }
 }
 
 async function switchTab(n, el) {
-    if(el) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-    }
+    if(el){ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); el.classList.add('active');}
     const area = document.getElementById('viewArea');
-    area.innerHTML = "<p style='text-align:center; padding:50px; color:#999;'>雲端連線中...</p>";
-
-    if(n === 1) renderCases(area);
-    else await renderHistory(area);
+    area.innerHTML = "<p style='text-align:center; padding:50px;'>同步中...</p>";
+    if(n===1) renderCases(area);
+    else if(n===2) await renderHistory(area);
+    else await renderSalary(area);
 }
 
 function renderCases(area) {
     area.innerHTML = allCases.map(c => `
         <div class="card">
             <div class="c-title">${c.client} 家</div>
-            <p style="color:var(--tl); font-size:0.9rem;">🐾 毛孩：${c.pets}<br>📍 地址：${c.addr}</p>
-            <button class="btn-main" style="margin-top:15px;" onclick="openModal('${c.client}')">開始照護之旅 🚀</button>
+            <p style="color:var(--tl); font-size:0.85rem;">🐾 毛孩：${c.pets}</p>
+            <button class="btn-main" style="margin-top:10px;" onclick="openModal('${c.client}', ${c.fee})">開始回報 🚀</button>
         </div>
     `).join('');
 }
 
 async function renderHistory(area) {
-    const { data, error } = await supabaseClient.from('reports').select('*').eq('sitter_name', curSitter).order('created_at', {ascending: false});
-    
-    if(data && data.length > 0) {
-        area.innerHTML = data.map(r => `
-            <div class="card">
-                <button onclick="loadForEdit(${r.id})" style="position:absolute; top:15px; right:15px; border:1.5px solid var(--p1); color:var(--p1); background:#fff; padding:4px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold;">修改 ✏️</button>
-                <div class="c-title" style="font-size:1rem;">${r.client_name} - 回報完成</div>
-                <div class="history-p">
-                    🌡️ 溫度：${r.temp}°C | 🍱 飲食：${r.food_status}<br>
-                    📝 紀錄：${r.note || '未填寫'}<br>
-                    📦 備品：${r.items || '正常'}<br>
-                    <small style="color:#ccc;">存檔時間：${new Date(r.created_at).toLocaleString()}</small>
-                </div>
-            </div>
-        `).join('');
-    } else {
-        area.innerHTML = "<p style='text-align:center; padding:50px; color:#999;'>雲端目前無紀錄 🌿</p>";
-    }
+    const { data } = await supabaseClient.from('reports').select('*').eq('sitter_name', curSitter).order('created_at', {ascending: false});
+    area.innerHTML = data && data.length ? data.map(r => `
+        <div class="card">
+            <button onclick="exportToOwner(${JSON.stringify(r).replace(/"/g, '&quot;')})" style="position:absolute; top:15px; right:15px; border:1px solid var(--p1); color:var(--p1); background:none; padding:4px 10px; border-radius:10px; font-size:0.8rem;">導出給飼主 📤</button>
+            <div class="c-title">${r.client_name}</div>
+            <p style="font-size:0.8rem; color:#888;">${new Date(r.created_at).toLocaleString()}</p>
+        </div>
+    `).join('') : "<p style='text-align:center; padding:50px;'>尚無紀錄</p>";
 }
 
-function openModal(client) {
-    editingId = null;
-    activeClient = client;
-    document.getElementById('mTitle').innerText = "✨ " + client + " 照護回報";
+async function renderSalary(area) {
+    const { data } = await supabaseClient.from('reports').select('fee').eq('sitter_name', curSitter);
+    const total = data ? data.reduce((s, r) => s + (parseInt(r.fee)||0), 0) : 0;
+    area.innerHTML = `<div class="card" style="text-align:center; padding:40px;"><h3>本期薪資</h3><h1 style="color:var(--p1); font-size:3rem;">$${total}</h1></div>`;
+}
+
+function openModal(client, fee) {
+    activeClient = client; currentFee = fee;
     document.getElementById('reportModal').style.display = 'flex';
 }
 
-async function loadForEdit(id) {
-    const { data } = await supabaseClient.from('reports').select('*').eq('id', id).single();
-    editingId = id;
-    activeClient = data.client_name;
-    document.getElementById('f_temp').value = data.temp;
-    document.getElementById('f_food').value = data.food_status;
-    document.getElementById('f_items').value = data.items;
-    document.getElementById('f_note').value = data.note;
-    document.getElementById('reportModal').style.display = 'flex';
-}
-
-function closeModal() {
-    document.getElementById('reportModal').style.display = 'none';
-    document.querySelectorAll('.modal input, .modal textarea').forEach(i => i.value = "");
-}
+function closeModal() { document.getElementById('reportModal').style.display = 'none'; }
 
 async function submitToCloud() {
-    const btn = document.getElementById('subBtn');
-    btn.innerText = "連線中..."; btn.disabled = true;
-
     const row = {
-        sitter_name: curSitter,
-        client_name: activeClient,
+        sitter_name: curSitter, client_name: activeClient,
         temp: document.getElementById('f_temp').value,
         food_status: document.getElementById('f_food').value,
         items: document.getElementById('f_items').value,
-        note: document.getElementById('f_note').value
+        note: document.getElementById('f_note').value,
+        mood: document.getElementById('f_mood').value, // 儲存心情
+        poo: document.getElementById('f_poo').value,    // 儲存排泄
+        fee: currentFee
     };
-
-    let response;
-    if(editingId) {
-        response = await supabaseClient.from('reports').update(row).eq('id', editingId);
-    } else {
-        response = await supabaseClient.from('reports').insert([row]);
-    }
-
-    if(response.error) {
-        alert("同步失敗：" + response.error.message);
-        btn.innerText = "重試一次"; btn.disabled = false;
-    } else {
-        alert("🎉 成功同步至雲端！");
-        closeModal();
-        switchTab(2);
-        btn.innerText = "確認無誤・同步雲端 💌"; btn.disabled = false;
-    }
+    const { error } = await supabaseClient.from('reports').insert([row]);
+    if(error) alert(error.message);
+    else { alert("🎉 已同步至雲端！"); closeModal(); switchTab(2); }
 }
-</script>
-</body>
-</html>
+
+// 📤 導出給飼主的詳細邏輯
+function exportToOwner(r) {
+    const msg = `🐾 【貓窩裏】專業照護回報 🐾
+
+親愛的 ${r.client_name} 家長您好：
+今日由保母 ${r.sitter_name} 為您服務，以下是寶

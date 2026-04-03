@@ -3,87 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>貓窩裏🎉 保母系統</title>
+    <title>貓窩裏🎉 保母工作系統</title>
     <style>
-        :root { --p1: #FF8FA3; --bg: #FFF5F8; --border: #FFD6E0; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 0; }
-        .lbox { background: white; border: 2px solid var(--border); border-radius: 20px; padding: 30px; width: 320px; margin: 100px auto; text-align:center; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        select, input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border); border-radius: 8px; }
-        .btn { width: 100%; padding: 12px; background: var(--p1); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        #mainScreen { display: none; padding: 15px; }
-        .card { background: white; border: 1px solid var(--border); border-radius: 15px; padding: 15px; margin-bottom: 10px; }
-        .m-ov { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
-        .m-box { background: white; padding: 20px; border-radius: 20px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        :root { --p1: #FF8FA3; --bg: #FFF5F8; --border: #FFD6E0; --text: #5A4A4A; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        
+        /* 登入介面 */
+        #loginScreen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .lbox { background: white; border: 2px solid var(--border); border-radius: 24px; padding: 35px; width: 340px; text-align:center; box-shadow: 0 10px 25px rgba(255,143,163,0.2); }
+        .l-title { color: var(--p1); font-weight: 900; font-size: 1.4rem; margin-bottom: 20px; }
+        select, input { width: 100%; padding: 12px; margin: 8px 0; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; outline: none; }
+        .btn-main { width: 100%; padding: 13px; background: var(--p1); color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1.1rem; margin-top: 10px; }
+
+        /* 主介面 */
+        #mainScreen { display: none; }
+        .nav { background: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); position: sticky; top: 0; z-index: 10; }
+        .tabs { display: flex; background: #FFE8EF; padding: 5px; margin: 15px; border-radius: 12px; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-weight: bold; cursor: pointer; border-radius: 10px; color: #8B687A; }
+        .tab.active { background: var(--p1); color: white; }
+
+        /* 案件卡片 */
+        .container { padding: 0 15px 100px; }
+        .card { background: white; border: 1.5px solid var(--border); border-radius: 18px; padding: 18px; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .c-tag { background: #FFF0F4; color: var(--p1); font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: bold; }
+        .c-name { font-size: 1.2rem; font-weight: 900; margin: 8px 0; display: block; }
+        .c-info { font-size: 0.9rem; line-height: 1.6; color: #7A6A6A; }
+
+        /* 回報彈窗 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: flex-end; justify-content: center; }
+        .m-box { background: white; width: 100%; max-width: 500px; border-radius: 25px 25px 0 0; padding: 25px; max-height: 85vh; overflow-y: auto; }
+        .m-title { color: var(--p1); font-weight: 900; font-size: 1.2rem; margin-bottom: 15px; border-bottom: 2px solid var(--bg); padding-bottom: 10px; }
+        .sec { margin-bottom: 15px; }
+        .sec-label { font-weight: bold; font-size: 0.9rem; margin-bottom: 8px; display: block; color: var(--p1); }
+        textarea { width: 100%; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px; box-sizing: border-box; }
+        
+        .photo-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
+        .photo-btn { border: 2px dashed var(--border); border-radius: 12px; height: 100px; display: flex; align-items: center; justify-content: center; position: relative; background: #FAFAFA; overflow: hidden; }
+        .photo-btn img { width: 100%; height: 100%; object-fit: cover; position: absolute; }
+        .photo-btn input { opacity: 0; position: absolute; inset: 0; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="loginScreen">
     <div class="lbox">
-        <h3>🐾 保母登入</h3>
-        <select id="sSel">
-            <option value="">選擇保母</option>
-            <option value="Ying">Ying</option>
-            <option value="小汶">小汶</option>
+        <div class="l-title">🐾 貓窩裏保母登入</div>
+        <select id="sitterSel">
+            <option value="">— 請選擇您的名字 —</option>
+            <option value="Ying">🦊 Ying</option>
+            <option value="小汶">🐰 小汶</option>
+            <option value="菓菓">🦔 菓菓</option>
+            <option value="小茹">🐿️ 小茹</option>
+            <option value="阿瑛">🐶 阿瑛</option>
         </select>
-        <input type="password" id="sPw" placeholder="輸入密碼 715715">
-        <button class="btn" onclick="login()">登入</button>
+        <input type="password" id="pwIn" placeholder="請輸入密碼 (715715)">
+        <button class="btn-main" onclick="doLogin()">確認登入</button>
     </div>
 </div>
 
 <div id="mainScreen">
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 id="uName" style="color:var(--p1)"></h3>
-        <button onclick="location.reload()">登出</button>
+    <div class="nav">
+        <b id="who" style="color:var(--p1); font-size:1.1rem;"></b>
+        <button onclick="location.reload()" style="background:none; border:1px solid #ddd; padding:5px 10px; border-radius:8px;">登出</button>
     </div>
-    <hr border="0" style="border-top:1px solid var(--border)">
-    <div id="caseList"></div>
+
+    <div class="tabs">
+        <div class="tab active" id="tab1" onclick="switchTab(1)">📋 待處理案件</div>
+        <div class="tab" id="tab2" onclick="switchTab(2)">📝 回報紀錄</div>
+    </div>
+
+    <div class="container" id="caseList">
+        </div>
 </div>
 
-<div class="m-ov" id="mOv">
+<div class="modal" id="reportModal">
     <div class="m-box">
-        <h4>填寫回報</h4>
-        <textarea id="rNote" rows="4" style="width:100%" placeholder="備註內容..."></textarea>
-        <button class="btn" onclick="submit()">完成送出</button>
-        <button onclick="closeM()" style="width:100%; margin-top:10px; border:none; background:none;">取消</button>
+        <div class="m-title">📝 照護回報單</div>
+        <div class="sec">
+            <span class="sec-label">📸 環境/砂盆對比照</span>
+            <div class="photo-grid">
+                <div class="photo-btn"><span>📷 清潔前</span><input type="file" accept="image/*" onchange="preview(this)"><img></div>
+                <div class="photo-btn"><span>✅ 清潔後</span><input type="file" accept="image/*" onchange="preview(this)"><img></div>
+            </div>
+        </div>
+        <div class="sec">
+            <span class="sec-label">💬 補充備註</span>
+            <textarea id="noteIn" rows="4" placeholder="請描述今日毛孩活動力、食慾或環境狀況..."></textarea>
+        </div>
+        <button class="btn-main" onclick="submitFinal()">完成並送出回報</button>
+        <button onclick="closeModal()" style="width:100%; background:none; border:none; margin-top:10px; color:#999;">取消返回</button>
     </div>
 </div>
 
 <script>
-    const cases = [
-        { name: '王小姐', pet: '貓咪 2 隻', sitter: 'Ying' },
-        { name: '李先生', pet: '柴犬 1 隻', sitter: '小汶' }
+    // 預設案件資料庫 (確保每位保母都有案件)
+    const allData = [
+        { id: 1, sitter: 'Ying', client: '王小姐', pets: '咪咪、花花(貓)', time: '09:00', addr: '苓雅區青年路...' },
+        { id: 2, sitter: 'Ying', client: '李先生', pets: '妞妞(柴犬)', time: '14:00', addr: '新興區中正路...' },
+        { id: 3, sitter: '小汶', client: '陳太太', pets: '阿肥(貓)', time: '10:30', addr: '左營區博愛路...' },
+        { id: 4, sitter: '菓菓', client: '張小姐', pets: '小黑(貓)', time: '11:00', addr: '三民區河堤路...' },
+        { id: 5, sitter: '小茹', client: '許太太', pets: '球球(貓)', time: '16:00', addr: '鳳山區中山路...' },
+        { id: 6, sitter: '阿瑛', client: '趙先生', pets: 'Momo(貓)', time: '13:00', addr: '前鎮區一心路...' }
     ];
 
-    function login() {
-        const name = document.getElementById('sSel').value;
-        const pw = document.getElementById('sPw').value;
-        if (name && pw === '715715') {
+    let currentSitter = "";
+    let historyData = [];
+
+    function doLogin() {
+        const name = document.getElementById('sitterSel').value;
+        const pw = document.getElementById('pwIn').value;
+        if (name && pw === "715715") {
+            currentSitter = name;
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainScreen').style.display = 'block';
-            document.getElementById('uName').innerText = '你好, ' + name;
-            render(name);
+            document.getElementById('who').innerText = "保母：" + name;
+            renderCases();
         } else {
-            alert('密碼錯誤！');
+            alert("資訊有誤，請重新選擇或輸入密碼！");
         }
     }
 
-    function render(sName) {
+    function renderCases() {
         const list = document.getElementById('caseList');
-        const mine = cases.filter(c => c.sitter === sName);
-        list.innerHTML = mine.map(c => `
-            <div class="card">
-                <b>客戶：${c.name}</b><br>
-                寵物：${c.pet}<br>
-                <button class="btn" style="margin-top:10px; padding:5px;" onclick="openM()">回報照護</button>
-            </div>
-        `).join('');
-    }
+        const mine = allData.filter(d => d.sitter === currentSitter);
+        
+        if(mine.length === 0) {
+            list.innerHTML = "<div style='text-align:center; padding:50px; color:#999;'>今日暫無排定案件 🐾</div>";
+            return;
+        }
 
-    function openM() { document.getElementById('mOv').style.display = 'flex'; }
-    function closeM() { document.getElementById('mOv').style.display = 'none'; }
-    function submit() { alert('回報已成功！'); closeM(); }
-</script>
-
-</body>
-</html>
+        list.innerHTML = mine.

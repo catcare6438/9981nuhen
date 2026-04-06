@@ -402,7 +402,7 @@ function dbRowToOrder(r){
       <div class="field"><label>聯絡電話 <span class="req">*</span></label><input type="tel" id="ownerPhone" placeholder="0912-345-678"></div>
       <div class="field"><label>LINE 暱稱或名稱</label><input type="text" id="ownerLine" placeholder="您的 LINE 顯示名稱（加好友後我們才能找到您）"></div>
       <div class="field full"><label>服務地址 <span class="req">*</span></label>
-        <input type="text" id="ownerAddr" placeholder="例：高雄市楠梓區惠民路76號3樓">
+        <input type="text" id="ownerAddr" placeholder="例：高雄市xx區xx路xx號x樓">
       </div>
 
     </div>
@@ -441,7 +441,7 @@ function dbRowToOrder(r){
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--p3);">
       <div class="field">
         <label>📝 注意事項（想提醒保母的毛孩狀況）</label>
-        <textarea id="petNotes" rows="3" placeholder="例：橘寶不喜歡被碰肚子、小黑進食慢請耐心等待、花花看到陌生人會躲起來..."></textarea>
+        <textarea id="petNotes" rows="3" placeholder="例：黑咪進食慢請耐心等待、花花看到陌生人會躲起來..."></textarea>
       </div>
     </div>
   </div>
@@ -1290,7 +1290,7 @@ function calc(){
   cards.forEach(card=>svcNames.push({companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'}[card.dataset.key]||card.dataset.key));
 
   let html='';
-  if(isHoliday) html+=R('🎊 連假假日價格','陪伴$500｜散步$400｜陪伴+散步$890','',`color:var(--y3);font-weight:800;`);
+  if(isHoliday) html+=R('🎊 連假假日價格','陪伴$600/0.5h｜散步$5000.5h｜陪伴+散步$1000/40min','',`color:var(--y3);font-weight:800;`);
   html+=R(`主要服務（${svcNames.join('＋')}）/ 次`,`$${base}`);
   if(addon>0) html+=R(`加購（${addonNames.join('、')}）/ 次`,`$${addon}`);
   if(extra>0) html+=R(`第4隻起加收（共${totalPets}隻）/ 次`,`$${extra}`);

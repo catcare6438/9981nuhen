@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>貓窩裏｜毛孩爸媽專區</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pk:#FF8FA3;--pk2:#FFB6C1;--pk3:#FFD6E0;--pk4:#FFF0F5;--pk5:#FFFAFB;
+  --y:#FFE066;--y3:#FFB800;
+  --g:#52C48A;--g2:#D4F5E4;
+  --t:#3D2B35;--tl:#9B7A8A;
+  --sh:0 4px 20px rgba(255,143,163,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);min-height:100vh;}
+
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 55%,#FFE8EF 100%);}
+.lbox{background:#fff;border:3px solid var(--pk3);border-radius:28px;
+  padding:42px 34px;width:380px;max-width:95vw;text-align:center;
+  box-shadow:var(--sh);position:relative;overflow:hidden;}
+.lbox::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:sh 3s linear infinite;}
+@keyframes sh{0%{background-position:0%;}100%{background-position:200%;}}
+.l-ico{font-size:3.2rem;margin-bottom:10px;animation:bounce 2.5s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.l-title{font-family:'Nunito',sans-serif;font-size:1.5rem;font-weight:900;color:var(--pk);
+  margin-bottom:4px;text-shadow:2px 2px 0 #fff;}
+.l-sub{font-size:.82rem;color:var(--tl);margin-bottom:6px;}
+.l-hint{background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;
+  padding:10px 14px;font-size:.8rem;color:var(--tl);margin-bottom:20px;line-height:1.6;}
+.l-in{width:100%;padding:13px 18px;background:var(--pk5);border:2.5px solid var(--pk3);
+  border-radius:12px;color:var(--t);font-size:1rem;font-family:inherit;outline:none;
+  text-align:center;letter-spacing:4px;transition:border .2s;margin-bottom:12px;}
+.l-in:focus{border-color:var(--pk);}
+.l-btn{width:100%;padding:13px;background:linear-gradient(135deg,#FF5C7D,var(--pk));
+  color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:900;
+  font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;
+  box-shadow:0 6px 18px rgba(255,92,125,.28);}
+.l-btn:hover{transform:translateY(-2px);}
+.l-err{color:#F87171;font-size:.8rem;margin-top:8px;display:none;}
+
+/* MAIN */
+#mainScreen{display:none;}
+.topbar{background:rgba(255,255,255,.97);backdrop-filter:blur(10px);
+  border-bottom:2.5px solid var(--pk3);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;box-shadow:0 2px 14px rgba(255,143,163,.12);}
+.topbar-l{display:flex;align-items:center;gap:10px;}
+.top-av{font-size:1.8rem;}
+.top-nm{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:.95rem;}
+.top-role{font-size:.68rem;color:var(--tl);}
+.btn{padding:8px 16px;border-radius:20px;border:none;cursor:pointer;font-size:.8rem;
+  font-weight:800;font-family:'Nunito',sans-serif;transition:all .2s;}
+.btn-out{background:#fff;border:2px solid var(--pk3);color:var(--tl);}
+.btn-out:hover{border-color:var(--pk);color:var(--pk);}
+.btn-pk{background:linear-gradient(135deg,#FF5C7D,var(--pk));color:#fff;}
+
+/* CONTENT */
+.wrap{max-width:860px;margin:0 auto;padding:22px 16px;}
+.card{background:#fff;border:2.5px solid var(--pk3);border-radius:20px;
+  padding:22px;box-shadow:var(--sh);margin-bottom:18px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:sh 3s linear infinite;}
+.card-title{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:1.05rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* REPORT CARD */
+.rep-card{background:var(--pk4);border:2px solid var(--pk3);border-radius:16px;
+  padding:18px;margin-bottom:16px;}
+.rep-date{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:.95rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* SECTION BLOCK */
+.rblock{margin-bottom:14px;background:#fff;border-radius:12px;padding:14px;
+  border:1.5px solid var(--pk3);}
+.rblock-title{font-size:.78rem;font-weight:800;color:var(--pk);margin-bottom:8px;
+  font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:6px;
+  padding-bottom:6px;border-bottom:1.5px dashed var(--pk3);}
+.rblock-content{font-size:.84rem;line-height:1.8;color:var(--t);}
+.rblock-row{display:flex;gap:8px;margin-bottom:4px;}
+.rblock-label{color:var(--tl);font-weight:700;min-width:60px;}
+.tag{display:inline-flex;background:rgba(255,143,163,.1);color:var(--pk);
+  border:1.5px solid var(--pk3);border-radius:8px;padding:2px 9px;
+  font-size:.72rem;font-weight:700;margin:2px;}
+
+/* DISINFECT / SERVICE CHECKS */
+.check-list{display:flex;flex-wrap:wrap;gap:6px;}
+.check-ok{display:inline-flex;align-items:center;gap:4px;background:var(--g2);
+  color:#1A7A4A;border:1.5px solid var(--g);border-radius:8px;padding:4px 10px;font-size:.76rem;font-weight:700;}
+
+/* PET SECTION */
+.pet-section{background:#fff;border:2px solid var(--pk2);border-radius:14px;
+  padding:14px;margin-bottom:12px;}
+.pet-name{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:.95rem;margin-bottom:10px;}
+.pet-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:400px){.pet-grid{grid-template-columns:1fr;}}
+.pet-item{background:var(--pk4);border-radius:8px;padding:8px 10px;}
+.pet-item-label{font-size:.68rem;color:var(--tl);font-weight:700;margin-bottom:2px;}
+.pet-item-val{font-size:.82rem;font-weight:700;color:var(--t);}
+
+/* PHOTOS */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:8px;}
+.photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;
+  border:2.5px solid var(--pk3);cursor:pointer;transition:transform .2s;}
+.photo-thumb:hover{transform:scale(1.05);border-color:var(--pk);}
+.photo-group-label{font-size:.74rem;font-weight:700;color:var(--tl);margin:8px 0 4px;font-family:'Nunito',sans-serif;}
+
+/* COMPARE PHOTOS */
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.compare-item{text-align:center;}
+.compare-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:2.5px solid var(--pk3);}
+.compare-item .clabel{font-size:.7rem;color:var(--tl);margin-top:4px;font-weight:700;}
+
+/* VIDEO */
+.video-player{width:100%;max-height:240px;border-radius:12px;border:2.5px solid var(--pk3);margin-top:8px;}
+
+/* PHOTO LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;
+  align-items:center;justify-content:center;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:14px;object-fit:contain;}
+
+/* NO REPORT */
+.no-rep{text-align:center;padding:36px;color:var(--tl);font-size:.88rem;line-height:1.8;}
+
+.badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;}
+.b-ok{background:var(--g2);color:#1A7A4A;border:2px solid var(--g);}
+.b-wait{background:#FFF8D0;color:#8B6800;border:2px solid var(--y);}
+
+/* ── REVIEW SECTION ── */
+.rv-hero{
+  background:linear-gradient(135deg,#FFF0F5 0%,#FFF9E8 50%,#FFF0F5 100%);
+  border:2.5px solid var(--pk3);border-radius:20px;padding:28px 22px;
+  text-align:center;position:relative;overflow:hidden;margin-bottom:18px;
+}
+.rv-hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  background:radial-gradient(circle,rgba(255,143,163,.15),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.rv-hero::after{
+  content:'';position:absolute;bottom:-30px;left:-30px;width:110px;height:110px;
+  background:radial-gradient(circle,rgba(255,224,102,.18),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.rv-emoji-row{font-size:2rem;margin-bottom:10px;line-height:1;letter-spacing:6px;}
+.rv-hero-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.25rem;
+  color:var(--pk);margin-bottom:8px;}
+.rv-hero-sub{font-size:.84rem;color:var(--tl);line-height:1.7;margin-bottom:18px;}
+.rv-reward-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border-radius:24px;padding:10px 22px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;
+  box-shadow:0 6px 18px rgba(255,184,0,.35);
+  animation:pulse-y 2.2s ease-in-out infinite;
+}
+@keyframes pulse-y{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+/* Star rating buttons */
+.rv-stars{display:flex;justify-content:center;gap:8px;margin:18px 0 8px;}
+.rv-star{width:46px;height:46px;border:2.5px solid var(--pk3);border-radius:14px;
+  background:#fff;font-size:1.4rem;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rv-star.on{background:linear-gradient(135deg,#FFE066,#FFB800);border-color:#FFB800;
+  transform:scale(1.12);box-shadow:0 4px 12px rgba(255,184,0,.3);}
+.rv-star:hover{transform:scale(1.1);border-color:var(--pk);}
+.rv-star-label{font-size:.76rem;color:var(--tl);text-align:center;margin-bottom:16px;
+  font-weight:700;min-height:1.2em;transition:color .2s;}
+/* Sitter pills */
+.rv-sitter-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
+.rv-sitter{padding:8px 16px;border:2.5px solid var(--pk3);border-radius:24px;
+  background:#fff;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .18s;
+  font-family:'Nunito',sans-serif;color:var(--tl);}
+.rv-sitter.on{background:linear-gradient(135deg,var(--pk4),#FFF0F5);
+  border-color:var(--pk);color:var(--pk);box-shadow:0 3px 10px rgba(255,143,163,.2);}
+/* Best select chips */
+.rv-best-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+@media(max-width:480px){.rv-best-grid{grid-template-columns:1fr;}}
+.rv-chip{padding:10px 12px;border:2px solid var(--pk3);border-radius:12px;
+  background:#fff;font-size:.77rem;cursor:pointer;transition:all .15s;
+  text-align:center;line-height:1.4;color:var(--tl);font-weight:600;}
+.rv-chip.on{background:linear-gradient(135deg,rgba(255,143,163,.1),rgba(255,224,102,.1));
+  border-color:var(--pk);color:var(--pk);font-weight:800;}
+/* Input fields */
+.rv-input{width:100%;padding:12px 16px;border:2.5px solid var(--pk3);border-radius:14px;
+  font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;
+  transition:border .2s;margin-bottom:12px;}
+.rv-input:focus{border-color:var(--pk);}
+.rv-section-label{font-size:.72rem;font-weight:800;color:var(--tl);
+  font-family:'Nunito',sans-serif;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase;}
+/* Submit btn */
+.rv-submit{
+  width:100%;padding:16px;margin-top:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border:none;border-radius:16px;
+  font-size:1rem;font-weight:900;font-family:'Nunito',sans-serif;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 8px 24px rgba(255,184,0,.35);
+  position:relative;overflow:hidden;
+}
+.rv-submit::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);
+}
+.rv-submit:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,184,0,.4);}
+.rv-submit:active{transform:translateY(0);}
+/* Coupon result */
+.rv-coupon{
+  margin-top:20px;
+  background:linear-gradient(135deg,#FFFDE7,#FFF8E1);
+  border:3px dashed #FFB800;border-radius:20px;padding:28px 22px;
+  text-align:center;display:none;
+  animation:fadein .5s ease;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.rv-coupon-amount{
+  font-size:3rem;font-weight:900;color:#B8860B;
+  font-family:'Nunito',sans-serif;line-height:1;margin:12px 0 6px;
+}
+.rv-coupon-code{
+  font-family:monospace;font-size:.88rem;color:var(--tl);
+  background:#fff;border:1.5px solid #FFD700;border-radius:10px;
+  padding:10px 18px;display:inline-block;margin:10px 0;letter-spacing:2px;
+}
+/* Referral section */
+.rv-ref{
+  margin-top:20px;padding:22px;
+  background:linear-gradient(135deg,#FFF0F5,#F5EEFF);
+  border:2.5px solid var(--pk3);border-radius:20px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.rv-ref::before{
+  content:'🌸';position:absolute;top:-8px;right:14px;font-size:2.4rem;
+  opacity:.18;pointer-events:none;
+}
+.rv-ref-code{
+  font-size:1.5rem;font-weight:900;color:var(--pk);
+  letter-spacing:8px;font-family:monospace;
+  background:#fff;border:2.5px dashed var(--pk3);border-radius:14px;
+  padding:14px 20px;margin:12px 0;display:block;
+}
+.rv-copy-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,var(--pk),#FF5C7D);
+  color:#fff;border:none;border-radius:14px;
+  font-size:.9rem;font-weight:900;font-family:'Nunito',sans-serif;
+  cursor:pointer;box-shadow:0 5px 16px rgba(255,92,125,.3);
+  transition:all .2s;
+}
+.rv-copy-btn:hover{transform:translateY(-2px);}
+
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
+const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// Safe error message extractor — never touches Headers or non-serialisable fields
+function _errMsg(e){
+  if(!e) return 'unknown error';
+  if(typeof e==='string') return e;
+  // Extract only plain-string fields
+  const msg=e.message||e.msg||'';
+  const code=e.code||e.status_code||'';
+  const hint=e.hint||e.details||'';
+  return [msg,code?`[${code}]`:'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
+}
+
+// ── Supabase helpers ──
+async function dbGetOrders(){
+  const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
+  if(error){console.error('getOrders:',_errMsg(error));return[];}
+  return(data||[]).map(dbRowToOrder);
+}
+async function dbInsertOrder(b){
+  const row=orderToDbRow(b);
+  const{error}=await _supa.from('orders').insert([row]);
+  if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
+}
+async function dbUpdateOrder(id,fields){
+  const row={};
+  if(fields.status!==undefined)row.status=fields.status;
+  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
+  const{error}=await _supa.from('orders').update(row).eq('id',id);
+  if(error)console.error('updateOrder:',_errMsg(error));
+}
+async function dbDeleteOrder(id){
+  const{error}=await _supa.from('orders').delete().eq('id',id);
+  if(error)console.error('deleteOrder:',_errMsg(error));
+}
+async function dbGetReports(bookId){
+  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
+  if(bookId)q=q.eq('book_id',bookId);
+  const{data,error}=await q;
+  if(error){console.error('getReports:',_errMsg(error));return[];}
+  return(data||[]).map(r=>({
+    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
+    videoDataUrl:r.video_data_url||''
+  }));
+}
+async function dbInsertReport(r){
+  const{error}=await _supa.from('reports').insert([{
+    ts:r.ts,book_id:r.bookId,book_name:r.bookName,sitter:r.sitter,
+    date:r.date,time_start:r.timeStart,time_end:r.timeEnd,
+    pet_reports:r.petReports,services:r.services,
+    disinfect:r.disinfect,safety:r.safety,diary:r.diary
+  }]);
+  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+}
+async function dbGetCoupons(){
+  const{data,error}=await _supa.from('coupons').select('*');
+  if(error){console.error('getCoupons:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertCoupon(cp){
+  const{error}=await _supa.from('coupons').insert([cp]);
+  if(error)console.error('insertCoupon:',_errMsg(error));
+}
+async function dbMarkCouponUsed(code){
+  const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
+  if(error)console.error('markCouponUsed:',_errMsg(error));
+}
+async function dbGetReviews(){
+  const{data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
+  if(error){console.error('getReviews:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertReview(rv){
+  const{error}=await _supa.from('reviews').insert([rv]);
+  if(error)console.error('insertReview:',_errMsg(error));
+}
+async function dbGetOwnerPws(){
+  const{data,error}=await _supa.from('owner_passwords').select('*');
+  if(error){console.error('getOwnerPws:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
+}
+async function dbSetOwnerPw(bookId,pw){
+  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
+  if(error)console.error('setOwnerPw:',_errMsg(error));
+}
+async function dbGetRefCodes(){
+  const{data,error}=await _supa.from('referral_codes').select('*');
+  if(error){console.error('getRefCodes:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.code]={bookId:r.book_id,owner:r.owner,usedBy:r.used_by,usedAt:r.used_at};}); return map;
+}
+async function dbInsertRefCode(code,bookId,owner){
+  const{error}=await _supa.from('referral_codes').insert([{code,book_id:bookId,owner,used_by:null,used_at:null}]);
+  if(error)console.error('insertRefCode:',_errMsg(error));
+}
+async function dbMarkRefCodeUsed(code,usedBy){
+  const{error}=await _supa.from('referral_codes').update({used_by:usedBy,used_at:new Date().toISOString()}).eq('code',code);
+  if(error)console.error('markRefCodeUsed:',_errMsg(error));
+}
+
+// ── Row ↔ Object converters ──
+function orderToDbRow(b){
+  return{
+    id:b.id,ts:b.ts,
+    owner_name:b.ownerName,owner_phone:b.ownerPhone,
+    owner_line:b.ownerLine||'',owner_addr:b.ownerAddr||'',
+    pet_data:b.petData||[],cat_count:b.catCount||0,dog_count:b.dogCount||0,
+    pet_notes:b.petNotes||'',
+    start_date:b.startDate,end_date:b.endDate,
+    days:b.days||1,tpd:b.tpd||1,
+    services:b.services||[],addons:b.addons||[],
+    urgent:b.urgent||0,distance:b.distance||0,
+    transport:b.transport||0,transport_total:b.transportTotal||0,
+    is_holiday:b.isHoliday||false,
+    coupon_used:b.couponUsed||'',ref_code:b.refCode||'',
+    discounts:b.discounts||0,total:b.total||0,
+    status:b.status||'待確認',assigned_to:b.assignedTo||''
+  };
+}
+function dbRowToOrder(r){
+  return{
+    id:r.id,ts:r.ts,
+    ownerName:r.owner_name,ownerPhone:r.owner_phone,
+    ownerLine:r.owner_line,ownerAddr:r.owner_addr,
+    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petNotes:r.pet_notes||'',
+    startDate:r.start_date,endDate:r.end_date,
+    days:r.days||1,tpd:r.tpd||1,
+    services:r.services||[],addons:r.addons||[],
+    urgent:r.urgent||0,distance:r.distance||0,
+    transport:r.transport||0,transportTotal:r.transport_total||0,
+    isHoliday:r.is_holiday||false,
+    couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
+    discounts:r.discounts||0,total:r.total||0,
+    status:r.status||'待確認',assignedTo:r.assigned_to||''
+  };
+}
+</script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="lbox">
+    <div class="l-ico">🏠</div>
+    <div class="l-title">毛孩爸媽專區</div>
+    <div class="l-sub">查看您家毛孩的每日照護回報 🐾</div>
+    <div class="l-hint">
+      📢 密碼請加入 LINE 官方帳號取得<br>
+      <strong style="color:var(--pk);">@099nuhen</strong><br>
+      <span style="color:#C05000;">下單預約成功才有會員哦～</span>
+    </div>
+    <input class="l-in" type="text" id="ownerPwIn" placeholder="輸入您的專屬密碼" onkeydown="if(event.key==='Enter')ownerLogin()">
+    <button class="l-btn" onclick="ownerLogin()">進入毛孩專區 🐱</button>
+    <div class="l-err" id="ownerErr">密碼錯誤，請確認後再試 🐾</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainScreen">
+  <div class="topbar">
+    <div class="topbar-l">
+      <div class="top-av">🏠</div>
+      <div>
+        <div class="top-nm" id="ownerDisplayName">毛孩爸媽</div>
+        <div class="top-role">查看我家毛孩的回報</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="index.html" class="btn btn-out">← 回前台</a>
+      <button class="btn btn-out" onclick="ownerLogout()">登出</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- BOOKING INFO -->
+    <div class="card" id="bookingInfoCard" style="display:none;">
+      <div class="card-title">📋 您的預約資訊</div>
+      <div id="bookingInfoContent"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div class="card">
+      <div class="card-title">🐾 保母照護回報</div>
+      <div id="reportsContent"><div class="no-rep">載入中...</div></div>
+    </div>
+
+    <!-- REVIEW & COUPON -->
+    <div class="card" id="reviewCard" style="display:none;">
+
+      <div id="reviewFormSection">
+        <!-- Hero banner -->
+        <div class="rv-hero">
+          <div class="rv-emoji-row">🐱 💕 🐶</div>
+          <div class="rv-hero-title">毛孩回來還好嗎？<br>留下您的真實感受 🌸</div>
+          <div class="rv-hero-sub">
+            您的一句話，是保母最大的鼓勵 💪<br>
+            也讓更多毛孩家長找到值得信賴的褓姆！
+          </div>
+          <div class="rv-reward-badge">
+            🎁 留下好評即贈 <span style="font-size:1.1rem;margin:0 4px;">$50</span> 折抵券
+          </div>
+        </div>
+
+        <!-- Step 1: 星星評分 -->
+        <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+          <div class="rv-section-label">⭐ STEP 1 · 整體評分</div>
+          <div class="rv-stars">
+            <div class="rv-star" onclick="setRvStar(1)" id="rvs1">⭐</div>
+            <div class="rv-star" onclick="setRvStar(2)" id="rvs2">⭐</div>
+            <div class="rv-star" onclick="setRvStar(3)" id="rvs3">⭐</div>
+            <div class="rv-star" onclick="setRvStar(4)" id="rvs4">⭐</div>
+            <div class="rv-star on" onclick="setRvStar(5)" id="rvs5">⭐</div>
+          </div>
+          <div class="rv-star-label" id="rvStarLabel">★★★★★ 非常滿意！</div>
+          <input type="hidden" id="ownerRating" value="★★★★★">
+        </div>
+
+        <!-- Step 2: 選保母 -->
+        <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+          <div class="rv-section-label">🧡 STEP 2 · 服務的保母</div>
+          <div class="rv-sitter-row">
+            <div class="rv-sitter on" onclick="setRvSitter('Ying',this)">🐱 Ying</div>
+            <div class="rv-sitter" onclick="setRvSitter('小汶',this)">🌟 小汶</div>
+            <div class="rv-sitter" onclick="setRvSitter('菓菓',this)">🍎 菓菓</div>
+            <div class="rv-sitter" onclick="setRvSitter('小茹',this)">🐕 小茹</div>
+            <div class="rv-sitter" onclick="setRvSitter('阿瑛',this)">🌺 阿瑛</div>
+          </div>
+          <input type="hidden" id="ownerSitter" value="Ying">
+        </div>
+
+        <!-- Step 3: 最滿意的一點 -->
+        <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+          <div class="rv-section-label">💬 STEP 3 · 最滿意的一點</div>
+          <div class="rv-best-grid" id="rvBestGrid">
+            <div class="rv-chip on" onclick="setRvBest(this)">💝 保母超有愛心，毛孩很喜歡</div>
+            <div class="rv-chip" onclick="setRvBest(this)">📋 回報超詳細，出門放心</div>
+            <div class="rv-chip" onclick="setRvBest(this)">✨ 毛孩回來狀態明顯很好</div>
+            <div class="rv-chip" onclick="setRvBest(this)">⏰ 很準時，態度超專業</div>
+            <div class="rv-chip" onclick="setRvBest(this)">📸 照片影片拍得好可愛</div>
+            <div class="rv-chip" onclick="setRvBest(this)">🏥 對老貓/病貓特別有耐心</div>
+            <div class="rv-chip" onclick="setRvBest(this)">💰 服務性價比超高</div>
+            <div class="rv-chip" onclick="setRvBest(this)">🏠 毛孩被當自家寶貝對待</div>
+            <div class="rv-chip" onclick="setRvBest(this)">🧹 清潔前後對比超用心</div>
+            <div class="rv-chip" onclick="setRvBest(this)">👀 保母對習性觀察超細心</div>
+          </div>
+          <input type="hidden" id="ownerBest" value="保母超有愛心，毛孩很喜歡">
+        </div>
+
+        <!-- Step 4: 文字 -->
+        <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+          <div class="rv-section-label">✏️ STEP 4 · 留下您的話（選填）</div>
+          <input type="text" class="rv-input" id="ownerReviewAuthor" placeholder="您的暱稱，例：橘寶媽媽 🐱">
+          <textarea class="rv-input" id="ownerReviewComment" rows="3"
+            placeholder="一句話推薦給其他毛孩家長吧！&#10;例：超推薦！毛孩很喜歡，保母非常用心！🐾"
+            style="resize:none;line-height:1.7;"></textarea>
+        </div>
+
+        <button class="rv-submit" onclick="submitOwnerReview()">
+          🎁 送出好評，立即領取 $50 折抵券！
+        </button>
+      </div><!-- /reviewFormSection -->
+
+      <!-- Coupon display (shows after submit) -->
+      <div id="ownerCouponBox" class="rv-coupon">
+        <div style="font-size:2.4rem;margin-bottom:6px;">🎉</div>
+        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:1.1rem;color:#B8860B;margin-bottom:4px;">謝謝您的寶貴回饋！</div>
+        <div style="font-size:.84rem;color:var(--tl);margin-bottom:14px;">您的專屬折抵券已生成 💛</div>
+        <div style="background:#fff;border:2.5px solid #FFD700;border-radius:18px;padding:22px;max-width:320px;margin:0 auto 16px;">
+          <div style="font-size:.72rem;color:var(--tl);font-weight:700;margin-bottom:4px;font-family:'Nunito',sans-serif;">折抵金額</div>
+          <div class="rv-coupon-amount">$50</div>
+          <div id="oCpPet" style="font-size:.9rem;font-weight:800;color:var(--pk);margin-bottom:10px;font-family:'Nunito',sans-serif;"></div>
+          <div class="rv-coupon-code" id="oCpCode"></div>
+          <div id="oCpDates" style="font-size:.7rem;color:var(--tl);"></div>
+        </div>
+        <button onclick="copyOwnerCoupon()"
+          style="padding:12px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;
+            border-radius:14px;font-size:.9rem;font-weight:900;font-family:'Nunito',sans-serif;
+            cursor:pointer;box-shadow:0 5px 16px rgba(255,184,0,.3);">
+          📋 複製券碼，下次使用！
+        </button>
+      </div>
+
+      <!-- Referral code -->
+      <div class="rv-ref" style="margin-top:20px;">
+        <div style="font-size:.72rem;font-weight:800;color:var(--tl);letter-spacing:.5px;font-family:'Nunito',sans-serif;margin-bottom:4px;">YOUR EXCLUSIVE CODE</div>
+        <div style="font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:1rem;margin-bottom:2px;">🔗 您的專屬推薦碼</div>
+        <span class="rv-ref-code" id="myRefCode"></span>
+        <div style="font-size:.8rem;color:var(--tl);line-height:1.7;margin-bottom:14px;">
+          分享給好友，好友預約成功<br>您即可獲得 <strong style="color:var(--pk);">$100 優惠券</strong>！🎁
+        </div>
+        <button class="rv-copy-btn" onclick="copyRefCode()">📋 一鍵複製推薦碼</button>
+        <div id="refCopyMsg" style="font-size:.76rem;color:var(--g);margin-top:8px;font-weight:800;text-align:center;min-height:1.2em;"></div>
+        <div id="refHistory" style="margin-top:8px;"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLB()">
+  <img id="lbImg" src="">
+</div>
+
+<script>
+let currentBookId=null;
+
+// getOwnerPws now uses Supabase via dbGetOwnerPws()
+async function getB(){return await dbGetOrders();}
+async function getReps(bookId){return await dbGetReports(bookId);}
+
+async function ownerLogin(){
+  const pw=document.getElementById('ownerPwIn').value.trim();
+  if(!pw){alert('請輸入密碼');return;}
+  // find matching booking
+  document.getElementById('ownerErr').style.display='none';
+  // Show loading state
+  const loginBtn=document.querySelector('#loginScreen .l-btn');
+  if(loginBtn){loginBtn.textContent='⏳ 驗證中...';loginBtn.disabled=true;}
+  let pws={};
+  try{ pws=await dbGetOwnerPws(); }catch(e){ console.error('dbGetOwnerPws error:',e); }
+  if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
+  const bookId=Object.keys(pws).find(id=>String(pws[id])===String(pw));
+  if(!bookId){
+    document.getElementById('ownerErr').style.display='block';
+    return;
+  }
+  currentBookId=parseInt(bookId);
+  const bk=(await getB()).find(x=>x.id===currentBookId);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainScreen').style.display='block';
+  document.getElementById('ownerDisplayName').textContent=`${bk?.ownerName||''}家的毛孩`;
+  renderOwnerView(bk);
+}
+
+function ownerLogout(){
+  currentBookId=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainScreen').style.display='none';
+  document.getElementById('ownerPwIn').value='';
+  document.getElementById('ownerErr').style.display='none';
+}
+
+async function renderOwnerView(bk){
+  if(!bk){document.getElementById('reportsContent').innerHTML=`<div class="no-rep">找不到預約資料 🐾</div>`;return;}
+  // Show review card only for completed bookings
+  const revCard=document.getElementById('reviewCard');
+  if(revCard){
+    revCard.style.display='block';  // always show (contains referral code)
+    // Only show the review form section when booking is completed
+    const reviewFormSection=document.getElementById('reviewFormSection');
+    if(reviewFormSection) reviewFormSection.style.display='block';  // show for all statuses
+  }
+  // Always init referral code regardless of booking status
+  setTimeout(initReferralCode,200);
+  // booking info
+  const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+  const svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、');
+  const card=document.getElementById('bookingInfoCard');
+  card.style.display='block';
+  document.getElementById('bookingInfoContent').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.84rem;">
+      <div><span style="color:var(--tl);font-weight:700;">服務期間：</span>${bk.startDate} ～ ${bk.endDate}</div>
+      <div><span style="color:var(--tl);font-weight:700;">每天次數：</span>${bk.tpd}次/天</div>
+      <div><span style="color:var(--tl);font-weight:700;">服務項目：</span>${svcNames}</div>
+      <div><span style="color:var(--tl);font-weight:700;">負責保母：</span>${bk.assignedTo||'安排中'}</div>
+    </div>`;
+
+  // reports
+  const reps=(await getReps(currentBookId)).sort((a,b)=>b.ts-a.ts);
+  const rc=document.getElementById('reportsContent');
+  if(!reps.length){
+    rc.innerHTML=`<div class="no-rep">📝 回報尚未上傳<br>保母服務完成後會立即上傳喔！<br><br>🌸 有任何問題請聯繫 LINE：@099nuhen</div>`;
+    return;
+  }
+  rc.innerHTML=reps.map(r=>renderReport(r)).join('');
+}
+
+function renderReport(r){
+  const timeStr=r.timeStart?(r.timeStart+(r.timeEnd?' — '+r.timeEnd:'')):'';
+  let html=`<div class="rep-card">
+    <div class="rep-date">📅 ${r.date}${timeStr?' 　🕐 '+timeStr:''} ｜ 保母：${r.sitter}</div>`;
+
+  // 進門前消毒
+  if(r.disinfect?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🧴 進門前消毒準備</div>
+      <div class="check-list">${r.disinfect.map(d=>`<span class="check-ok">✓ ${d}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 每隻寵物個別回報
+  if(r.petReports?.length){
+    r.petReports.forEach(p=>{
+      html+=`<div class="pet-section">
+        <div class="pet-name">🐾 ${p.name}</div>
+        <div class="pet-grid">
+          <div class="pet-item"><div class="pet-item-label">整體精神</div><div class="pet-item-val">${p.spirit||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">眼睛/鼻子</div><div class="pet-item-val">${p.eyes||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">糞便狀況</div><div class="pet-item-val">${p.poop||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">尿液狀況</div><div class="pet-item-val">${p.urine||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">進食狀況</div><div class="pet-item-val">${p.food||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">飲水狀況</div><div class="pet-item-val">${p.water||'—'}</div></div>
+        </div>
+        ${p.emotions?.length?`<div style="margin-top:10px;"><div style="font-size:.72rem;color:var(--tl);font-weight:700;margin-bottom:6px;">💞 今日情緒</div><div>${p.emotions.map(e=>`<span class="tag">${e}</span>`).join('')}</div></div>`:''}
+        ${p.notes?`<div style="margin-top:8px;font-size:.83rem;color:var(--t);background:var(--pk4);border-radius:8px;padding:8px 10px;">✨ ${p.notes}</div>`:''}
+      </div>`;
+    });
+  }
+
+  // 今日服務
+  if(r.services?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🧹 今日服務內容</div>
+      <div class="check-list">${r.services.map(s=>`<span class="check-ok">✔ ${s}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 毛孩照片
+  if(r.petPhotos?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">📸 毛孩當日美照</div>
+      <div class="photo-grid">${r.petPhotos.map(p=>`<img class="photo-thumb" src="${p.dataUrl||p.url||''}" onclick="openLB(this)">`).join('')}</div>
+    </div>`;
+  }
+
+  // 影片
+  if(r.videoDataUrl||r.videoDataURL){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🎬 今日互動影片</div>
+      <video class="video-player" src="${r.videoDataUrl||r.videoDataURL}" controls style="width:100%;border-radius:10px;max-height:220px;"></video>
+    </div>`;
+  }
+
+  // 清潔前後對比照
+  const beforePhotos=r.photos?.filter(p=>p.key.startsWith('before'));
+  const afterPhotos=r.photos?.filter(p=>p.key.startsWith('after'));
+  if(beforePhotos?.length||afterPhotos?.length){
+    const groups=[
+      {label:'貓砂',bKey:'before-litter',aKey:'after-litter'},
+      {label:'食碗/飼料',bKey:'before-food',aKey:'after-food'},
+      {label:'飲水機',bKey:'before-water',aKey:'after-water'},
+    ];
+    const compareHtml=groups.map(g=>{
+      const b=r.photos.find(p=>p.key===g.bKey);
+      const a=r.photos.find(p=>p.key===g.aKey);
+      if(!b&&!a)return '';
+      return `<div>
+        <div class="photo-group-label">🔄 ${g.label}清潔前後</div>
+        <div class="compare-row">
+          ${b?`<div class="compare-item"><img src="${b.url}" onclick="openLB(this)"><div class="clabel">清潔前</div></div>`:'<div></div>'}
+          ${a?`<div class="compare-item"><img src="${a.url}" onclick="openLB(this)"><div class="clabel">清潔後 ✅</div></div>`:'<div></div>'}
+        </div></div>`;
+    }).filter(Boolean).join('');
+    if(compareHtml){
+      html+=`<div class="rblock"><div class="rblock-title">📸 清潔前後對比</div>${compareHtml}</div>`;
+    }
+  }
+
+  // 新格式：cleanPhotos 分組顯示
+  if(r.cleanPhotos?.length){
+    // Group by groupIdx
+    const groupMap={};
+    r.cleanPhotos.forEach(p=>{
+      if(!groupMap[p.groupIdx])groupMap[p.groupIdx]={label:p.label||'清潔',before:null,after:null};
+      if(p.side==='before')groupMap[p.groupIdx].before=p.dataUrl;
+      else groupMap[p.groupIdx].after=p.dataUrl;
+    });
+    const groupHtml=Object.entries(groupMap).map(([idx,g])=>`
+      <div style="margin-bottom:12px;">
+        <div class="photo-group-label">🔄 ${g.label}清潔前後</div>
+        <div class="compare-row">
+          ${g.before?`<div class="compare-item"><img src="${g.before}" onclick="openLB(this)"><div class="clabel">清潔前</div></div>`:''}
+          ${g.after?`<div class="compare-item"><img src="${g.after}" onclick="openLB(this)"><div class="clabel">清潔後 ✅</div></div>`:''}
+        </div>
+      </div>`).join('');
+    if(groupHtml.trim()){
+      html+=`<div class="rblock"><div class="rblock-title">📸 清潔前後對比</div>${groupHtml}</div>`;
+    }
+  }
+
+  // 安全巡檢
+  if(r.safety?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🔐 離開前環境安全巡檢</div>
+      <div class="check-list">${r.safety.map(s=>`<span class="check-ok">✔ ${s}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 保母心情日記
+  if(r.diary){
+    html+=`<div class="rblock" style="background:linear-gradient(135deg,#FFF0F5,#FFFAF0);">
+      <div class="rblock-title">💌 保母心情日記</div>
+      <div class="rblock-content" style="font-style:italic;line-height:1.8;">${r.diary}</div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+
+async function initReferralCode(){
+  if(!currentBookId)return;
+  try{
+    const _opws=await dbGetOwnerPws();
+    const pw=_opws[currentBookId]||'';
+    // Generate ref code seed from pw or bookId
+    const seed=pw||String(currentBookId);
+    const refs=await dbGetRefCodes();
+    // Find existing code for this bookId
+    let myCode=Object.keys(refs).find(k=>refs[k]&&String(refs[k].bookId)===String(currentBookId));
+    if(!myCode){
+      // Create new unique code: REF + seed chars + random
+      const randPart=Math.random().toString(36).substring(2,6).toUpperCase();
+      myCode='REF-'+seed.slice(-3)+randPart;
+      const bk=(await getB()).find(x=>x.id===currentBookId);
+      refs[myCode]={
+        bookId:currentBookId,
+        owner:bk?.ownerName||'飼主',
+        usedBy:null,usedAt:null,
+        created:new Date().toISOString()
+      };
+      await dbInsertRefCode(myCode,currentBookId,bk?.ownerName||'飼主');
+    }
+    const el=document.getElementById('myRefCode');
+    if(el) el.textContent=myCode;
+
+    // Show referral history if any successful referrals
+    const _allO=await getB();
+  const bk2=_allO.find(x=>x.id===currentBookId);
+    const ownerName=bk2?.ownerName||'';
+    const successRefs=Object.entries(refs).filter(([k,v])=>v&&v.owner===ownerName&&v.usedBy);
+    const hist=document.getElementById('refHistory');
+    if(hist){
+      if(successRefs.length>0){
+        hist.innerHTML=`<div style="background:var(--g2);border:1.5px solid var(--g);border-radius:10px;padding:10px 14px;font-size:.8rem;color:#1A7A4A;margin-top:8px;font-weight:700;">
+          ✅ 已成功推薦 ${successRefs.length} 位好友！累積獎勵 $${successRefs.length*100}
+        </div>`;
+      } else {
+        hist.innerHTML='';
+      }
+    }
+  }catch(e){console.error('initReferralCode error:',e);}
+}
+
+function copyRefCode(){
+  const code=document.getElementById('myRefCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    const msg=document.getElementById('refCopyMsg');
+    msg.textContent='✅ 已複製！快分享給好朋友吧 💕';
+    setTimeout(()=>{msg.textContent='';},3000);
+  });
+}
+
+
+// ── REVIEW UI HELPERS ──
+const RV_STAR_LABELS=['','★ 一般般','★★ 還可以','★★★ 不錯喔','★★★★ 很滿意！','★★★★★ 非常滿意！'];
+let _rvStar=5;
+
+function setRvStar(n){
+  _rvStar=n;
+  document.getElementById('ownerRating').value='★'.repeat(n);
+  document.getElementById('rvStarLabel').textContent=RV_STAR_LABELS[n];
+  document.getElementById('rvStarLabel').style.color=n>=4?'var(--y3)':'var(--tl)';
+  [1,2,3,4,5].forEach(i=>{
+    const el=document.getElementById('rvs'+i);
+    if(el)el.classList.toggle('on',i<=n);
+  });
+}
+
+function setRvSitter(name,el){
+  document.getElementById('ownerSitter').value=name;
+  document.querySelectorAll('.rv-sitter').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function setRvBest(el){
+  document.querySelectorAll('.rv-chip').forEach(e=>e.classList.remove('on'));
+  el.classList.add('on');
+  // Map chip text back to full option value
+  const fullMap={
+    '💝 保母超有愛心，毛孩很喜歡':'保母超有愛心，毛孩很喜歡',
+    '📋 回報超詳細，出門放心':'照護回報超詳細，出門完全放心',
+    '✨ 毛孩回來狀態明顯很好':'毛孩回來後狀態明顯很好',
+    '⏰ 很準時，態度超專業':'很準時，服務態度非常專業',
+    '📸 照片影片拍得好可愛':'照片、影片拍得好可愛又用心',
+    '🏥 對老貓/病貓特別有耐心':'對老貓/病貓特別有耐心',
+    '💰 服務性價比超高':'服務性價比超高，物超所值',
+    '🏠 毛孩被當自家寶貝對待':'回報內容讓我感覺毛孩被當自家寶貝',
+    '🧹 清潔前後對比超用心':'清潔前後對比照片超用心',
+    '👀 保母對習性觀察超細心':'保母對毛孩習性觀察得很細心',
+  };
+  document.getElementById('ownerBest').value=fullMap[el.textContent.trim()]||el.textContent.trim();
+}
+async function submitOwnerReview(){
+  const bk=(await getB()).find(x=>x.id===currentBookId);
+  const petName=bk?.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk?.petName||'毛孩');
+  const author=document.getElementById('ownerReviewAuthor').value||petName+'主人';
+  const now=new Date();
+  const rand=Math.random().toString(36).substring(2,8).toUpperCase();
+  const today=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  const expire=new Date(now);expire.setFullYear(expire.getFullYear()+1);
+  const expStr=`${expire.getFullYear()}${String(expire.getMonth()+1).padStart(2,'0')}${String(expire.getDate()).padStart(2,'0')}`;
+  const code=`${petName}-${rand}-${today}`;
+
+  // Save coupon
+  await dbInsertCoupon({code,pet_name:petName,amount:50,created:today,expire:expStr,used:false,author});
+
+  // Save review
+  await dbInsertReview({
+    pet_name:petName,
+    pet_type:(bk?.catCount||0)>0?'🐱 貓咪':'🐶 狗狗',
+    sitter:document.getElementById('ownerSitter').value,
+    rating:document.getElementById('ownerRating').value,
+    service:'到府服務',
+    best:document.getElementById('ownerBest').value,
+    comment:document.getElementById('ownerReviewComment').value,
+    author,
+    ts:Date.now()
+  });
+
+  // Show coupon with animation
+  document.getElementById('oCpPet').textContent=`🐾 ${petName} 專屬券`;
+  document.getElementById('oCpCode').textContent=`券碼：${code}`;
+  document.getElementById('oCpDates').textContent=`開立日：${now.toLocaleDateString('zh-TW')}｜有效至 ${expire.toLocaleDateString('zh-TW')}`;
+  const cpBox=document.getElementById('ownerCouponBox');
+  cpBox.style.display='block';
+  // Hide the form after submit
+  const formSec=document.getElementById('reviewFormSection');
+  if(formSec)formSec.style.display='none';
+  cpBox.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+function copyOwnerCoupon(){
+  const code=document.getElementById('oCpCode').textContent;
+  const dates=document.getElementById('oCpDates').textContent;
+  const pet=document.getElementById('oCpPet').textContent;
+  navigator.clipboard.writeText(`貓窩裏 $50 折抵券\n${pet}\n${code}\n${dates}`).then(()=>alert('已複製券碼 ✓'));
+}
+function openLB(img){
+  document.getElementById('lbImg').src=img.src;
+  document.getElementById('lightbox').classList.add('show');
+}
+function closeLB(){document.getElementById('lightbox').classList.remove('show');}
+</script>
+</body>
+</html>

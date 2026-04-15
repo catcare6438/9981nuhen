@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>貓窩裏｜後台管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pk:#FF8FA3;--pk2:#FFB6C1;--pk3:#FFD6E0;--pk4:#FFF0F5;--pk5:#FFFAFB;
+  --pk6:#FF5C7D;
+  --y:#FFE066;--y2:#FFF8D0;--y3:#FFB800;
+  --g:#52C48A;--g2:#D4F5E4;
+  --b:#818CF8;--b2:#EEF0FF;
+  --o:#FB923C;--o2:#FFF3E8;
+  --r:#F87171;--r2:#FFF0F0;
+  --t:#3D2B35;--tl:#9B7A8A;--tm:#6B4558;
+  --sh:0 4px 20px rgba(255,143,163,.18);
+  --sh2:0 8px 32px rgba(255,143,163,.22);
+  --card:#fff;
+  --bg:linear-gradient(160deg,#FFF5F8 0%,#FFF9FC 100%);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{height:100%;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse at 15% 15%,rgba(255,182,193,.12) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 85%,rgba(255,224,102,.08) 0%,transparent 55%);
+}
+
+/* ═══ LOGIN ═══ */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 55%,#FFE8EF 100%);position:relative;z-index:1;}
+.login-wrap{background:#fff;border:3px solid var(--pk3);border-radius:28px;
+  padding:44px 38px;text-align:center;width:400px;max-width:96vw;
+  box-shadow:var(--sh2);position:relative;overflow:hidden;}
+.login-wrap::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:shimmer 3s linear infinite;}
+@keyframes shimmer{0%{background-position:0%;}100%{background-position:200%;}}
+.login-ico{font-size:3rem;margin-bottom:10px;}
+.login-title{font-family:'Nunito',sans-serif;font-size:1.5rem;font-weight:900;color:var(--pk);
+  margin-bottom:4px;text-shadow:2px 2px 0 #fff;}
+.login-sub{font-size:.82rem;color:var(--tl);margin-bottom:26px;}
+.login-in{width:100%;padding:13px 18px;background:var(--pk5);
+  border:2.5px solid var(--pk3);border-radius:12px;color:var(--t);font-size:.95rem;
+  font-family:inherit;outline:none;text-align:center;letter-spacing:8px;transition:border .2s;margin-bottom:12px;}
+.login-in:focus{border-color:var(--pk);}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,var(--pk6),var(--pk));
+  color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:900;
+  font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;
+  box-shadow:0 6px 18px rgba(255,92,125,.3);}
+.login-btn:hover{transform:translateY(-2px);}
+.login-err{color:var(--r);font-size:.8rem;margin-top:8px;display:none;}
+/* crayon deco on login */
+.login-deco{position:absolute;font-size:2rem;opacity:.1;pointer-events:none;}
+
+/* ═══ LAYOUT ═══ */
+#adminScreen{display:none;}
+#adminScreen.show{display:flex;min-height:100vh;position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:230px;flex-shrink:0;background:#fff;
+  border-right:2.5px solid var(--pk3);
+  display:flex;flex-direction:column;
+  position:fixed;top:0;left:0;bottom:0;z-index:200;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:4px 0 20px rgba(255,143,163,.12);
+}
+.sidebar.closed{transform:translateX(-230px);}
+.sidebar-top{padding:18px 16px 14px;border-bottom:2px dashed var(--pk3);
+  display:flex;align-items:center;gap:10px;}
+.sidebar-ham{width:34px;height:34px;border:2px solid var(--pk3);border-radius:10px;
+  background:var(--pk4);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1rem;flex-shrink:0;transition:all .2s;}
+.sidebar-ham:hover{background:var(--pk);color:#fff;border-color:var(--pk);}
+.sidebar-brand{font-family:'Nunito',sans-serif;font-size:1.05rem;font-weight:900;color:var(--pk);}
+.sidebar-brand-sub{font-size:.68rem;color:var(--tl);}
+.sidebar-nav{flex:1;padding:14px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 12px;
+  border-radius:14px;cursor:pointer;font-size:.84rem;font-weight:700;
+  color:var(--tl);transition:all .2s;text-decoration:none;font-family:'Nunito',sans-serif;
+  border:2px solid transparent;}
+.nav-item:hover{background:var(--pk4);color:var(--pk);border-color:var(--pk3);}
+.nav-item.on{background:linear-gradient(135deg,#FFD6E0,#FFF0F5);color:var(--pk);
+  border-color:var(--pk2);box-shadow:0 2px 10px rgba(255,143,163,.18);}
+.nav-ico{font-size:1.1rem;width:22px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--pk6);color:#fff;font-size:.65rem;
+  padding:2px 7px;border-radius:10px;font-weight:900;}
+.sidebar-bottom{padding:12px 10px;border-top:2px dashed var(--pk3);}
+.sidebar-user{display:flex;align-items:center;gap:10px;padding:10px 12px;
+  border-radius:14px;background:var(--pk4);border:2px solid var(--pk3);}
+.su-av{font-size:1.4rem;}
+.su-name{font-size:.82rem;font-weight:800;color:var(--pk);}
+.su-role{font-size:.66rem;color:var(--tl);}
+
+/* ── MAIN ── */
+.main{margin-left:230px;flex:1;display:flex;flex-direction:column;transition:margin .3s;}
+.main.full{margin-left:0;}
+
+/* ── TOPBAR ── */
+.topbar{background:rgba(255,255,255,.97);backdrop-filter:blur(12px);
+  border-bottom:2.5px solid var(--pk3);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  position:sticky;top:0;z-index:100;box-shadow:0 2px 14px rgba(255,143,163,.12);}
+.topbar-l{display:flex;align-items:center;gap:12px;}
+.ham-btn{width:36px;height:36px;background:var(--pk4);border:2px solid var(--pk3);
+  border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:1.1rem;transition:all .2s;flex-shrink:0;}
+.ham-btn:hover{background:var(--pk);border-color:var(--pk);}
+.topbar-title{font-family:'Nunito',sans-serif;font-size:1.05rem;font-weight:900;color:var(--pk);}
+.topbar-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.btn{padding:8px 16px;border-radius:20px;border:none;cursor:pointer;font-size:.8rem;
+  font-weight:800;font-family:'Nunito',sans-serif;transition:all .2s;}
+.btn-pk{background:linear-gradient(135deg,var(--pk6),var(--pk));color:#fff;
+  box-shadow:0 3px 10px rgba(255,92,125,.25);}
+.btn-pk:hover{transform:translateY(-1px);}
+.btn-out{background:#fff;border:2px solid var(--pk3);color:var(--tl);}
+.btn-out:hover{border-color:var(--pk);color:var(--pk);}
+.btn-y{background:var(--y);color:var(--t);border:2px solid #F5C842;}
+.btn-g{background:linear-gradient(135deg,var(--g),#3DAF74);color:#fff;}
+.btn-sm{padding:5px 12px;font-size:.74rem;}
+
+/* ── CONTENT ── */
+.content{padding:22px 20px;flex:1;}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:#fff;border:2.5px solid var(--pk3);border-radius:18px;
+  padding:20px 16px;text-align:center;box-shadow:var(--sh);position:relative;overflow:hidden;
+  transition:transform .2s;}
+.stat-card:hover{transform:translateY(-2px);}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;}
+.stat-c1::before{background:linear-gradient(90deg,var(--pk6),var(--pk));}
+.stat-c2::before{background:linear-gradient(90deg,var(--y3),var(--y));}
+.stat-c3::before{background:linear-gradient(90deg,var(--g),#3DAF74);}
+.stat-c4::before{background:linear-gradient(90deg,var(--b),#6366F1);}
+.stat-c5::before{background:linear-gradient(90deg,var(--o),#F59E0B);}
+.stat-ico{font-size:1.6rem;margin-bottom:6px;}
+.stat-n{font-family:'Nunito',sans-serif;font-size:2rem;font-weight:900;color:var(--t);}
+.stat-n.cpk{color:var(--pk);}
+.stat-n.cy{color:var(--y3);}
+.stat-n.cg{color:var(--g);}
+.stat-n.cb{color:var(--b);}
+.stat-n.co{color:var(--o);}
+.stat-l{font-size:.74rem;color:var(--tl);margin-top:3px;font-weight:600;}
+
+/* ── FILTER TABS (like screenshot) ── */
+.filter-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.ftab{padding:8px 18px;border-radius:24px;cursor:pointer;font-size:.82rem;font-weight:800;
+  border:2.5px solid var(--pk3);background:#fff;color:var(--tl);transition:all .2s;
+  font-family:'Nunito',sans-serif;}
+.ftab.on{background:linear-gradient(135deg,var(--pk6),var(--pk));color:#fff;border-color:transparent;
+  box-shadow:0 4px 12px rgba(255,92,125,.25);}
+.ftab:hover:not(.on){border-color:var(--pk);color:var(--pk);}
+
+/* ── SEARCH ── */
+.search-row{display:flex;gap:10px;margin-bottom:18px;}
+.search-in{flex:1;padding:11px 16px;border:2.5px solid var(--pk3);border-radius:30px;
+  font-family:inherit;font-size:.85rem;color:var(--t);background:#fff;outline:none;transition:border .2s;}
+.search-in:focus{border-color:var(--pk);}
+.search-clear{padding:11px 16px;border:2.5px solid var(--pk3);border-radius:30px;
+  background:#fff;color:var(--tl);font-size:.8rem;font-weight:700;cursor:pointer;
+  font-family:'Nunito',sans-serif;transition:all .2s;white-space:nowrap;}
+.search-clear:hover{border-color:var(--r);color:var(--r);}
+
+/* ── ORDER CARD (matches screenshot style) ── */
+.order-list{display:flex;flex-direction:column;gap:14px;}
+.order-card{background:#fff;border:2.5px solid var(--pk3);border-radius:20px;
+  padding:18px;box-shadow:var(--sh);position:relative;overflow:hidden;transition:box-shadow .2s;}
+.order-card:hover{box-shadow:var(--sh2);}
+.order-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:shimmer 3s linear infinite;}
+.order-header{display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:10px;flex-wrap:wrap;gap:6px;}
+.order-meta{font-size:.72rem;color:var(--tl);}
+.order-name{font-size:1rem;font-weight:900;color:var(--t);margin-top:2px;font-family:'Nunito',sans-serif;}
+.order-phone{display:flex;align-items:center;gap:5px;font-size:.84rem;color:var(--t);margin-top:4px;}
+.order-body{display:flex;flex-direction:column;gap:6px;font-size:.84rem;line-height:1.6;}
+.order-row{display:flex;gap:6px;}
+.order-label{color:var(--tl);font-weight:700;white-space:nowrap;}
+.order-val{color:var(--t);}
+/* assign sitter inline */
+.assign-inline{display:flex;align-items:center;gap:8px;margin-top:4px;}
+.assign-sel{padding:6px 10px;border:2px solid var(--pk3);border-radius:10px;
+  font-size:.8rem;font-family:inherit;color:var(--t);background:#fff;outline:none;cursor:pointer;}
+.assign-sel:focus{border-color:var(--pk);}
+/* total bar */
+.order-total{background:linear-gradient(135deg,#FFB6C1,#FFD6A0);border-radius:12px;
+  padding:12px 18px;display:flex;justify-content:space-between;align-items:center;
+  margin-top:12px;}
+.order-total-label{font-size:.84rem;font-weight:800;color:#6B3040;}
+.order-total-amt{font-size:1.2rem;font-weight:900;color:#C0392B;font-family:'Nunito',sans-serif;}
+/* action buttons */
+.order-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.oa-btn{padding:7px 16px;border-radius:12px;border:2px solid;cursor:pointer;
+  font-size:.78rem;font-weight:800;font-family:'Nunito',sans-serif;transition:all .2s;}
+.oa-confirm{background:var(--g2);color:#1A7A4A;border-color:#52C48A;}
+.oa-confirm:hover{background:#52C48A;color:#fff;}
+.oa-done{background:#EEF0FF;color:#5558B8;border-color:var(--b);}
+.oa-done:hover{background:var(--b);color:#fff;}
+.oa-cancel{background:var(--o2);color:#C05000;border-color:var(--o);}
+.oa-cancel:hover{background:var(--o);color:#fff;}
+.oa-del{background:var(--r2);color:#B00;border-color:var(--r);}
+.oa-del:hover{background:var(--r);color:#fff;}
+/* status badge */
+.badge{display:inline-flex;align-items:center;padding:4px 12px;border-radius:20px;
+  font-size:.72rem;font-weight:900;font-family:'Nunito',sans-serif;}
+.b-wait{background:var(--y2);color:#8B6800;border:2px solid var(--y);}
+.b-ok{background:var(--g2);color:#1A7A4A;border:2px solid var(--g);}
+.b-done{background:#F0F0F8;color:#888;border:2px solid #CCC;}
+.b-cancel{background:var(--r2);color:#B00;border:2px solid var(--r);}
+
+/* ── SITTER SALARY ── */
+.sitter-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;}
+.sc{background:#fff;border:2.5px solid var(--pk3);border-radius:20px;padding:20px;
+  box-shadow:var(--sh);position:relative;overflow:hidden;}
+.sc::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;
+  background:linear-gradient(90deg,var(--pk),var(--y),var(--pk));}
+.sc-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+.sc-av{font-size:2.2rem;}
+.sc-name{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:1rem;}
+.sc-role{font-size:.7rem;color:var(--tl);}
+.sc-row{display:flex;justify-content:space-between;padding:6px 0;
+  border-bottom:1.5px dashed var(--pk3);font-size:.82rem;}
+.sc-row:last-of-type{border:none;}
+.sc-l{color:var(--tl);}
+.sc-v{font-weight:800;color:var(--pk);font-family:'Nunito',sans-serif;}
+.sc-exp{width:100%;margin-top:12px;padding:9px;background:var(--pk4);
+  border:2px solid var(--pk3);color:var(--pk);border-radius:12px;font-size:.78rem;
+  font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;transition:all .2s;}
+.sc-exp:hover{background:var(--pk);color:#fff;}
+
+/* ── COUPON PAGE ── */
+.coupon-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;}
+.cpn-card{background:#fff;border:2.5px solid var(--pk3);border-radius:16px;
+  padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  transition:box-shadow .2s;box-shadow:var(--sh);}
+.cpn-code{font-family:monospace;font-size:.78rem;color:var(--y3);font-weight:800;}
+.cpn-pet{font-size:.84rem;font-weight:800;color:var(--t);}
+.cpn-date{font-size:.7rem;color:var(--tl);}
+.cpn-ok{background:var(--g2);color:#1A7A4A;border:2px solid var(--g);padding:4px 10px;
+  border-radius:10px;font-size:.7rem;font-weight:800;}
+.cpn-used{background:#F0F0F0;color:#888;border:2px solid #DDD;padding:4px 10px;
+  border-radius:10px;font-size:.7rem;font-weight:800;}
+
+/* ── REVIEW PAGE ── */
+.rev-admin-card{background:#fff;border:2.5px solid var(--pk3);border-radius:14px;
+  padding:16px;margin-bottom:12px;box-shadow:var(--sh);}
+.rev-stars{color:#FFB800;font-size:.95rem;}
+.rev-comment{font-size:.83rem;color:var(--t);line-height:1.7;}
+
+/* ── OWNER SYSTEM ── */
+.owner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;}
+.owner-card{background:#fff;border:2.5px solid var(--pk3);border-radius:16px;padding:18px;box-shadow:var(--sh);}
+.owner-name{font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;margin-bottom:6px;}
+.owner-pw{font-family:monospace;background:var(--pk4);border:1.5px solid var(--pk3);
+  border-radius:8px;padding:6px 12px;font-size:.85rem;color:var(--t);display:inline-block;margin:4px 0;}
+.owner-row{font-size:.8rem;color:var(--tl);padding:3px 0;}
+.gen-pw-btn{padding:7px 14px;background:var(--y2);border:2px solid var(--y3);border-radius:10px;
+  font-size:.76rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;color:var(--t);transition:all .2s;}
+.gen-pw-btn:hover{background:var(--y);border-color:var(--y3);}
+
+/* ── MODALS ── */
+.m-ov{display:none;position:fixed;inset:0;background:rgba(200,100,130,.25);z-index:999;
+  align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.m-ov.show{display:flex;}
+.m-box{background:#fff;border:2.5px solid var(--pk3);border-radius:22px;
+  padding:26px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sh2);}
+.m-box h3{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  margin-bottom:16px;font-size:1.1rem;}
+.m-field{margin-bottom:12px;}
+.m-field label{display:block;font-size:.76rem;color:var(--tl);font-weight:700;margin-bottom:4px;}
+.m-field select,.m-field input,.m-field textarea{
+  width:100%;padding:10px 14px;border:2px solid var(--pk3);border-radius:10px;
+  font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;transition:border .2s;}
+.m-field select:focus,.m-field input:focus,.m-field textarea:focus{border-color:var(--pk);}
+.m-row{display:flex;gap:10px;margin-top:4px;}
+.m-row .btn{flex:1;padding:11px;border-radius:12px;font-size:.88rem;}
+.det-row{display:flex;justify-content:space-between;padding:7px 0;
+  border-bottom:1.5px dashed var(--pk3);font-size:.83rem;}
+.det-row:last-child{border:none;}
+.det-l{color:var(--tl);}
+.det-v{font-weight:700;color:var(--t);}
+.det-total{color:var(--pk6);font-weight:900;font-family:'Nunito',sans-serif;font-size:1.05rem;}
+.exp-txt{font-size:.78rem;color:var(--tl);background:var(--pk4);border:2px solid var(--pk3);
+  border-radius:10px;padding:14px;max-height:340px;overflow-y:auto;
+  white-space:pre-wrap;font-family:monospace;margin-bottom:14px;}
+
+/* ── MONTH PICKER ── */
+.month-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+.month-row label{font-size:.8rem;color:var(--tl);font-weight:700;}
+.month-pick{padding:9px 14px;background:#fff;border:2px solid var(--pk3);
+  border-radius:12px;font-family:inherit;color:var(--t);outline:none;width:170px;}
+.month-pick:focus{border-color:var(--pk);}
+
+/* ── PANEL ── */
+.panel{background:#fff;border:2.5px solid var(--pk3);border-radius:20px;
+  overflow:hidden;margin-bottom:24px;box-shadow:var(--sh);}
+.panel-header{padding:16px 20px;border-bottom:2px dashed var(--pk3);
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+  background:linear-gradient(135deg,var(--pk4),#fff);}
+.panel-title{font-family:'Nunito',sans-serif;font-size:.95rem;font-weight:900;
+  color:var(--pk);display:flex;align-items:center;gap:8px;}
+.panel-body{padding:20px;}
+.empty-msg{text-align:center;padding:40px;color:var(--tl);font-size:.88rem;}
+
+/* CHANGE PW */
+.change-pw-wrap{background:var(--pk4);border:2px dashed var(--pk3);border-radius:14px;
+  padding:16px;margin-bottom:16px;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .main{margin-left:0;}
+  .sidebar{transform:translateX(-230px);}
+  .sidebar.open{transform:translateX(0);}
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
+const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+
+// Safe error message extractor — never touches Headers or non-serialisable fields
+function _errMsg(e){
+  if(!e) return 'unknown error';
+  if(typeof e==='string') return e;
+  // Extract only plain-string fields
+  const msg=e.message||e.msg||'';
+  const code=e.code||e.status_code||'';
+  const hint=e.hint||e.details||'';
+  return [msg,code?`[${code}]`:'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
+}
+
+// ── Supabase helpers ──
+async function dbGetOrders(){
+  const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
+  if(error){console.error('getOrders:',_errMsg(error));return[];}
+  return(data||[]).map(dbRowToOrder);
+}
+async function dbInsertOrder(b){
+  const row=orderToDbRow(b);
+  const{error}=await _supa.from('orders').insert([row]);
+  if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
+}
+async function dbUpdateOrder(id,fields){
+  const row={};
+  if(fields.status!==undefined)row.status=fields.status;
+  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
+  const{error}=await _supa.from('orders').update(row).eq('id',id);
+  if(error)console.error('updateOrder:',_errMsg(error));
+}
+async function dbDeleteOrder(id){
+  const{error}=await _supa.from('orders').delete().eq('id',id);
+  if(error)console.error('deleteOrder:',_errMsg(error));
+}
+async function dbGetReports(bookId){
+  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
+  if(bookId)q=q.eq('book_id',bookId);
+  const{data,error}=await q;
+  if(error){console.error('getReports:',_errMsg(error));return[];}
+  return(data||[]).map(r=>({
+    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    hasVideo:false,videoDataURL:null,videoName:'',videoDuration:0
+  }));
+}
+async function dbInsertReport(r){
+  const{error}=await _supa.from('reports').insert([{
+    ts:r.ts,book_id:r.bookId,book_name:r.bookName,sitter:r.sitter,
+    date:r.date,time_start:r.timeStart,time_end:r.timeEnd,
+    pet_reports:r.petReports,services:r.services,
+    disinfect:r.disinfect,safety:r.safety,diary:r.diary
+  }]);
+  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+}
+async function dbGetCoupons(){
+  const{data,error}=await _supa.from('coupons').select('*');
+  if(error){console.error('getCoupons:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertCoupon(cp){
+  const{error}=await _supa.from('coupons').insert([cp]);
+  if(error)console.error('insertCoupon:',_errMsg(error));
+}
+async function dbMarkCouponUsed(code){
+  const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
+  if(error)console.error('markCouponUsed:',_errMsg(error));
+}
+async function dbGetReviews(){
+  const{data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
+  if(error){console.error('getReviews:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertReview(rv){
+  const{error}=await _supa.from('reviews').insert([rv]);
+  if(error)console.error('insertReview:',_errMsg(error));
+}
+async function dbGetOwnerPws(){
+  const{data,error}=await _supa.from('owner_passwords').select('*');
+  if(error){console.error('getOwnerPws:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
+}
+async function dbSetOwnerPw(bookId,pw){
+  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
+  if(error)console.error('setOwnerPw:',_errMsg(error));
+}
+async function dbDeleteOwnerPw(bookId){
+  const{error}=await _supa.from('owner_passwords').delete().eq('book_id',bookId);
+  if(error)console.error('deleteOwnerPw:',_errMsg(error));
+}
+async function dbGetAllSitterPws(){
+  const{data,error}=await _supa.from('sitter_passwords').select('*');
+  if(error){console.error('getAllSitterPws:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.name]=r.password;});return map;
+}
+async function dbGetRefCodes(){
+  const{data,error}=await _supa.from('referral_codes').select('*');
+  if(error){console.error('getRefCodes:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.code]={bookId:r.book_id,owner:r.owner,usedBy:r.used_by,usedAt:r.used_at};}); return map;
+}
+async function dbInsertRefCode(code,bookId,owner){
+  const{error}=await _supa.from('referral_codes').insert([{code,book_id:bookId,owner,used_by:null,used_at:null}]);
+  if(error)console.error('insertRefCode:',_errMsg(error));
+}
+async function dbMarkRefCodeUsed(code,usedBy){
+  const{error}=await _supa.from('referral_codes').update({used_by:usedBy,used_at:new Date().toISOString()}).eq('code',code);
+  if(error)console.error('markRefCodeUsed:',_errMsg(error));
+}
+
+// ── Row ↔ Object converters ──
+function orderToDbRow(b){
+  return{
+    id:b.id,ts:b.ts,
+    owner_name:b.ownerName,owner_phone:b.ownerPhone,
+    owner_line:b.ownerLine||'',owner_addr:b.ownerAddr||'',
+    pet_data:b.petData||[],cat_count:b.catCount||0,dog_count:b.dogCount||0,
+    pet_notes:b.petNotes||'',
+    start_date:b.startDate,end_date:b.endDate,
+    days:b.days||1,tpd:b.tpd||1,
+    services:b.services||[],addons:b.addons||[],
+    urgent:b.urgent||0,distance:b.distance||0,
+    transport:b.transport||0,transport_total:b.transportTotal||0,
+    is_holiday:b.isHoliday||false,
+    coupon_used:b.couponUsed||'',ref_code:b.refCode||'',
+    discounts:b.discounts||0,total:b.total||0,
+    status:b.status||'待確認',assigned_to:b.assignedTo||''
+  };
+}
+function dbRowToOrder(r){
+  return{
+    id:r.id,ts:r.ts,
+    ownerName:r.owner_name,ownerPhone:r.owner_phone,
+    ownerLine:r.owner_line,ownerAddr:r.owner_addr,
+    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petNotes:r.pet_notes||'',
+    startDate:r.start_date,endDate:r.end_date,
+    days:r.days||1,tpd:r.tpd||1,
+    services:r.services||[],addons:r.addons||[],
+    urgent:r.urgent||0,distance:r.distance||0,
+    transport:r.transport||0,transportTotal:r.transport_total||0,
+    isHoliday:r.is_holiday||false,
+    couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
+    discounts:r.discounts||0,total:r.total||0,
+    status:r.status||'待確認',assignedTo:r.assigned_to||''
+  };
+}
+</script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-deco" style="top:10px;right:20px;">🐾</div>
+    <div class="login-deco" style="bottom:20px;left:15px;">🌸</div>
+    <div class="login-ico">🔐</div>
+    <div class="login-title">後台管理系統</div>
+    <div class="login-sub">貓窩裏 到府寵物褓姆</div>
+    <input class="login-in" type="password" id="pwIn" placeholder="• • • • • • • •" onkeydown="if(event.key==='Enter')login()">
+    <button class="login-btn" onclick="login()">登入後台 →</button>
+    <div class="login-err" id="loginErr">❌ 密碼錯誤，請再試一次</div>
+  </div>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-ham" onclick="toggleSidebar()" title="收合選單">☰</div>
+      <div>
+        <div class="sidebar-brand">🐾 貓窩裏</div>
+        <div class="sidebar-brand-sub">後台管理系統</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-item on" onclick="goPage('orders',this)">
+        <span class="nav-ico">📋</span> 訂單管理
+        <span class="nav-badge" id="pendingBadge"></span>
+      </div>
+      <div class="nav-item" onclick="goPage('salary',this)">
+        <span class="nav-ico">💰</span> 薪資計算
+      </div>
+      <div class="nav-item" onclick="goPage('owners',this)">
+        <span class="nav-ico">🏠</span> 毛孩爸媽
+      </div>
+      <div class="nav-item" onclick="goPage('coupons',this)">
+        <span class="nav-ico">🎟</span> 折抵券
+      </div>
+      <div class="nav-item" onclick="goPage('reviews',this)">
+        <span class="nav-ico">⭐</span> 好評管理
+      </div>
+      <div class="nav-item" onclick="goPage('passwords',this)">
+        <span class="nav-ico">🔐</span> 密碼總覽
+      </div>
+      <div class="nav-item" onclick="window.open('index.html')">
+        <span class="nav-ico">🌐</span> 前台
+      </div>
+      <div class="nav-item" onclick="window.open('sitter.html')">
+        <span class="nav-ico">👩</span> 保母端
+      </div>
+      <div class="nav-item" onclick="window.open('owner.html')">
+        <span class="nav-ico">🐱</span> 飼主端
+      </div>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sidebar-user">
+        <div class="su-av">👑</div>
+        <div><div class="su-name">管理員</div><div class="su-role">貓窩裏老闆</div></div>
+      </div>
+      <div class="nav-item" style="margin-top:8px;" onclick="showChangePw()">
+        <span class="nav-ico">🔑</span> 改密碼
+      </div>
+      <div class="nav-item" style="color:var(--r);" onclick="logout()">
+        <span class="nav-ico">🚪</span> 登出
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main" id="mainArea">
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="topbar-l">
+        <div class="ham-btn" onclick="toggleSidebar()">☰</div>
+        <div class="topbar-title" id="pageTitle">📋 訂單管理</div>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-y" onclick="exportAll()">📥 匯出全部</button>
+        <button class="btn btn-pk btn-sm" onclick="refreshAll()">🔄</button>
+      </div>
+    </div>
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- ORDERS -->
+      <div id="page-orders">
+        <div class="filter-tabs" id="filterTabs">
+          <div class="ftab on" onclick="filterOrders('',this)">全部</div>
+          <div class="ftab" onclick="filterOrders('待確認',this)">⏳ 待處理</div>
+          <div class="ftab" onclick="filterOrders('已確認',this)">✅ 已確認</div>
+          <div class="ftab" onclick="filterOrders('已完成',this)">🎉 已完成</div>
+          <div class="ftab" onclick="filterOrders('已取消',this)">✖ 已取消</div>
+        </div>
+        <div class="search-row">
+          <input class="search-in" type="text" id="searchQ" placeholder="🔍 搜尋姓名、電話..." oninput="renderOrders()">
+          <button class="search-clear" onclick="clearSearch()">🗑 清除</button>
+        </div>
+        <div class="order-list" id="orderList"></div>
+      </div>
+
+      <!-- SALARY -->
+      <div id="page-salary" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">💰 保母薪資計算</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+              <div class="month-row" style="margin:0;">
+                <label>月份：</label>
+                <input type="month" class="month-pick" id="salMonth" onchange="renderSalary()">
+              </div>
+              <button class="btn btn-pk" onclick="exportAllSalary()">📤 全體薪資</button>
+            </div>
+          </div>
+          <div class="panel-body"><div class="sitter-grid" id="sitterGrid"></div></div>
+        </div>
+      </div>
+
+      <!-- OWNERS (毛孩爸媽系統) -->
+      <div id="page-owners" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🏠 毛孩爸媽系統</div>
+            <div style="font-size:.8rem;color:var(--tl);">確認訂單後指派密碼給飼主，可登入查看回報</div>
+          </div>
+          <div class="panel-body">
+            <div style="background:var(--pk4);border:2px dashed var(--pk3);border-radius:14px;padding:14px;margin-bottom:18px;">
+              <div style="font-size:.82rem;font-weight:800;color:var(--pk);margin-bottom:10px;font-family:'Nunito',sans-serif;">👩 保母密碼總覽（管理員專用）</div>
+              <div id="sitterPwStatus" style="display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;"></div>
+            </div>
+            <div style="background:var(--b2);border:2px dashed var(--b);border-radius:14px;padding:14px;margin-bottom:18px;">
+              <div style="font-size:.82rem;font-weight:800;color:var(--b);margin-bottom:10px;font-family:'Nunito',sans-serif;">🏠 飼主會員密碼總覽</div>
+              <div id="ownerPwSummary" style="display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;"></div>
+            </div>
+            <div class="owner-grid" id="ownerGrid"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COUPONS -->
+      <div id="page-coupons" style="display:none;">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">🎟 折抵券管理</div>
+            <select class="month-pick" id="couponFilter" onchange="renderCoupons()" style="width:auto;">
+              <option value="">全部</option>
+              <option value="valid">未使用</option>
+              <option value="used">已使用</option>
+            </select>
+          </div>
+          <div class="panel-body"><div class="coupon-grid" id="couponGrid"></div></div>
+        </div>
+      </div>
+
+      <!-- REVIEWS -->
+      <div id="page-reviews" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">⭐ 客戶好評管理</div></div>
+          <div class="panel-body"><div id="reviewListAdmin"></div></div>
+        </div>
+      </div>
+      <!-- PASSWORDS -->
+      <div id="page-passwords" style="display:none;">
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">🔐 所有密碼總覽</div>
+            <button class="btn btn-pk btn-sm" onclick="refreshPasswords()">🔄 重整</button>
+          </div>
+          <div class="panel-body">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+              <div>
+                <div style="font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);margin-bottom:12px;font-size:.9rem;">👩 保母密碼</div>
+                <div id="allSitterPws"></div>
+              </div>
+              <div>
+                <div style="font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);margin-bottom:12px;font-size:.9rem;">🏠 飼主會員密碼</div>
+                <div id="allOwnerPws"></div>
+              </div>
+            </div>
+            <!-- Sitter pw change log -->
+            <div style="margin-top:20px;padding-top:16px;border-top:2px dashed var(--pk3);">
+              <div style="font-family:'Nunito',sans-serif;font-weight:800;color:var(--pk);margin-bottom:10px;">📝 保母密碼變更紀錄</div>
+              <div id="pwChangeLog"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD MODAL -->
+<div class="m-ov" id="changePwMod">
+  <div class="m-box" style="width:360px;">
+    <h3>🔑 更改管理員密碼</h3>
+    <div class="m-field"><label>新密碼</label><input type="password" id="newPw1" placeholder="輸入新密碼"></div>
+    <div class="m-field"><label>確認新密碼</label><input type="password" id="newPw2" placeholder="再次輸入"></div>
+    <div class="m-row">
+      <button class="btn btn-pk" onclick="doChangePw()" style="flex:1;padding:11px;border-radius:12px;">儲存</button>
+      <button class="btn btn-out" onclick="closeM('changePwMod')" style="flex:1;padding:11px;border-radius:12px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="m-ov" id="detailMod">
+  <div class="m-box" style="width:540px;">
+    <h3>📋 訂單明細</h3>
+    <div id="detailContent"></div>
+    <button class="btn btn-pk" style="width:100%;margin-top:16px;padding:12px;border-radius:12px;" onclick="closeM('detailMod')">關閉</button>
+  </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div class="m-ov" id="exportMod">
+  <div class="m-box" style="width:540px;">
+    <h3 id="exportTitle">薪資明細</h3>
+    <div class="exp-txt" id="exportTxt"></div>
+    <div class="m-row">
+      <button class="btn btn-pk" onclick="copyExp()" style="flex:1;padding:11px;border-radius:12px;">📋 複製</button>
+      <button class="btn btn-y" onclick="dlExp()" style="flex:1;padding:11px;border-radius:12px;">💾 下載</button>
+      <button class="btn btn-out" onclick="closeM('exportMod')" style="flex:1;padding:11px;border-radius:12px;">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- GEN OWNER PW MODAL -->
+<div class="m-ov" id="genPwMod">
+  <div class="m-box" style="width:380px;">
+    <h3>🔑 設定會員密碼</h3>
+    <input type="hidden" id="genPwBookId">
+    <div style="background:var(--pk4);border:2px solid var(--pk3);border-radius:14px;padding:16px;margin-bottom:14px;">
+      <div style="font-size:.82rem;color:var(--tl);margin-bottom:8px;">為此訂單飼主設定會員密碼（純數字，管理員可修改）：</div>
+      <input type="text" id="genPwDisplay" placeholder="6位數字" maxlength="12"
+      style="font-size:1.2rem;letter-spacing:4px;width:100%;padding:10px;text-align:center;
+             border:2px solid var(--pk3);border-radius:10px;font-family:monospace;outline:none;
+             margin-top:4px;" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+    <div style="font-size:.74rem;color:var(--tl);margin-top:4px;">僅輸入數字，管理員可隨時修改</div>
+    </div>
+    <div class="m-row">
+      <button class="btn btn-y" onclick="regenPw()" style="flex:1;padding:11px;border-radius:12px;">🔄 隨機產生</button>
+      <button class="btn btn-pk" onclick="saveOwnerPw()" style="flex:1;padding:11px;border-radius:12px;">✅ 儲存</button>
+      <button class="btn" style="flex:1;padding:11px;border-radius:12px;background:#FFF0F0;color:var(--r);border:2px solid var(--r);" onclick="deleteOwnerPw()">🗑 刪除</button>
+      <button class="btn btn-out" onclick="closeM('genPwMod')" style="flex:1;padding:11px;border-radius:12px;">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DEFAULT_PW='chch715715';
+let ADMIN_PW=localStorage.getItem('adminPw')||DEFAULT_PW;
+const SITTERS_LIST=['Ying','小汶','菓菓','小茹','阿瑛'];
+const ROLES={Ying:'資深貓咪照護',小汶:'老年寵物照護',菓菓:'中途志工',小茹:'中途志工',阿瑛:'中途志工'};
+const AVA={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
+const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+const SVC_PRICE={companion:300,walk:200,both:500};
+const ADDON_PRICE={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+const SITTER_RATE=200;
+let curFilter='';
+
+// ── SIDEBAR TOGGLE ──
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const main=document.getElementById('mainArea');
+  sb.classList.toggle('closed');
+  // on desktop also shift main
+  if(window.innerWidth>768){
+    main.classList.toggle('full',sb.classList.contains('closed'));
+  } else {
+    sb.classList.toggle('open',!sb.classList.contains('closed'));
+  }
+}
+
+// ── LOGIN ──
+async function testSupabaseConnection(){
+  try{
+    const{data,error}=await _supa.from('orders').select('id').limit(1);
+    if(error){
+      const msg=_errMsg(error);
+      const hint=msg.includes('relation')||msg.includes('does not exist')
+        ? '\n\n請先在 Supabase SQL Editor 執行 supabase_schema.sql 建立資料表！'
+        : msg.includes('permission')||msg.includes('policy')
+        ? '\n\n請確認 Supabase RLS Policy 已設定為允許匿名存取。'
+        : '';
+      // Show error in a nice banner instead of just console
+      showConnError('⚠️ Supabase 連線問題：'+msg+hint);
+      return false;
+    }
+    hideConnError();
+    return true;
+  }catch(e){
+    showConnError('⚠️ 網路錯誤，無法連線至 Supabase：'+e.message);
+    return false;
+  }
+}
+function showConnError(msg){
+  let el=document.getElementById('connErrBanner');
+  if(!el){
+    el=document.createElement('div');
+    el.id='connErrBanner';
+    el.style.cssText='position:fixed;top:0;left:0;right:0;background:#FFF0F0;border-bottom:3px solid #F87171;padding:12px 20px;font-size:.84rem;color:#C00;z-index:9999;white-space:pre-wrap;font-family:monospace;';
+    document.body.appendChild(el);
+  }
+  el.style.display='block';
+  el.textContent=msg;
+  console.error(msg);
+}
+function hideConnError(){
+  const el=document.getElementById('connErrBanner');
+  if(el)el.style.display='none';
+}
+function login(){
+  if(document.getElementById('pwIn').value===ADMIN_PW){
+    document.getElementById('loginScreen').style.display='none';
+    const as=document.getElementById('adminScreen');
+    as.style.display='flex';as.classList.add('show');
+    const now=new Date();
+    document.getElementById('salMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    // Test Supabase connection first
+    testSupabaseConnection().then(ok=>{
+      if(ok) refreshAll();
+    });
+  } else {
+    document.getElementById('loginErr').style.display='block';
+    document.getElementById('pwIn').value='';
+  }
+}
+function logout(){
+  document.getElementById('loginScreen').style.display='flex';
+  const as=document.getElementById('adminScreen');
+  as.style.display='none';as.classList.remove('show');
+  document.getElementById('pwIn').value='';
+  document.getElementById('loginErr').style.display='none';
+}
+function showChangePw(){document.getElementById('changePwMod').classList.add('show');}
+function doChangePw(){
+  const p1=document.getElementById('newPw1').value;
+  const p2=document.getElementById('newPw2').value;
+  if(!p1){alert('請輸入新密碼');return;}
+  if(p1!==p2){alert('兩次密碼不符');return;}
+  ADMIN_PW=p1;
+  localStorage.setItem('adminPw',p1);
+  closeM('changePwMod');
+  alert('✅ 密碼已更新！');
+}
+
+
+// ── DATE SLOT DISPLAY ──
+function formatDateSlots(dateSlotData){
+  if(!dateSlotData||!dateSlotData.length) return '';
+  const SLOT_NAMES={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
+  const dayNames=['日','一','二','三','四','五','六'];
+  return dateSlotData.map(d=>{
+    const day=new Date(d.date+'T00:00:00');
+    const slots=(d.slots||[]).map(s=>SLOT_NAMES[s]||s).join('、');
+    return `${d.date.slice(5)}(${dayNames[day.getDay()]}) ${slots}`;
+  }).join(' ／ ');
+}
+
+function renderDateSlotsHtml(dateSlotData){
+  if(!dateSlotData||!dateSlotData.length) return '<span style="color:var(--tl);">—</span>';
+  const SLOT_COLORS={morning:'background:#FFF8D0;color:#8B6800;border:1px solid #FFB800;',noon:'background:#FFF0F5;color:var(--pk);border:1px solid var(--pk3);',evening:'background:#EEF0FF;color:#5558B8;border:1px solid #818CF8;'};
+  const SLOT_NAMES={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+  const dayNames=['日','一','二','三','四','五','六'];
+  return dateSlotData.map(d=>{
+    const day=new Date(d.date+'T00:00:00');
+    const slotsHtml=(d.slots||[]).map(s=>`<span style="${SLOT_COLORS[s]||''}border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:800;">${SLOT_NAMES[s]||s}</span>`).join(' ');
+    return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;flex-wrap:wrap;">
+      <span style="font-size:.8rem;font-weight:800;color:var(--t);min-width:72px;">${d.date.slice(5)}(${dayNames[day.getDay()]})</span>
+      ${slotsHtml}
+    </div>`;
+  }).join('');
+}
+
+// ── PET DETAIL DISPLAY ──
+function renderPetDataHtml(petData){
+  if(!petData||!petData.length) return '<span style="color:var(--tl);">（無寵物資料）</span>';
+  return petData.map((p,i)=>{
+    const icon=p.type==='cat'?'🐱':'🐶';
+    const health=(p.health||[]).join('、')||'健康';
+    return `<div style="background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+      <div style="font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;margin-bottom:8px;">${icon} ${p.name||'寵物'+(i+1)}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.8rem;">
+        <div><span style="color:var(--tl);">性別：</span><strong>${p.gender||'—'}</strong></div>
+        <div><span style="color:var(--tl);">年齡：</span><strong>${p.age||'—'}</strong></div>
+        <div style="grid-column:1/-1;"><span style="color:var(--tl);">疫苗：</span><strong>${p.vaccine||'（未填寫）'}</strong></div>
+        <div style="grid-column:1/-1;"><span style="color:var(--tl);">健康：</span><strong>${health}</strong></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── PET FILE DOWNLOAD ──
+function downloadPetFile(bk){
+  const SVC={companion:'到府陪伴',walk:'散步服務',both:'到府＋遛狗'};
+  const SLOT={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
+  const dayNames=['日','一','二','三','四','五','六'];
+  let txt='';
+  txt+='╔══════════════════════════════════════╗\n';
+  txt+='║      貓窩裏 🐾 寵物照護明細建檔       ║\n';
+  txt+='╚══════════════════════════════════════╝\n\n';
+  txt+=`【飼主資訊】\n`;
+  txt+=`姓名：${bk.ownerName}\n`;
+  txt+=`電話：${bk.ownerPhone}\n`;
+  txt+=`地址：${bk.ownerAddr||'—'}\n`;
+  txt+=`LINE：${bk.ownerLine||'—'}\n\n`;
+  txt+=`【服務資訊】\n`;
+  txt+=`服務項目：${(bk.services||[]).map(s=>SVC[s]||s).join('、')}\n`;
+  txt+=`加購項目：${bk.addons?.length?bk.addons.join('、'):'無'}\n\n`;
+  txt+=`【服務時段明細】\n`;
+  if(bk.dateSlotData?.length){
+    bk.dateSlotData.forEach(d=>{
+      const day=new Date(d.date+'T00:00:00');
+      const slots=(d.slots||[]).map(s=>SLOT[s]||s).join('、');
+      txt+=`  ${d.date}(${dayNames[day.getDay()]})：${slots}\n`;
+    });
+  } else {
+    txt+=`  ${bk.startDate}～${bk.endDate}（${bk.days}天 × ${bk.tpd}次/天）\n`;
+  }
+  txt+='\n';
+  txt+=`【毛孩資料】\n`;
+  const pets=bk.petData||[];
+  if(pets.length){
+    pets.forEach((p,i)=>{
+      const icon=p.type==='cat'?'🐱':'🐶';
+      txt+=`\n  ${icon} ${p.name||'寵物'+(i+1)}\n`;
+      txt+=`    性別：${p.gender||'—'}　　年齡：${p.age||'—'}\n`;
+      txt+=`    疫苗：${p.vaccine||'（未填）'}\n`;
+      txt+=`    健康：${(p.health||[]).join('、')||'健康，無疾病'}\n`;
+    });
+  } else { txt+='  （未填寫寵物資料）\n'; }
+  if(bk.petNotes){
+    txt+=`\n【注意事項】\n  ${bk.petNotes}\n`;
+  }
+  txt+=`\n${'─'.repeat(44)}\n`;
+  txt+=`訂單編號：${bk.id}\n`;
+  txt+=`建檔時間：${new Date().toLocaleString('zh-TW')}\n`;
+
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
+  a.download=`貓窩裏_${bk.ownerName}_寵物明細.txt`;
+  a.click();
+}
+
+
+// ── SLOT ASSIGNMENT HELPERS ──
+// assignedTo stores JSON: [{date,slot,sitter,transport}] or old string
+function parseAssignments(assignedTo){
+  if(!assignedTo) return [];
+  if(assignedTo.startsWith('[')){
+    try{
+      const p=JSON.parse(assignedTo);
+      if(!Array.isArray(p)) return [];
+      // Only return if it's the assignment format (has 'slot' key, not 'slots' array)
+      if(p.length&&p[0].slot!==undefined&&p[0].slots===undefined) return p;
+      // Original format — not yet assigned
+      return [];
+    }catch(e){}
+  }
+  return [];
+}
+function saveAssignments(id, assignments){
+  return dbUpdateOrder(id, {assigned_to: JSON.stringify(assignments)});
+}
+function getSlotSitter(assignments, date, slot){
+  const a=assignments.find(x=>x.date===date&&x.slot===slot);
+  return a?a.sitter:'';
+}
+function getSlotTransport(assignments, sitter){
+  // Get transport for a sitter (admin sets per-sitter)
+  const entries=assignments.filter(x=>x.sitter===sitter);
+  if(!entries.length) return 0;
+  return entries[0].transport||0; // same transport for all slots of this sitter
+}
+function getSitterTransports(assignments){
+  // Returns {sitterName: transport}
+  const map={};
+  assignments.forEach(a=>{
+    if(a.sitter&&!(a.sitter in map)) map[a.sitter]=a.transport||0;
+  });
+  return map;
+}
+function getAssignedSitters(assignments){
+  const s=new Set(assignments.map(x=>x.sitter).filter(Boolean));
+  return [...s];
+}
+
+// ── DATA ──
+// All data now from Supabase — use async wrappers
+// Sync cache for rendering (refreshed on each page action)
+let _bCache=[]; let _cCache=[]; let _rCache=[]; let _opCache={};
+async function getB(){_bCache=await dbGetOrders();return _bCache;}
+function saveB(arr){_bCache=arr;} // no-op, updates done via dbUpdateOrder/dbDeleteOrder
+async function getCoupons(){_cCache=await dbGetCoupons();return _cCache;}
+async function getReviews(){_rCache=await dbGetReviews();return _rCache;}
+async function getOwnerPws(){_opCache=await dbGetOwnerPws();return _opCache;}
+async function saveOwnerPws(o){} // no-op, use dbSetOwnerPw
+
+function calcBForSitter(b, sitterName){
+  // Calculate salary for a specific sitter based on their assigned slots
+  const assigns=parseAssignments(b.assignedTo);
+  const mySessions=assigns.filter(a=>a.sitter===sitterName).length||0;
+  const myTransport=getSlotTransport(assigns,sitterName);
+  const hp=b.isHoliday;
+  const rateTable=hp?{companion:300,walk:300,both:580}:{companion:200,walk:200,both:380};
+  const svcRate=(b.services||[]).reduce((s,k)=>s+(rateTable[k]||200),0)||200;
+  return{sessions:mySessions,svcRate,svcTotal:svcRate*mySessions,transport:myTransport,total:svcRate*mySessions+myTransport};
+}
+function calcB(b){
+  const base=(b.services||[]).reduce((s,k)=>s+(b.isHoliday?({companion:600,walk:500,both:1000}[k]||0):(SVC_PRICE[k]||0)),0);
+  const addon=(b.addons||[]).reduce((s,a)=>s+(ADDON_PRICE[a]||0),0);
+  let extra=0;
+  const totalB=(b.catCount||0)+(b.dogCount||0);
+  if(totalB>3)extra=(totalB-3)*50;
+  const per=base+addon+extra;
+  const sessions=b.dateSlotData?.length?b.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):((b.tpd||1)*(b.days||0));
+  const sub=per*sessions;
+  // transport: per session × sessions
+  const transportPerSession=b.transport||0;
+  const transportTotal=transportPerSession*sessions;
+  return{base,addon,extra,per,sub,
+    transport:transportPerSession,transportTotal,
+    urgent:b.urgent||0,
+    total:sub+transportTotal+(b.urgent||0)};
+}
+
+// ── STATS ──
+async function renderStats(){
+  const b=await getB();
+  const pending=b.filter(x=>x.status==='待確認').length;
+  const active=b.filter(x=>x.status==='已確認').length;
+  const done=b.filter(x=>x.status==='已完成').length;
+  const rev=b.filter(x=>x.status==='已完成').reduce((s,x)=>s+calcB(x).total,0);
+  const coupons=(await getCoupons()).filter(c=>!c.used).length;
+  const pb=document.getElementById('pendingBadge');
+  pb.textContent=pending>0?pending:'';
+  document.getElementById('statsRow').innerHTML=`
+    <div class="stat-card stat-c1"><div class="stat-ico">📋</div><div class="stat-n cpk">${b.length}</div><div class="stat-l">總訂單</div></div>
+    <div class="stat-card stat-c2"><div class="stat-ico">⏳</div><div class="stat-n cy">${pending}</div><div class="stat-l">待處理</div></div>
+    <div class="stat-card stat-c3"><div class="stat-ico">✅</div><div class="stat-n cg">${active}</div><div class="stat-l">已確認</div></div>
+    <div class="stat-card stat-c4"><div class="stat-ico">🎉</div><div class="stat-n cb">${done}</div><div class="stat-l">已完成</div></div>
+    <div class="stat-card stat-c5"><div class="stat-ico">💰</div><div class="stat-n co">$${rev.toLocaleString()}</div><div class="stat-l">完成營收</div></div>
+  `;
+}
+
+// ── ORDERS ──
+function filterOrders(status,el){
+  curFilter=status;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderOrders();
+}
+function clearSearch(){document.getElementById('searchQ').value='';renderOrders();}
+
+async function renderOrders(){
+  let b=await getB();
+  const q=document.getElementById('searchQ').value.toLowerCase();
+  if(q)b=b.filter(x=>[x.ownerName,x.ownerPhone,x.petName||''].join(' ').toLowerCase().includes(q));
+  if(curFilter)b=b.filter(x=>x.status===curFilter);
+  b.sort((a,z)=>z.id-a.id);
+  const list=document.getElementById('orderList');
+  if(!b.length){list.innerHTML=`<div class="empty-msg">目前沒有符合的預約 🐾</div>`;return;}
+  const sCls={待確認:'b-wait',已確認:'b-ok',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
+  const dt=ts=>new Date(ts).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+  const ownerPws=await getOwnerPws();
+  list.innerHTML=b.map(bk=>{
+    const{total}=calcB(bk);
+    const svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、');
+    const hasPw=ownerPws[bk.id];
+    return `<div class="order-card">
+      <div class="order-header">
+        <div>
+          <div class="order-meta">訂單 #${bk.id} &nbsp; ${dt(bk.ts)}</div>
+          <div class="order-name">${bk.ownerName}</div>
+          <div class="order-phone">📞 ${bk.ownerPhone}</div>
+        </div>
+        <span class="badge ${sCls[bk.status]||'b-wait'}">${bk.status==='待確認'?'⏳ 待處理':bk.status==='已確認'?'✅ 已確認':bk.status==='已完成'?'🎉 已完成':'✖ '+bk.status}</span>
+      </div>
+      <div class="order-body">
+        <div class="order-row"><span class="order-label">地址：</span><span class="order-val">${bk.ownerAddr||'—'}</span></div>
+        <div class="order-row"><span class="order-label">日期：</span>
+          <span class="order-val">
+            ${bk.dateSlotData?.length
+              ? renderDateSlotsHtml(bk.dateSlotData)
+              : (bk.startDate+(bk.endDate&&bk.endDate!==bk.startDate?' ～ '+bk.endDate:'')+'（共'+bk.days+'天）')
+            }
+          </span>
+        </div>
+        <div class="order-row"><span class="order-label">服務：</span>
+          <span class="order-val">${svcNames}，共${bk.dateSlotData?.length?bk.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):(bk.tpd||1)*(bk.days||0)}次${bk.isHoliday?' 🎊連假價':''}${bk.urgent>0?' ⚡急件':''}</span>
+        </div>
+        <div class="order-row"><span class="order-label">寵物：</span><span class="order-val">
+          ${bk.petData?.length?bk.petData.map(p=>`${p.type==='cat'?'🐱':'🐶'}${p.name}(${p.gender||''}${p.age||''})`).join('、'):`貓${bk.catCount||0}隻 狗${bk.dogCount||0}隻`}
+          ${(bk.catCount||0)+(bk.dogCount||0)>3?' <span style="color:var(--r);font-size:.76rem;font-weight:800;">⚡第4隻起+$50/次</span>':''}
+        </span></div>
+        ${bk.distance>0?`<div class="order-row"><span class="order-label">距離：</span><span class="order-val">${bk.distance} 公里（車馬費 NT$${bk.transport||0}）</span></div>`:''}
+        ${bk.addons?.length?`<div class="order-row"><span class="order-label">加購：</span><span class="order-val">${bk.addons.join('（眼藥/耳藥）、').replace('點藥（眼藥/耳藥）','點藥').replace(/（眼藥\/耳藥）/g,'')}${'點藥'===bk.addons[0]?'（眼藥/耳藥）':''}</span></div>`:''}
+        <div style="margin-top:10px;">
+          <div style="font-size:.75rem;font-weight:800;color:var(--pk);margin-bottom:8px;font-family:'Nunito',sans-serif;">👩 時段指派</div>
+          ${(()=>{
+            const assigns=parseAssignments(bk.assignedTo);
+            const slots=bk.tpd>1?buildSlotList(bk):[];
+            if(!slots.length) return `<div style="font-size:.8rem;color:var(--tl);">（請先讓客戶選擇時段後再指派）</div>`;
+            const rows=slots.map(({date,slot,label})=>{
+              const cur=getSlotSitter(assigns,date,slot);
+              return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                <span style="font-size:.76rem;font-weight:700;min-width:90px;">${date.slice(5)} ${label}</span>
+                <select style="padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--t);background:#fff;outline:none;"
+                  onchange="assignSlot(${bk.id},'${date}','${slot}',this.value)">
+                  <option value="">— 選擇 —</option>
+                  ${SITTERS_LIST.map(s=>`<option value="${s}" ${cur===s?'selected':''}>${s}</option>`).join('')}
+                </select>
+                ${cur?`<span style="font-size:.72rem;font-weight:800;color:var(--pk);">${cur}</span>`:''}
+              </div>`;
+            }).join('');
+            // Per-sitter transport
+            const assignedSitters=getAssignedSitters(assigns);
+            const transMap=getSitterTransports(assigns);
+            const transportRows=assignedSitters.length?`
+              <div style="margin-top:10px;padding-top:8px;border-top:1.5px dashed var(--pk3);">
+                <div style="font-size:.72rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🚗 各保母車馬費（管理員設定）</div>
+                ${assignedSitters.map(s=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+                  <span style="font-size:.76rem;font-weight:700;min-width:50px;">${s}</span>
+                  <span style="font-size:.76rem;color:var(--tl);">$</span>
+                  <input type="number" min="0" step="50" value="${transMap[s]||0}"
+                    style="width:80px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:'Nunito',sans-serif;font-size:.82rem;outline:none;"
+                    onchange="setSlotTransport(${bk.id},'${s}',this.value)">
+                </div>`).join('')}
+              </div>`:''  ;
+            return rows+transportRows;
+          })()}
+        </div>
+        ${hasPw?`<div class="order-row"><span class="order-label">飼主密碼：</span><span class="order-val" style="font-family:monospace;background:var(--pk4);padding:2px 8px;border-radius:6px;">${hasPw}</span></div>`:''}
+      </div>
+      <div class="order-total">
+        <span class="order-total-label">預估總金額</span>
+        <span class="order-total-amt">NT$${total}</span>
+      </div>
+      <div class="order-actions">
+        ${bk.status==='待確認'?`<button class="oa-btn oa-confirm" onclick="confirmO(${bk.id})">✅ 確認</button>`:''}
+        ${bk.status!=='已完成'&&bk.status!=='已取消'?`<button class="oa-btn oa-done" onclick="doneO(${bk.id})">🎉 完成</button>`:''}
+        ${bk.status!=='已取消'?`<button class="oa-btn oa-cancel" onclick="cancelO(${bk.id})">✖ 取消</button>`:''}
+        <button class="oa-btn" style="background:#EEF0FF;color:#5558B8;border-color:var(--b);" onclick="showDetail(${bk.id})">📊 明細</button>
+        <button class="oa-btn oa-del" onclick="delO(${bk.id})">🗑 刪除</button>
+        <button class="oa-btn" style="background:var(--pk4);color:var(--pk);border-color:var(--pk2);" onclick="openGenPw(${bk.id})">🔑 ${hasPw?'查看':'設定'}密碼</button>
+        <button class="oa-btn" style="background:#F0FFF4;color:#1A7A4A;border-color:#52C48A;" onclick="showPetDetail(${bk.id})">🐾 寵物資料</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function buildSlotList(bk){
+  const SLOT_LABELS={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+  const slots=[];
+  const raw=bk.assignedTo||'';
+  if(!raw) return slots;
+  try{
+    const parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed)||!parsed.length) return slots;
+    // Case 1: already has sitter assignments [{date,slot,sitter,transport}]
+    if(parsed[0].slot!==undefined&&parsed[0].slots===undefined){
+      const seen=new Set();
+      parsed.forEach(a=>{
+        const key=a.date+'|'+a.slot;
+        if(!seen.has(key)){seen.add(key);slots.push({date:a.date,slot:a.slot,label:SLOT_LABELS[a.slot]||a.slot});}
+      });
+      return slots;
+    }
+    // Case 2: original slot selection [{date, slots:['morning','evening']}]
+    if(parsed[0].slots!==undefined){
+      parsed.forEach(d=>{
+        (d.slots||[]).forEach(s=>{
+          slots.push({date:d.date,slot:s,label:SLOT_LABELS[s]||s});
+        });
+      });
+      return slots;
+    }
+  }catch(e){}
+  return slots;
+}
+
+async function assignSlot(orderId, date, slot, sitter){
+  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
+  if(!bk)return;
+  // Migrate from original slot format to assignment format if needed
+  let assigns=parseAssignments(bk.assignedTo);
+  const raw=bk.assignedTo||'';
+  if(raw&&assigns.length===0){
+    try{
+      const parsed=JSON.parse(raw);
+      if(Array.isArray(parsed)&&parsed.length&&parsed[0].slots!==undefined){
+        // Convert [{date,slots:[]}] → [{date,slot,sitter:'',transport:0}]
+        parsed.forEach(d=>{(d.slots||[]).forEach(s=>{assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
+      }
+    }catch(e){}
+  }
+  const idx=assigns.findIndex(x=>x.date===date&&x.slot===slot);
+  if(sitter){
+    if(idx>=0) assigns[idx].sitter=sitter;
+    else assigns.push({date,slot,sitter,transport:0});
+  } else {
+    if(idx>=0) assigns.splice(idx,1);
+  }
+  await saveAssignments(orderId, assigns);
+  // Update cache
+  if(bk) bk.assignedTo=JSON.stringify(assigns);
+  refreshAll();
+}
+
+async function setSlotTransport(orderId, sitter, amount){
+  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
+  if(!bk)return;
+  const assigns=parseAssignments(bk.assignedTo);
+  // Set transport for ALL slots of this sitter
+  assigns.forEach(a=>{if(a.sitter===sitter)a.transport=parseInt(amount)||0;});
+  await saveAssignments(orderId, assigns);
+  if(bk) bk.assignedTo=JSON.stringify(assigns);
+  // Don't refreshAll to avoid disrupting input focus
+}
+
+async function quickAssign(id,sitter){
+  // Legacy: kept for compatibility
+  await dbUpdateOrder(id,{assigned_to:sitter});refreshAll();
+}
+async function confirmO(id){await dbUpdateOrder(id,{status:'已確認'});refreshAll();}
+async function doneO(id){await dbUpdateOrder(id,{status:'已完成'});refreshAll();}
+async function cancelO(id){if(!confirm('確定取消此訂單？'))return;await dbUpdateOrder(id,{status:'已取消'});refreshAll();}
+async function delO(id){if(!confirm('確定刪除？'))return;await dbDeleteOrder(id);refreshAll();}
+function upB(id,fn){} // deprecated
+
+// ── DETAIL BREAKDOWN ──
+function showPetDetail(bookId){
+  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  if(!bk)return;
+  const petHtml=renderPetDataHtml(bk.petData);
+  const notesHtml=bk.petNotes?`<div style="margin-top:12px;background:#FFF8E1;border:1.5px solid #FFB800;border-radius:10px;padding:12px 14px;font-size:.84rem;line-height:1.7;"><strong style="color:#8B6000;">📝 注意事項</strong><br>${bk.petNotes}</div>`:'';
+  document.getElementById('petDetailInner').innerHTML=`
+    <div style="margin-bottom:8px;font-size:.82rem;color:var(--tl);">飼主：<strong>${bk.ownerName}</strong></div>
+    ${petHtml}${notesHtml}
+    <button onclick="downloadPetFile((_bCache||[]).find(x=>x.id===${bookId}))" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細</button>`;
+  document.getElementById('petDetailModal').classList.add('show');
+}
+
+function showDetail(bookId){
+  // Use cached orders (populated by renderOrders)
+  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  if(!bk)return;
+  const hp=bk.isHoliday;
+  const HP={companion:600,walk:500,both:1000};
+  const SP={companion:300,walk:200,both:500};
+  const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  const SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+  const days=bk.days||0;
+  const tpd=bk.tpd||1;
+  const sessions=bk.dateSlotData?.length?bk.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):(days*tpd);
+  let rows='';
+  const R=(label,unit,times,each,sub)=>
+    `<tr><td>${label}</td><td style="color:var(--tl);">${unit}</td><td>${times}</td><td style="color:var(--pk);">$${each}</td><td style="font-weight:800;">$${sub}</td></tr>`;
+
+  // services
+  (bk.services||[]).forEach(k=>{
+    const price=hp?(HP[k]||0):(SP[k]||0);
+    rows+=R(SN[k]||(k)+(hp?' 🎊':''),'/ 次',`× ${sessions}次`,price,price*sessions);
+  });
+  // addons
+  (bk.addons||[]).forEach(a=>{
+    const price=AN[a]||0;
+    rows+=R(a,'/ 次',`× ${sessions}次`,price,price*sessions);
+  });
+  // extra pets
+  const cats=bk.catCount||1,dogs=bk.dogCount||0;
+  const totalPetsDet=cats+dogs;
+  if(totalPetsDet>3){const extraPU=50*(totalPetsDet-3);rows+=R(`第4隻起加收（共${totalPetsDet}隻）`,'/ 次',`× ${sessions}次`,extraPU,extraPU*sessions);}
+  // urgent
+  if(bk.urgent>0) rows+=R('急件加收','/ 單',1,bk.urgent,bk.urgent);
+  // transport
+  if(bk.transport>0) rows+=R(`車馬費 $${bk.transport||0}/次`,'/ 次',`× ${sessions}次`,bk.transport||0,(bk.transport||0)*sessions);
+
+  const svcBase=(bk.services||[]).reduce((s,k)=>s+(hp?(HP[k]||0):(SP[k]||0)),0);
+  const addSub=(bk.addons||[]).reduce((s,a)=>s+(AN[a]||0),0);
+  const totPD=cats+dogs;let extraPet=0;if(totPD>3)extraPet=(totPD-3)*50*sessions; // 第4隻起+$50
+  const svcTotal=(svcBase+addSub)*sessions+extraPet;
+  const grandTotal=svcTotal+(bk.transport||0)*sessions+(bk.urgent||0);
+
+  const html=`
+    <div style="margin-bottom:12px;font-size:.82rem;color:var(--tl);">
+      服務期間：<strong>${bk.startDate}～${bk.endDate}</strong>（<strong>${sessions}次服務</strong>）
+      ${hp?'<span style="color:var(--y3);font-weight:800;"> 🎊 連假特別價</span>':''}
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
+      <thead>
+        <tr style="background:var(--pk4);border-bottom:2px solid var(--pk3);">
+          <th style="padding:8px 10px;text-align:left;color:var(--pk);font-family:'Nunito',sans-serif;">項目</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--tl);">單位</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>
+          <th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>
+          <th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>
+        </tr>
+      </thead>
+      <tbody>${rows.replace(/<td style="font-weight:800;">/g,'<td style="font-weight:800;text-align:right;">')}</tbody>
+      <tfoot>
+        <tr style="border-top:2.5px dashed var(--pk3);background:linear-gradient(135deg,#FFD6E0,#FFF8D0);">
+          <td colspan="4" style="padding:10px;font-weight:900;font-family:'Nunito',sans-serif;color:var(--pk);">💰 總計</td>
+          <td style="padding:10px;font-weight:900;font-size:1.1rem;color:#C0392B;text-align:right;font-family:'Nunito',sans-serif;">NT$${grandTotal}</td>
+        </tr>
+      </tfoot>
+    </table>
+    </div>`;
+  const{total:grandTotalCheck}=calcB(bk);
+  document.getElementById('detailInner').innerHTML=html;
+  document.getElementById('detailModal').classList.add('show');
+}
+
+// ── OWNER PASSWORD SYSTEM ──
+async function openGenPw(bookId){
+  document.getElementById('genPwBookId').value=bookId;
+  const pws=await getOwnerPws();
+  document.getElementById('genPwDisplay').value=pws[bookId]||genPw();
+  document.getElementById('genPwMod').classList.add('show');
+}
+function genPw(){
+  // 6-digit memorable number: pattern like AABBCC or ABCABC or repeating
+  const patterns=[
+    ()=>{ const n=Math.floor(10+Math.random()*90); return String(n)+String(n)+String(n); },
+    ()=>{ const a=Math.floor(10+Math.random()*90),b=Math.floor(10+Math.random()*90); return String(a)+String(b)+String(a); },
+    ()=>{ const a=Math.floor(100+Math.random()*900); return String(a)+String(Math.floor(a/100)); },
+    ()=>String(Math.floor(100000+Math.random()*899999)),
+  ];
+  return patterns[Math.floor(Math.random()*patterns.length)]();
+}
+function regenPw(){document.getElementById('genPwDisplay').value=genPw();}
+async function deleteOwnerPw(){
+  const id=parseInt(document.getElementById('genPwBookId').value);
+  if(!confirm('確定要刪除此飼主的會員密碼？'))return;
+  await dbDeleteOwnerPw(id);
+  closeM('genPwMod');refreshAll();
+  alert('✅ 密碼已刪除');
+}
+async function saveOwnerPw(){
+  const id=parseInt(document.getElementById('genPwBookId').value);
+  const pw=document.getElementById('genPwDisplay').value.replace(/[^0-9]/g,'');
+  if(!pw){alert('請輸入數字密碼');return;}
+  await dbSetOwnerPw(id,pw);
+  closeM('genPwMod');refreshAll();
+  alert(`✅ 會員密碼已儲存：${pw}\n請告知飼主到前台點「🏠 毛孩爸媽」輸入此數字密碼\n（密碼可隨時在此修改）`);
+}
+
+// These mirror the SITTER_INIT_PWS in sitter.html
+const ADMIN_KNOWN_INIT={Ying:'ying8866',小汶:'wun7755',菓菓:'guo6644',小茹:'ru5533',阿瑛:'ying4422'};
+async function renderOwnerPwSummary(){
+  const el=document.getElementById('ownerPwSummary');
+  if(!el)return;
+  const pws=await getOwnerPws();
+  const allO=await getB();
+  const b=allO.filter(x=>x.status==='已確認'||x.status==='已完成');
+  if(!b.length){el.innerHTML='<span style="font-size:.8rem;color:var(--tl);">尚無飼主會員密碼</span>';return;}
+  el.innerHTML=b.map(bk=>{
+    const pw=pws[bk.id];
+    if(!pw)return '';
+    return `<div style="background:#fff;border:2px solid var(--b2);border-radius:10px;padding:8px 12px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span>🏠 <strong>${bk.ownerName}</strong></span>
+        <span style="font-family:monospace;background:var(--b2);padding:3px 10px;border-radius:6px;letter-spacing:3px;font-size:.88rem;">${pw}</span>
+        <button onclick="openGenPw(${bk.id})" style="padding:3px 8px;border:1px solid var(--b);border-radius:6px;font-size:.68rem;cursor:pointer;background:#fff;color:var(--b);font-weight:700;">修改</button>
+      </div>
+    </div>`;
+  }).filter(Boolean).join('');
+  if(!el.innerHTML)el.innerHTML='<span style="font-size:.8rem;color:var(--tl);">尚無已指派密碼的飼主</span>';
+}
+function renderSitterPwStatus(){
+  const el=document.getElementById('sitterPwStatus');
+  if(!el)return;
+  let storedPws={};try{const _r=localStorage.getItem('sitterPwChanged');if(_r)storedPws=JSON.parse(_r);}catch(e){}
+  const log=JSON.parse(localStorage.getItem('sitterPwLog')||'[]');
+  const names=['Ying','小汶','菓菓','小茹','阿瑛'];
+  const avs={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
+  // Get the most recent change for each person
+  el.innerHTML=names.map(n=>{
+    const currentPw=storedPws[n]||ADMIN_KNOWN_INIT[n]||'—';
+    const lastChange=log.filter(l=>l.name===n).slice(-1)[0];
+    const changed=!!storedPws[n]&&storedPws[n]!==ADMIN_KNOWN_INIT[n];
+    return `<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:8px 12px;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span>${avs[n]} <strong>${n}</strong></span>
+        <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:2px;font-size:.88rem;">${currentPw}</span>
+        ${changed
+          ?`<span style="font-size:.68rem;color:var(--g);font-weight:800;">✓ 已自行修改</span>${lastChange?`<span style="font-size:.66rem;color:var(--tl);">${new Date(lastChange.ts).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>`:''}`
+          :`<span style="font-size:.68rem;color:var(--tl);">初始密碼</span>`}
+      </div>
+    </div>`;
+  }).join('');
+}
+async function renderOwners(){
+  const _allO2=await getB();
+  const b=_allO2.filter(x=>x.status==='已確認'||x.status==='已完成');
+  const pws=await getOwnerPws();
+  const grid=document.getElementById('ownerGrid');
+  if(!b.length){grid.innerHTML=`<div class="empty-msg">尚無已確認訂單 🐾</div>`;return;}
+  // Also show all owner passwords in a summary
+  const allPws=getOwnerPws();
+  const allBk=await getB();
+  grid.innerHTML=b.map(bk=>{
+    const pw=pws[bk.id];
+    return `<div class="owner-card">
+      <div class="owner-name">🐾 ${bk.ownerName}（${bk.petName||'寵物'}）</div>
+      <div class="owner-row">📅 ${bk.startDate} ～ ${bk.endDate}</div>
+      <div class="owner-row">📱 ${bk.ownerPhone}</div>
+      ${pw?`<div style="margin-top:8px;">
+        <div style="font-size:.72rem;color:var(--tl);margin-bottom:4px;">會員密碼（純數字）</div>
+        <div class="owner-pw" style="font-size:1.2rem;letter-spacing:4px;">${pw}</div>
+        </div>`:'<div style="font-size:.8rem;color:var(--tl);margin-top:8px;">尚未設定密碼</div>'}
+      <div style="margin-top:10px;">
+        <button class="gen-pw-btn" onclick="openGenPw(${bk.id})">🔑 ${pw?'查看/更換':'指派'}密碼</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── SALARY ──
+async function renderSalary(){
+  const month=document.getElementById('salMonth').value;
+  const b=await getB();
+  document.getElementById('sitterGrid').innerHTML=SITTERS_LIST.map(s=>{
+    const cases=b.filter(x=>{
+    if(!month||x.startDate?.startsWith(month)){
+      // Check both old string format and new JSON format
+      const assigns=parseAssignments(x.assignedTo);
+      if(assigns.length) return assigns.some(a=>a.sitter===s);
+      return x.assignedTo===s;
+    }
+    return false;
+  });
+    const done=cases.filter(x=>x.status==='已完成');
+    const sessions=done.reduce((sum,x)=>sum+(x.days||0)*(x.tpd||1),0);
+    const sal=sessions*SITTER_RATE+done.reduce((sum,x)=>sum+(x.transport||0)*(x.days||0)*(x.tpd||1),0);
+    return `<div class="sc">
+      <div class="sc-head"><div class="sc-av">${AVA[s]||'🐾'}</div>
+        <div><div class="sc-name">${s}</div><div class="sc-role">${ROLES[s]||''}</div></div>
+      </div>
+      <div class="sc-row"><span class="sc-l">全部案件</span><span class="sc-v">${cases.length} 件</span></div>
+      <div class="sc-row"><span class="sc-l">已完成</span><span class="sc-v">${done.length} 件</span></div>
+      <div class="sc-row"><span class="sc-l">服務次數</span><span class="sc-v">${sessions} 次</span></div>
+      <div class="sc-row"><span class="sc-l">本期薪資</span><span class="sc-v">$${sal.toLocaleString()}</span></div>
+      <button class="sc-exp" onclick="exportSitter('${s}')">📄 匯出薪資明細</button>
+    </div>`;
+  }).join('');
+}
+
+function exportSitter(name){
+  const month=document.getElementById('salMonth').value;
+  const cases=_bCache.filter(x=>{
+    if(x.status!=='已完成') return false;
+    if(month&&!x.startDate?.startsWith(month)) return false;
+    const assigns=parseAssignments(x.assignedTo);
+    if(assigns.length) return assigns.some(a=>a.sitter===name);
+    return x.assignedTo===name;
+  });
+  const m=month||'全部月份';
+  let txt=`【貓窩裏寵物褓姆】薪資明細\n保母：${name}（${ROLES[name]}）\n月份：${m}\n匯出：${new Date().toLocaleString('zh-TW')}\n${'─'.repeat(44)}\n\n`;
+  let grand=0;
+  if(!cases.length){txt+='本期間無已完成訂單\n';}
+  cases.forEach((bk,i)=>{
+    const sessions=(bk.days||0)*(bk.tpd||1);
+    const sal=sessions*SITTER_RATE+(bk.transport||0)*sessions;
+    grand+=sal;
+    txt+=`【訂單 ${i+1}】飼主：${bk.ownerName}\n`;
+    txt+=`日期：${bk.startDate}～${bk.endDate}（${bk.days}天×${bk.tpd}次）\n`;
+    txt+=`服務費：${sessions}次 × $${SITTER_RATE} = $${sessions*SITTER_RATE}\n`;
+    if(bk.transport>0)txt+=`車馬費：$${bk.transport}/次 × ${sessions}次 = $${bk.transport*sessions}\n`;
+    txt+=`本單合計：$${sal}\n\n`;
+  });
+  txt+=`${'─'.repeat(44)}\n總計：${cases.length}件｜薪資 $${grand.toLocaleString()}\n`;
+  showExp(`${name} 薪資明細（${m}）`,txt);
+}
+
+function exportAllSalary(){
+  const month=document.getElementById('salMonth').value;
+  const m=month||'全部月份';
+  let txt=`【貓窩裏寵物褓姆】全體薪資\n月份：${m}\n匯出：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(44)}\n\n`;
+  SITTERS_LIST.forEach(s=>{
+    const cases=_bCache.filter(x=>x.assignedTo===s&&x.status==='已完成'&&(!month||x.startDate.startsWith(month)));
+    const sessions=cases.reduce((s2,x)=>s2+(x.days||0)*(x.tpd||1),0);
+    const sal=sessions*SITTER_RATE+cases.reduce((s2,x)=>s2+(x.transport||0),0);
+    txt+=`${AVA[s]} ${s}：${cases.length}件 ｜ $${sal.toLocaleString()}\n`;
+  });
+  showExp('全體薪資總表',txt);
+}
+
+function exportAll(){
+  const b=_bCache;
+  let txt=`貓窩裏 全部預約\n匯出：${new Date().toLocaleString('zh-TW')}\n${'─'.repeat(50)}\n\n`;
+  b.forEach((bk,i)=>{
+    const{total}=calcB(bk);
+    txt+=`[${i+1}] ${bk.ownerName}｜${bk.startDate}～${bk.endDate}｜$${total}｜${bk.assignedTo||'未指派'}｜${bk.status}\n`;
+  });
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
+  a.download=`貓窩裏預約_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'')}.txt`;
+  a.click();
+}
+
+// ── COUPONS ──
+async function renderCoupons(){
+  let c=await getCoupons();
+  const f=document.getElementById('couponFilter').value;
+  if(f==='valid')c=c.filter(x=>!x.used);
+  if(f==='used')c=c.filter(x=>x.used);
+  c.sort((a,b)=>b.code.localeCompare(a.code));
+  const grid=document.getElementById('couponGrid');
+  if(!c.length){grid.innerHTML=`<div class="empty-msg">尚無折抵券 🎟</div>`;return;}
+  grid.innerHTML=c.map(cp=>`
+    <div class="cpn-card">
+      <div><div class="cpn-code">${cp.code}</div>
+        <div class="cpn-pet">${cp.petName} 的主人</div>
+        <div class="cpn-date">開立 ${cp.created} ｜ 到期 ${cp.expire}</div>
+      </div>
+      <div class="${cp.used?'cpn-used':'cpn-ok'}">${cp.used?'已使用':'有效'}</div>
+    </div>`).join('');
+}
+
+// ── REVIEWS ──
+async function renderReviewsAdmin(){
+  const revs=(await getReviews()).sort((a,b)=>b.ts-a.ts);
+  const list=document.getElementById('reviewListAdmin');
+  if(!revs.length){list.innerHTML=`<div class="empty-msg">尚無好評 ⭐</div>`;return;}
+  list.innerHTML=revs.map(r=>`
+    <div class="rev-admin-card">
+      <div class="rev-stars" style="margin-bottom:6px;">${r.rating} <span style="font-weight:800;color:var(--pk);font-size:.88rem;">｜${r.sitter} 保母</span> <span class="badge b-ok" style="font-size:.68rem;">${r.service}</span></div>
+      <div class="rev-comment">🐾 ${r.petName}（${r.petType}） ｜ 最滿意：${r.best}${r.comment?`<br>💬「${r.comment}」`:''}</div>
+      <div style="font-size:.72rem;color:var(--tl);margin-top:6px;">— ${r.author}</div>
+    </div>`).join('');
+}
+
+// ── PASSWORD OVERVIEW ──
+async function renderPasswords(){
+  // Sitter passwords — still read from localStorage (per-device sitter config)
+  const SITTER_NAMES=['Ying','小汶','菓菓','小茹','阿瑛'];
+  const SITTER_AVS={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
+  const SITTER_INIT={Ying:'ying8866',小汶:'wun7755',菓菓:'guo6644',小茹:'ru5533',阿瑛:'ying4422'};
+  let changedPws={};
+  try{const raw=localStorage.getItem('sitterPwChanged');if(raw)changedPws=JSON.parse(raw);}catch(e){}
+  const sitterEl=document.getElementById('allSitterPws');
+  if(sitterEl){
+    sitterEl.innerHTML=SITTER_NAMES.map(n=>{
+      const pw=changedPws[n]||SITTER_INIT[n];
+      const changed=!!changedPws[n];
+      return `<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span>${SITTER_AVS[n]} <strong>${n}</strong></span>
+        <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:2px;">${pw}</span>
+        ${changed?'<span style="font-size:.68rem;color:var(--g);font-weight:800;">✓ 已自改</span>':'<span style="font-size:.68rem;color:var(--tl);">初始</span>'}
+      </div>`;
+    }).join('');
+  }
+  // Owner passwords — from Supabase
+  const ownerPws=await dbGetOwnerPws();
+  const bookings=await getB();
+  const ownerEl=document.getElementById('allOwnerPws');
+  if(ownerEl){
+    const entries=Object.entries(ownerPws);
+    if(!entries.length){ownerEl.innerHTML='<div style="color:var(--tl);font-size:.84rem;">尚無飼主會員密碼</div>';return;}
+    ownerEl.innerHTML=entries.map(([bookId,pw])=>{
+      const bk=bookings.find(b=>String(b.id)===String(bookId));
+      return `<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <span style="font-size:.84rem;font-weight:700;">${bk?.ownerName||'飼主'}</span>
+        <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:3px;font-size:.9rem;">${pw}</span>
+        <button onclick="openGenPw(${bookId})" style="background:var(--y2);border:1.5px solid var(--y3);border-radius:8px;padding:4px 10px;font-size:.72rem;font-weight:800;cursor:pointer;">修改</button>
+      </div>`;
+    }).join('');
+  }
+  // PW change log
+  const log=JSON.parse(localStorage.getItem('sitterPwLog')||'[]');
+  const logEl=document.getElementById('pwChangeLog');
+  if(logEl){
+    if(!log.length){logEl.innerHTML='<div style="color:var(--tl);font-size:.84rem;">尚無變更紀錄</div>';return;}
+    logEl.innerHTML=log.slice(-10).reverse().map(l=>{
+      const dt=new Date(l.ts).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+      return `<div style="font-size:.8rem;padding:5px 0;border-bottom:1px dashed var(--pk3);color:var(--t);">
+        ${dt} — <strong>${l.name}</strong> 更改密碼為：<span style="font-family:monospace;background:var(--pk4);padding:2px 8px;border-radius:5px;">${l.newPw}</span>
+      </div>`;
+    }).join('');
+  }
+}
+function refreshPasswords(){renderPasswords();}
+
+// ── PAGE SWITCH ──
+function goPage(page,el){
+  document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));
+  el.classList.add('on');
+  ['orders','salary','owners','coupons','reviews','passwords'].forEach(p=>{
+    document.getElementById(`page-${p}`).style.display=p===page?'block':'none';
+  });
+  const titles={orders:'📋 訂單管理',salary:'💰 薪資計算',owners:'🏠 毛孩爸媽系統',coupons:'🎟 折抵券',reviews:'⭐ 好評管理',passwords:'🔐 密碼總覽'};
+  document.getElementById('pageTitle').textContent=titles[page]||'';
+  if(page==='salary')renderSalary();
+  if(page==='owners'){renderOwners();renderSitterPwStatus();}
+  if(page==='passwords')renderPasswords();
+  if(page==='coupons')renderCoupons();
+  if(page==='reviews')renderReviewsAdmin();
+}
+
+async function refreshAll(){await renderStats();renderOrders();}
+
+function showExp(title,txt){
+  document.getElementById('exportTitle').textContent=title;
+  document.getElementById('exportTxt').textContent=txt;
+  document.getElementById('exportMod').classList.add('show');
+}
+function copyExp(){navigator.clipboard.writeText(document.getElementById('exportTxt').textContent).then(()=>alert('已複製 ✓'));}
+function dlExp(){
+  const txt=document.getElementById('exportTxt').textContent;
+  const title=document.getElementById('exportTitle').textContent;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
+  a.download=title.replace(/[\s\(\)]/g,'_')+'.txt';
+  a.click();
+}
+function closeM(id){document.getElementById(id).classList.remove('show');}
+
+// Close sidebar on outside click (mobile)
+document.addEventListener('click',e=>{
+  const sb=document.getElementById('sidebar');
+  if(window.innerWidth<=768&&!sb.contains(e.target)&&!e.target.classList.contains('ham-btn')){
+    sb.classList.remove('open');
+  }
+});
+</script>
+
+<!-- DETAIL BREAKDOWN MODAL -->
+<div class="m-ov" id="detailModal">
+  <div class="m-box" style="width:580px;">
+    <h3>📊 費用明細對帳</h3>
+    <div id="detailInner"></div>
+    <button class="btn btn-pk" style="width:100%;margin-top:16px;padding:12px;border-radius:12px;" onclick="closeM('detailModal')">關閉</button>
+  </div>
+</div>
+<!-- PET DETAIL MODAL -->
+<div class="m-ov" id="petDetailModal">
+  <div class="m-box" style="width:480px;">
+    <h3>🐾 寵物詳細資料</h3>
+    <div id="petDetailInner"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:12px;padding:11px;border-radius:12px;" onclick="closeM('petDetailModal')">關閉</button>
+  </div>
+</div>
+</body>
+</html>

@@ -1094,8 +1094,30 @@ function parseAssignments(assignedTo){
   }
   return [];
 }
-function saveAssignments(id, assignments){
-  return dbUpdateOrder(id, {assigned_to: JSON.stringify(assignments)});
+
+function showToast(msg, type){
+  let t=document.getElementById('adminToast');
+  if(!t){
+    t=document.createElement('div');
+    t.id='adminToast';
+    t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:14px;font-weight:800;font-size:.9rem;z-index:9999;transition:opacity .3s;pointer-events:none;font-family:"Nunito",sans-serif;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.style.background=type==='error'?'#FF4444':'#06C755';
+  t.style.color='#fff';
+  t.style.opacity='1';
+  clearTimeout(t._to);
+  t._to=setTimeout(()=>t.style.opacity='0',type==='error'?4000:2000);
+}
+async function saveAssignments(id, assignments){
+  const json=JSON.stringify(assignments);
+  // Direct Supabase call to be sure
+  const{error}=await _supa.from('orders').update({assigned_to:json}).eq('id',id);
+  if(error){
+    alert('❌ 指派儲存失敗：'+error.message+'\n\n請截圖此訊息回報');
+    throw new Error(error.message);
+  }
 }
 function getSlotSitter(assignments, date, slot){
   const a=assignments.find(x=>x.date===date&&x.slot===slot);
@@ -1354,8 +1376,10 @@ function buildSlotList(bk){
 }
 
 async function assignSlot(orderId, date, slot, sitter){
-  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
-  if(!bk)return;
+  const numId=parseInt(orderId)||orderId;
+  const bk=(_bCache||[]).find(x=>x.id===numId||x.id===orderId);
+  if(!bk){showToast('找不到訂單 '+orderId,'error');return;}
+  try{
   // Parse and migrate format if needed
   const raw=bk.assignedTo||'';
   let assigns=[];
@@ -1383,18 +1407,27 @@ async function assignSlot(orderId, date, slot, sitter){
   await saveAssignments(orderId, assigns);
   // Update cache only, no full re-render (preserves open card state)
   if(bk) bk.assignedTo=JSON.stringify(assigns);
-  // Update the select UI to show saved sitter
-  const selEl=document.querySelector('[data-slot-id="'+orderId+'-'+date+'-'+slot+'"]');
-  if(selEl){
-    selEl.value=sitter||'';
-    selEl.style.borderColor=sitter?'#06C755':'var(--pk3)';
-    selEl.style.background=sitter?'#F0FFF4':'#fff';
+  // Verify saved by reading back from DB
+  const{data:verifyData,error:verifyErr}=await _supa.from('orders').select('assigned_to').eq('id',orderId).single();
+  if(verifyErr){
+    alert('⚠️ 指派已送出但無法驗證：'+verifyErr.message);
+  } else {
+    const savedVal=verifyData?.assigned_to||'';
+    const verified=savedVal.includes(sitter||'');
+    // Update UI selects
+    const selEl=document.querySelector('[data-slot-id="'+orderId+'-'+date+'-'+slot+'"]');
+    if(selEl){
+      selEl.value=sitter||'';
+      selEl.style.borderColor=verified?'#06C755':'#FF9500';
+      selEl.style.background=verified?'#F0FFF4':'#fff';
+    }
+    assigns.forEach(function(a){
+      const s2=document.querySelector('[data-slot-id="'+orderId+'-'+a.date+'-'+a.slot+'"]');
+      if(s2&&a.sitter){s2.value=a.sitter;s2.style.borderColor='#06C755';s2.style.background='#F0FFF4';}
+    });
+    if(!verified&&sitter) alert('⚠️ 指派可能未儲存成功，請重試');
   }
-  // Also update all selects for this order from updated assigns array
-  assigns.forEach(function(a){
-    const s2=document.querySelector('[data-slot-id="'+orderId+'-'+a.date+'-'+a.slot+'"]');
-    if(s2&&a.sitter){s2.value=a.sitter;s2.style.borderColor='#06C755';s2.style.background='#F0FFF4';}
-  });
+  }catch(e){alert('指派失敗：'+e.message);}
 }
 
 async function setSlotTransport(orderId, sitter, amount){

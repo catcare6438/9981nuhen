@@ -1356,18 +1356,23 @@ function buildSlotList(bk){
 async function assignSlot(orderId, date, slot, sitter){
   const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
   if(!bk)return;
-  // Migrate from original slot format to assignment format if needed
-  let assigns=parseAssignments(bk.assignedTo);
+  // Parse and migrate format if needed
   const raw=bk.assignedTo||'';
-  if(raw&&assigns.length===0){
-    try{
+  let assigns=[];
+  try{
+    if(raw.startsWith('[')){
       const parsed=JSON.parse(raw);
-      if(Array.isArray(parsed)&&parsed.length&&parsed[0].slots!==undefined){
-        // Convert [{date,slots:[]}] → [{date,slot,sitter:'',transport:0}]
-        parsed.forEach(d=>{(d.slots||[]).forEach(s=>{assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
+      if(Array.isArray(parsed)&&parsed.length){
+        if(parsed[0].slots!==undefined){
+          // Format1 [{date,slots:[]}] → convert to Format2 [{date,slot,sitter,transport}]
+          parsed.forEach(d=>{(d.slots||[]).forEach(s=>{assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
+        } else {
+          // Already Format2
+          assigns=parsed;
+        }
       }
-    }catch(e){}
-  }
+    }
+  }catch(e){}
   const idx=assigns.findIndex(x=>x.date===date&&x.slot===slot);
   if(sitter){
     if(idx>=0) assigns[idx].sitter=sitter;

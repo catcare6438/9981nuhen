@@ -1145,7 +1145,7 @@ function calcB(b){return calcBv2(b);}
 
 // ── STATS ──
 async function renderStats(){
-  const b=await getB();
+  const b=_bCache&&_bCache.length?_bCache:await getB();
   const pending=b.filter(x=>x.status==='待確認').length;
   const active=b.filter(x=>x.status==='已確認'||x.status==='接案中').length;
   const done=b.filter(x=>x.status==='已完成').length;
@@ -1383,14 +1383,18 @@ async function assignSlot(orderId, date, slot, sitter){
   await saveAssignments(orderId, assigns);
   // Update cache only, no full re-render (preserves open card state)
   if(bk) bk.assignedTo=JSON.stringify(assigns);
-  // Just update the select to show saved state visually
-  const msg=document.createElement('span');
-  msg.textContent='✅';
-  msg.style.cssText='font-size:.8rem;color:#06C755;font-weight:900;margin-left:4px;';
-  const sel=document.querySelector(`[data-slot-id="${orderId}-${date}-${slot}"]`);
-  if(sel){sel.style.borderColor='#06C755';sel.style.background='#F0FFF4';}
-  // Update stats counter silently
-  renderStats();
+  // Update the select UI to show saved sitter
+  const selEl=document.querySelector('[data-slot-id="'+orderId+'-'+date+'-'+slot+'"]');
+  if(selEl){
+    selEl.value=sitter||'';
+    selEl.style.borderColor=sitter?'#06C755':'var(--pk3)';
+    selEl.style.background=sitter?'#F0FFF4':'#fff';
+  }
+  // Also update all selects for this order from updated assigns array
+  assigns.forEach(function(a){
+    const s2=document.querySelector('[data-slot-id="'+orderId+'-'+a.date+'-'+a.slot+'"]');
+    if(s2&&a.sitter){s2.value=a.sitter;s2.style.borderColor='#06C755';s2.style.background='#F0FFF4';}
+  });
 }
 
 async function setSlotTransport(orderId, sitter, amount){

@@ -673,14 +673,47 @@ function downloadPetFile(bk){
 // ── ASSIGNMENT HELPERS (same as admin) ──
 function parseAssignments(assignedTo){
   if(!assignedTo) return [];
-  if(assignedTo.startsWith('[')){ try{return JSON.parse(assignedTo);}catch(e){} }
+  if(typeof assignedTo==='string'&&assignedTo.startsWith('[')){
+    try{
+      const arr=JSON.parse(assignedTo);
+      if(!Array.isArray(arr)) return [];
+      // Format 1: [{date, slots:[]}] — initial slot data, no sitter assigned yet
+      // Format 2: [{date, slot, sitter, transport}] — after admin assigns
+      // If format1 (has .slots array), return as-is for display; sitter fields will be empty
+      return arr;
+    }catch(e){}
+  }
   return [];
+}
+
+// Check if an assignment array is format2 (has sitter assignments)
+function hasAssignments(assignedTo){
+  const arr=parseAssignments(assignedTo);
+  return arr.some(a=>a.sitter);
+}
+
+// Get all slots for this order regardless of format
+function getAllSlots(b){
+  const arr=parseAssignments(b.assignedTo);
+  if(!arr.length) return [];
+  if(arr[0]&&arr[0].slots!==undefined){
+    // Format1: [{date, slots:[]}]
+    const result=[];
+    arr.forEach(d=>(d.slots||[]).forEach(s=>result.push({date:d.date,slot:s,sitter:'',transport:0})));
+    return result;
+  }
+  // Format2
+  return arr;
 }
 function getMySessions(b, myName){
   const assigns=parseAssignments(b.assignedTo);
-  if(assigns.length) return assigns.filter(a=>a.sitter===myName).length;
-  // Old format: if assignedTo===myName, use tpd
-  return b.assignedTo===myName?(b.tpd||1):0;
+  if(!assigns.length) return b.assignedTo===myName?(b.tpd||1):0;
+  // Format2: count slots assigned to me
+  if(assigns[0]&&assigns[0].slot!==undefined){
+    return assigns.filter(a=>a.sitter===myName).length;
+  }
+  // Format1: all slots (not yet assigned to anyone specifically)
+  return assigns.reduce((s,d)=>s+(d.slots||[]).length,0);
 }
 function getMyTransport(b, myName){
   const assigns=parseAssignments(b.assignedTo);
@@ -696,8 +729,15 @@ function getTeamOnOrder(b, myName){
 }
 function getMySlots(b, myName){
   const assigns=parseAssignments(b.assignedTo);
-  if(!assigns.length) return null; // old format
-  return assigns.filter(a=>a.sitter===myName);
+  if(!assigns.length) return [];
+  // Format2: filter by sitter name
+  if(assigns[0]&&assigns[0].slot!==undefined){
+    return assigns.filter(a=>a.sitter===myName);
+  }
+  // Format1: return all slots flattened
+  const result=[];
+  assigns.forEach(d=>(d.slots||[]).forEach(s=>result.push({date:d.date,slot:s,sitter:'',transport:0})));
+  return result;
 }
 
 const SITTER_INIT_PWS={
@@ -839,9 +879,16 @@ async function saveRep(r){await dbInsertReport(r);} // single insert
 async function renderMain(){
   const allB=await getB();
   const myCases=allB.filter(b=>{
-    const assigns=parseAssignments(b.assignedTo);
-    if(assigns.length) return assigns.some(a=>a.sitter===ME.name);
-    return b.assignedTo===ME.name;
+    const raw=b.assignedTo||'';
+    if(!raw) return false;
+    const assigns=parseAssignments(raw);
+    if(!assigns.length) return raw===ME.name; // old string format
+    // Format2: explicitly assigned slots
+    if(assigns[0]&&assigns[0].slot!==undefined){
+      return assigns.some(a=>a.sitter===ME.name);
+    }
+    // Format1: not yet assigned by admin — don't show to sitter
+    return false;
   });
   const done=myCases.filter(b=>b.status==='已完成');
   const reps=(await getReps()).filter(r=>r.sitter===ME.name);
@@ -861,9 +908,16 @@ async function renderMain(){
 async function renderCases(){
   const allB=await getB();
   const myCases=allB.filter(b=>{
-    const assigns=parseAssignments(b.assignedTo);
-    if(assigns.length) return assigns.some(a=>a.sitter===ME.name);
-    return b.assignedTo===ME.name;
+    const raw=b.assignedTo||'';
+    if(!raw) return false;
+    const assigns=parseAssignments(raw);
+    if(!assigns.length) return raw===ME.name; // old string format
+    // Format2: explicitly assigned slots
+    if(assigns[0]&&assigns[0].slot!==undefined){
+      return assigns.some(a=>a.sitter===ME.name);
+    }
+    // Format1: not yet assigned by admin — don't show to sitter
+    return false;
   });
   // Pre-fetch all reports for this sitter's cases
   const _repsMap={};

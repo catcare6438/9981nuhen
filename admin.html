@@ -792,7 +792,7 @@ function dbRowToOrder(r){
 <script>
 const DEFAULT_PW='chch715715';
 let ADMIN_PW=localStorage.getItem('adminPw')||DEFAULT_PW;
-const SITTERS_LIST=['Ying','小汶','菓菓','小茹','阿瑛'];
+const SITTERS_LIST=['Ying','小語','小汶','菓菓','小茹','阿瑛'];
 const ROLES={Ying:'資深貓咪照護',小汶:'老年寵物照護',菓菓:'中途志工',小茹:'中途志工',阿瑛:'中途志工'};
 const AVA={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
 const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
@@ -1239,7 +1239,7 @@ function buildOrderCard(bk, sCls, ownerPws){
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">'
           +'<span style="font-size:.75rem;font-weight:700;min-width:64px;">'+sl.label+'</span>'
           +'<select style="padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--t);background:#fff;outline:none;"'
-          +' onchange="assignSlot('+bk.id+',\"'+date+'\",\"'+sl.slot+'\",this.value)">'
+          +' data-slot-id="'+bk.id+'-'+date+'-'+sl.slot+'"'           +' onchange="assignSlot('+bk.id+',\"'+date+'\",\"'+sl.slot+'\",this.value)">'
           +'<option value="">— 選擇 —</option>'+opts+'</select>'
           +(cur?'<span style="font-size:.72rem;font-weight:800;color:var(--pk);">'+cur+'</span>':'')
           +'</div>';
@@ -1376,9 +1376,16 @@ async function assignSlot(orderId, date, slot, sitter){
     if(idx>=0) assigns.splice(idx,1);
   }
   await saveAssignments(orderId, assigns);
-  // Update cache
+  // Update cache only, no full re-render (preserves open card state)
   if(bk) bk.assignedTo=JSON.stringify(assigns);
-  refreshAll();
+  // Just update the select to show saved state visually
+  const msg=document.createElement('span');
+  msg.textContent='✅';
+  msg.style.cssText='font-size:.8rem;color:#06C755;font-weight:900;margin-left:4px;';
+  const sel=document.querySelector(`[data-slot-id="${orderId}-${date}-${slot}"]`);
+  if(sel){sel.style.borderColor='#06C755';sel.style.background='#F0FFF4';}
+  // Update stats counter silently
+  renderStats();
 }
 
 async function setSlotTransport(orderId, sitter, amount){
@@ -1605,10 +1612,17 @@ async function renderOwnerPwSummary(){
   }).filter(Boolean).join('');
   if(!el.innerHTML)el.innerHTML='<span style="font-size:.8rem;color:var(--tl);">尚無已指派密碼的飼主</span>';
 }
-function renderSitterPwStatus(){
+async function renderSitterPwStatus(){
   const el=document.getElementById('sitterPwStatus');
   if(!el)return;
-  let storedPws={};try{const _r=localStorage.getItem('sitterPwChanged');if(_r)storedPws=JSON.parse(_r);}catch(e){}
+  // Load passwords from Supabase
+  let supabasePws={};
+  try{
+    const{data:spData}=await _supa.from('sitter_passwords').select('*');
+    (spData||[]).forEach(r=>{ supabasePws[r.sitter_name]=r.password; });
+  }catch(e){console.error('sitter pw load:',e);}
+  let storedPws={...supabasePws};
+  try{const _r=localStorage.getItem('sitterPwChanged');if(_r){const local=JSON.parse(_r);Object.assign(storedPws,local);}}catch(e){}
   const log=JSON.parse(localStorage.getItem('sitterPwLog')||'[]');
   const names=['Ying','小汶','菓菓','小茹','阿瑛'];
   const avs={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};

@@ -878,6 +878,8 @@ async function saveRep(r){await dbInsertReport(r);} // single insert
 // ── RENDER ──
 async function renderMain(){
   const allB=await getB();
+  console.log('allB count:', allB.length, 'ME:', ME?.name);
+  allB.forEach(b=>console.log('  order', b.id, 'assignedTo:', b.assignedTo?.substring(0,80)));
   const myCases=allB.filter(b=>{
     const raw=b.assignedTo||'';
     if(!raw) return false;
@@ -885,11 +887,13 @@ async function renderMain(){
     if(!assigns.length) return raw===ME.name; // old string format
     // Format2: explicitly assigned slots
     if(assigns[0]&&assigns[0].slot!==undefined){
-      return assigns.some(a=>a.sitter===ME.name);
+      const match=assigns.some(a=>a.sitter===ME.name);
+      return match;
     }
-    // Format1: not yet assigned by admin — don't show to sitter
+    // Format1: not yet assigned by admin
     return false;
   });
+  console.log('myCases:', myCases.length);
   const done=myCases.filter(b=>b.status==='已完成');
   const reps=(await getReps()).filter(r=>r.sitter===ME.name);
   const sessions=done.reduce((s,b)=>s+(b.dateSlotData?.length?b.dateSlotData.reduce((ss,d)=>ss+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1))),0);
@@ -907,6 +911,8 @@ async function renderMain(){
 
 async function renderCases(){
   const allB=await getB();
+  console.log('allB count:', allB.length, 'ME:', ME?.name);
+  allB.forEach(b=>console.log('  order', b.id, 'assignedTo:', b.assignedTo?.substring(0,80)));
   const myCases=allB.filter(b=>{
     const raw=b.assignedTo||'';
     if(!raw) return false;
@@ -914,11 +920,13 @@ async function renderCases(){
     if(!assigns.length) return raw===ME.name; // old string format
     // Format2: explicitly assigned slots
     if(assigns[0]&&assigns[0].slot!==undefined){
-      return assigns.some(a=>a.sitter===ME.name);
+      const match=assigns.some(a=>a.sitter===ME.name);
+      return match;
     }
-    // Format1: not yet assigned by admin — don't show to sitter
+    // Format1: not yet assigned by admin
     return false;
   });
+  console.log('myCases:', myCases.length);
   // Pre-fetch all reports for this sitter's cases
   const _repsMap={};
   for(const bk of myCases){

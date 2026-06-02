@@ -1242,6 +1242,10 @@ function buildOrderCard(bk, sCls, ownerPws){
   const extraPetBadge=(bk.catCount||0)+(bk.dogCount||0)>3?'<span style="color:var(--r);font-size:.76rem;font-weight:800;">⚡第4隻起+$50/次</span>':'';
 
   // Slot assignment section
+  // DEBUG: show raw assignedTo value
+  if(bk.assignedTo&&bk.assignedTo.length>2){
+    console.log('Order #'+bk.id+' assignedTo raw:', bk.assignedTo.substring(0,120));
+  }
   const assigns=parseAssignments(bk.assignedTo);
   const slots=buildSlotList(bk);
   let slotSection='';
@@ -1336,6 +1340,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<option value="已取消"'+(bk.status==='已取消'?' selected':'')+'>✖ 已取消</option>'
     +'</select></div>'
     +'<button class="oa-btn" style="background:#EEF0FF;color:#5558B8;border-color:var(--b);" onclick="event.stopPropagation();showDetail('+bk.id+')">📊 明細</button>'
+    +'<button class="oa-btn" style="background:#F5F5FF;color:#555;border-color:#ccc;" onclick="event.stopPropagation();checkAssigned('+bk.id+')">🔍 查指派</button>'
     +'<button class="oa-btn" style="background:#F0F9FF;color:#0369A1;border-color:#7DD3FC;" onclick="event.stopPropagation();openEditOrder('+bk.id+')">✏️ 編輯</button>'
     +'<button class="oa-btn oa-del" onclick="event.stopPropagation();delO('+bk.id+')">🗑 刪除</button>'
     +'<button class="oa-btn" style="background:var(--pk4);color:var(--pk);border-color:var(--pk2);" onclick="event.stopPropagation();openGenPw('+bk.id+')">'+(hasPw?'🔑 查看':'🔑 設定')+'密碼</button>'
@@ -2270,6 +2275,13 @@ async function saveEditOrder(){
   }finally{
     if(btn){btn.textContent='💾 儲存變更';btn.disabled=false;}
   }
+}
+
+async function checkAssigned(orderId){
+  var res=await _supa.from('orders').select('assigned_to').eq('id',parseInt(orderId)).limit(1);
+  if(res.error){alert('讀取失敗：'+res.error.message);return;}
+  var val=(res.data&&res.data[0])?res.data[0].assigned_to:'(空)';
+  alert('訂單 #'+orderId+' DB中的 assigned_to:\n\n'+String(val));
 }
 async function refreshAll(){await renderStats();renderOrders();}
 

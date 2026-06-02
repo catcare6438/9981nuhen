@@ -1407,7 +1407,14 @@ async function assignSlot(orderId, date, slot, sitter){
   var res=await _supa.from('orders').update({assigned_to:newJson}).eq('id',numId);
   if(res.error){alert('❌ 儲存失敗：'+res.error.message);return;}
 
-  bk.assignedTo=newJson;
+  // 立即驗證：重新從 DB 讀取確認有儲存
+  var check=await _supa.from('orders').select('assigned_to').eq('id',numId).limit(1);
+  var actualSaved=(check.data&&check.data[0])?check.data[0].assigned_to:'(讀取失敗)';
+  if(!actualSaved||actualSaved!==newJson){
+    alert('⚠️ 警告：DB 儲存值與預期不符！\n\n預期：'+newJson.substring(0,100)+'\n\n實際：'+String(actualSaved).substring(0,100));
+  }
+
+  bk.assignedTo=actualSaved||newJson;
 
   assigns.forEach(function(a){
     var sel=document.querySelector('[data-slot-id="'+numId+'-'+a.date+'-'+a.slot+'"]');

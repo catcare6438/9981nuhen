@@ -1377,57 +1377,42 @@ function buildSlotList(bk){
 
 async function assignSlot(orderId, date, slot, sitter){
   const numId=parseInt(orderId)||orderId;
-  const bk=(_bCache||[]).find(x=>x.id===numId||x.id===orderId);
-  if(!bk){showToast('找不到訂單 '+orderId,'error');return;}
-  try{
-  // Parse and migrate format if needed
+  const bk=(_bCache||[]).find(function(x){return x.id===numId||x.id===orderId;});
+  if(!bk){alert('找不到訂單 id='+orderId);return;}
+
   const raw=bk.assignedTo||'';
   let assigns=[];
-  try{
-    if(raw.startsWith('[')){
+  if(raw){
+    try{
       const parsed=JSON.parse(raw);
       if(Array.isArray(parsed)&&parsed.length){
         if(parsed[0].slots!==undefined){
-          // Format1 [{date,slots:[]}] → convert to Format2 [{date,slot,sitter,transport}]
-          parsed.forEach(d=>{(d.slots||[]).forEach(s=>{assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
+          parsed.forEach(function(d){(d.slots||[]).forEach(function(s){assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
         } else {
-          // Already Format2
           assigns=parsed;
         }
       }
-    }
-  }catch(e){}
-  const idx=assigns.findIndex(x=>x.date===date&&x.slot===slot);
+    }catch(e){}
+  }
+
+  var ai=assigns.findIndex(function(x){return x.date===date&&x.slot===slot;});
   if(sitter){
-    if(idx>=0) assigns[idx].sitter=sitter;
-    else assigns.push({date,slot,sitter,transport:0});
+    if(ai>=0) assigns[ai].sitter=sitter;
+    else assigns.push({date:date,slot:slot,sitter:sitter,transport:0});
   } else {
-    if(idx>=0) assigns.splice(idx,1);
+    if(ai>=0) assigns[ai].sitter='';
   }
-  await saveAssignments(orderId, assigns);
-  // Update cache only, no full re-render (preserves open card state)
-  if(bk) bk.assignedTo=JSON.stringify(assigns);
-  // Verify saved by reading back from DB
-  const{data:verifyData,error:verifyErr}=await _supa.from('orders').select('assigned_to').eq('id',orderId).single();
-  if(verifyErr){
-    alert('⚠️ 指派已送出但無法驗證：'+verifyErr.message);
-  } else {
-    const savedVal=verifyData?.assigned_to||'';
-    const verified=savedVal.includes(sitter||'');
-    // Update UI selects
-    const selEl=document.querySelector('[data-slot-id="'+orderId+'-'+date+'-'+slot+'"]');
-    if(selEl){
-      selEl.value=sitter||'';
-      selEl.style.borderColor=verified?'#06C755':'#FF9500';
-      selEl.style.background=verified?'#F0FFF4':'#fff';
-    }
-    assigns.forEach(function(a){
-      const s2=document.querySelector('[data-slot-id="'+orderId+'-'+a.date+'-'+a.slot+'"]');
-      if(s2&&a.sitter){s2.value=a.sitter;s2.style.borderColor='#06C755';s2.style.background='#F0FFF4';}
-    });
-    if(!verified&&sitter) alert('⚠️ 指派可能未儲存成功，請重試');
-  }
-  }catch(e){alert('指派失敗：'+e.message);}
+
+  var newJson=JSON.stringify(assigns);
+  var res=await _supa.from('orders').update({assigned_to:newJson}).eq('id',numId);
+  if(res.error){alert('❌ 儲存失敗：'+res.error.message);return;}
+
+  bk.assignedTo=newJson;
+
+  assigns.forEach(function(a){
+    var sel=document.querySelector('[data-slot-id="'+numId+'-'+a.date+'-'+a.slot+'"]');
+    if(sel){sel.value=a.sitter||'';sel.style.borderColor=a.sitter?'#06C755':'var(--pk3)';sel.style.background=a.sitter?'#F0FFF4':'#fff';}
+  });
 }
 
 async function setSlotTransport(orderId, sitter, amount){

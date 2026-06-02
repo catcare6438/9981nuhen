@@ -805,13 +805,10 @@ const SITTER_RATE=200; // 保留相容，實際用 calcSitterSalary
 function calcSitterSalary(b){
   const mySess=getMySessions(b,ME?.name||'');
   const sessions=mySess||(b.dateSlotData?.length?b.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1)));
-  // 依服務類型取費率（保母端連假不加成）
-  const _rateTable=b.isHoliday?SITTER_HOLIDAY_RATE:SITTER_SVC_RATE;
-  const svcRate=(b.services||[]).reduce((sum,k)=>sum+(_rateTable[k]||0),0)||(b.isHoliday?300:200);
+  const svcRate=200; // 固定 $200/次
   const svcTotal=svcRate*sessions;
   const myTransport=ME?.name?getMyTransport(b,ME.name):(b.transport||0);
-  const transport=myTransport;
-  return{sessions,svcRate,svcTotal,transport,total:svcTotal+transport};
+  return{sessions,svcRate,svcTotal,transport:myTransport,total:svcTotal+myTransport};
 }
 const ADDON_PRICE={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 
@@ -955,11 +952,18 @@ async function renderCases(){
               const SLBL={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
               const dayNames=['日','一','二','三','四','五','六'];
               if(mySlots&&mySlots.length){
-                const slotStr=mySlots.map(s=>{
+                const TW_HOL_S=new Set(['2026-02-14','2026-02-15','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22','2026-02-27','2026-02-28','2026-03-01','2026-04-03','2026-04-04','2026-04-05','2026-04-06','2026-05-01','2026-05-02','2026-05-03','2026-06-19','2026-06-20','2026-06-21','2026-09-25','2026-09-26','2026-09-27','2026-09-28','2026-10-09','2026-10-10','2026-10-11','2026-12-25','2026-12-26','2026-12-27']);
+                const chips=mySlots.map(s=>{
                   const d=new Date(s.date+'T00:00:00');
-                  return `${s.date.slice(5)}(${dayNames[d.getDay()]})${SLBL[s.slot]||s.slot}`;
-                }).join(' ・ ');
-                return `<div style="font-size:.76rem;color:var(--pk);font-weight:800;margin:3px 0;">📋 我的時段：${slotStr}</div>`;
+                  const dow=dayNames[d.getDay()];
+                  const isHol=TW_HOL_S.has(s.date);
+                  return `<div class="slot-chip${isHol?' hol':''}">
+                    <span class="slot-chip-date">${s.date.slice(5)}</span>
+                    <span class="slot-chip-day">(${dow})${isHol?'🎊':''}</span>
+                    <span class="slot-chip-time">${SLBL[s.slot]||s.slot}</span>
+                  </div>`;
+                }).join('');
+                return `<div style="font-size:.74rem;font-weight:800;color:var(--pk);margin:4px 0 2px;">📋 我的時段</div><div class="slot-grid">${chips}</div>`;
               }
               return '';
             })()}
@@ -970,12 +974,27 @@ async function renderCases(){
             📝 已回報 ${rCount} 次
           </div>
         </div>
-        <div style="text-align:right;">
+        <div style="text-align:right;min-width:130px;">
           <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
-          <div class="case-fee-sub">
-            ${(b.services||[]).map(k=>({companion:'到府',walk:'遛狗',both:'到府+遛狗'}[k]||k)).join('+')}
-            $${calcSitterSalary(b).svcRate}/次 × ${calcSitterSalary(b).sessions}次<br>
-            ${b.transport>0?'+ 車馬費 $'+b.transport+'/次':'車馬費免收'}
+          <div class="case-fee-sub" style="text-align:right;line-height:1.8;">
+            <div style="color:var(--pk);font-weight:800;">到府照護</div>
+            <div>$200 / 次（半小時）× ${calcSitterSalary(b).sessions}次</div>
+            <div style="color:var(--pk);font-weight:900;font-size:.84rem;">= $${(200*calcSitterSalary(b).sessions).toLocaleString()}</div>
+            ${(()=>{
+              const ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+              const addons=b.addons||[];
+              if(!addons.length) return '';
+              const rows=addons.map(a=>{
+                // 支援 "餵藥×3隻" 格式
+                const m=a.match(/^(.+?)×(\d+)/);
+                const name=m?m[1]:a;
+                const qty=m?parseInt(m[2]):1;
+                const price=(ADDON_P[name]||50)*qty;
+                return `<div style="color:var(--tl);font-size:.76rem;">+ ${a} $${price}/次 × ${calcSitterSalary(b).sessions}次 = <strong>$${(price*calcSitterSalary(b).sessions).toLocaleString()}</strong></div>`;
+              }).join('');
+              return rows;
+            })()}
+            ${calcSitterSalary(b).transport>0?`<div style="color:var(--tl);">+ 車馬費 $${calcSitterSalary(b).transport}/次</div>`:'<div style="color:var(--g);font-size:.7rem;">車馬費免收</div>'}
           </div>
         </div>
       </div>

@@ -81,6 +81,11 @@ nav a:hover{background:var(--p3);color:var(--p1);border-color:var(--p2);}
 
 /* PILLS */
 .pills{display:flex;flex-wrap:wrap;gap:9px;}
+.pill-qty{display:flex;align-items:center;gap:6px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:8px 12px;font-size:.82rem;font-weight:700;flex-wrap:wrap;}
+.pill-qty input[type=checkbox]{accent-color:var(--pk);width:16px;height:16px;cursor:pointer;}
+.pill-qty-num{width:44px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:7px;font-family:inherit;font-size:.8rem;text-align:center;outline:none;background:#fff;}
+.pill-qty-num:focus{border-color:var(--pk);}
+.pill-qty-label{font-size:.72rem;color:var(--tl);}
 .pill{display:flex;align-items:center;gap:6px;border:2px solid var(--p3);border-radius:30px;padding:8px 15px;cursor:pointer;font-size:.8rem;transition:all .2s;background:#fff;user-select:none;font-family:'Nunito',sans-serif;font-weight:700;}
 .pill input{display:none;}
 .pill:has(input:checked){background:var(--p4);border-color:var(--p1);color:var(--p1);}
@@ -529,8 +534,20 @@ function dbRowToOrder(r){
   <div class="card">
     <div class="card-title">✨ 加購服務（每次計費，多天每天收）</div>
     <div class="pills" id="addonPills">
-      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="餵藥">💊 餵藥 <strong>+$50</strong></label>
-      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="點藥">💧 點藥 <strong>+$50</strong></label>
+      <div class="pill-qty">
+        <input type="checkbox" id="addon-feed" value="50" data-name="餵藥" onchange="updateFeedAddon()">
+        <label for="addon-feed" style="cursor:pointer;">💊 餵藥 <strong>+$50</strong>/隻</label>
+        <span class="pill-qty-label">需餵藥</span>
+        <input type="number" class="pill-qty-num" id="feed-qty" min="1" max="10" value="1" oninput="updateFeedAddon()">
+        <span class="pill-qty-label">隻</span>
+      </div>
+      <div class="pill-qty">
+        <input type="checkbox" id="addon-drop" value="50" data-name="點藥" onchange="updateDropAddon()">
+        <label for="addon-drop" style="cursor:pointer;">💧 點藥 <strong>+$50</strong>/隻</label>
+        <span class="pill-qty-label">需點藥</span>
+        <input type="number" class="pill-qty-num" id="drop-qty" min="1" max="10" value="1" oninput="updateDropAddon()">
+        <span class="pill-qty-label">隻</span>
+      </div>
       <label class="pill" onclick="calc()"><input type="checkbox" value="100" data-name="舒緩按摩">💆 舒緩按摩 <strong>+$100</strong></label>
       <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="剪指甲">✂️ 剪指甲 <strong>+$50</strong></label>
       <label class="pill" onclick="calc()"><input type="checkbox" value="80" data-name="協助排便導尿">🚿 排便導尿 <strong>+$80</strong></label>
@@ -1160,6 +1177,19 @@ function toggleSvc(el){
 
 
 
+
+function updateFeedAddon(){
+  const cb=document.getElementById('addon-feed');
+  const qty=parseInt(document.getElementById('feed-qty').value)||1;
+  if(cb){cb.value=50*qty; cb.dataset.name='餵藥×'+qty+'隻';}
+  calc();
+}
+function updateDropAddon(){
+  const cb=document.getElementById('addon-drop');
+  const qty=parseInt(document.getElementById('drop-qty').value)||1;
+  if(cb){cb.value=50*qty; cb.dataset.name='點藥×'+qty+'隻';}
+  calc();
+}
 function dcost(km){
   km=parseFloat(km)||0;
   return km<=5?0:Math.ceil(km-5)*50;

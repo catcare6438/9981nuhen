@@ -408,7 +408,7 @@ async function dbUpdateOrder(id,fields){
     row[col]=fields[k];
   });
   if(!Object.keys(row).length)return;
-  const{error}=await _supa.from('orders').update(row).eq('id',id);
+  const{error}=await _supa.from('orders').update(row).eq('id',parseInt(id)||id);
   if(error){console.error('updateOrder:',_errMsg(error));throw new Error(_errMsg(error));}
 }
 async function dbDeleteOrder(id){
@@ -1381,9 +1381,11 @@ function buildSlotList(bk){
 }
 
 async function assignSlot(orderId, date, slot, sitter){
+  // 用字串 id 避免 bigint 精度問題
+  const strId=String(orderId);
   const numId=parseInt(orderId)||orderId;
-  const bk=(_bCache||[]).find(function(x){return x.id===numId||x.id===orderId;});
-  if(!bk){alert('找不到訂單 id='+orderId);return;}
+  const bk=(_bCache||[]).find(function(x){return String(x.id)===strId;});
+  if(!bk){alert('找不到訂單 id='+strId);return;}
 
   const raw=bk.assignedTo||'';
   let assigns=[];
@@ -1392,7 +1394,12 @@ async function assignSlot(orderId, date, slot, sitter){
       const parsed=JSON.parse(raw);
       if(Array.isArray(parsed)&&parsed.length){
         if(parsed[0].slots!==undefined){
-          parsed.forEach(function(d){(d.slots||[]).forEach(function(s){assigns.push({date:d.date,slot:s,sitter:'',transport:0});});});
+          // 格式1 → 展開為格式2
+          parsed.forEach(function(d){
+            (d.slots||[]).forEach(function(s){
+              assigns.push({date:d.date,slot:s,sitter:'',transport:0});
+            });
+          });
         } else {
           assigns=parsed;
         }
@@ -1409,22 +1416,42 @@ async function assignSlot(orderId, date, slot, sitter){
   }
 
   var newJson=JSON.stringify(assigns);
+  // bigint 欄位必須傳數字，不能傳字串
+  // 用 select 先確認找得到這筆訂單
+  var findRes=await _supa.from('orders').select('id,assigned_to').eq('id',numId).limit(1);
+  if(findRes.error||!findRes.data||!findRes.data.length){
+    alert('❌ 找不到訂單\nid='+numId+'\nerror='+(findRes.error?findRes.error.message:'無資料'));
+    return;
+  }
   var res=await _supa.from('orders').update({assigned_to:newJson}).eq('id',numId);
   if(res.error){alert('❌ 儲存失敗：'+res.error.message);return;}
 
-  // 立即驗證：重新從 DB 讀取確認有儲存
-  var check=await _supa.from('orders').select('assigned_to').eq('id',numId).limit(1);
-  var actualSaved=(check.data&&check.data[0])?check.data[0].assigned_to:'(讀取失敗)';
-  if(!actualSaved||actualSaved!==newJson){
-    alert('⚠️ 警告：DB 儲存值與預期不符！\n\n預期：'+newJson.substring(0,100)+'\n\n實際：'+String(actualSaved).substring(0,100));
-  }
+  // 等 100ms 讓 Supabase 完成寫入，再讀回驗證
+  await new Promise(function(r){setTimeout(r,100);});
+  var verify=await _supa.from('orders').select('assigned_to').eq('id',numId).limit(1);
+  var dbVal=(verify.data&&verify.data[0])?verify.data[0].assigned_to:'';
+  // 用 DB 實際值更新 cache
+  bk.assignedTo=dbVal||newJson;
+  var assigns2=[];
+  try{
+    var p2=JSON.parse(bk.assignedTo);
+    if(Array.isArray(p2)) assigns2=p2;
+  }catch(e){assigns2=assigns;}
 
-  bk.assignedTo=actualSaved||newJson;
-
-  assigns.forEach(function(a){
-    var sel=document.querySelector('[data-slot-id="'+numId+'-'+a.date+'-'+a.slot+'"]');
-    if(sel){sel.value=a.sitter||'';sel.style.borderColor=a.sitter?'#06C755':'var(--pk3)';sel.style.background=a.sitter?'#F0FFF4':'#fff';}
+  // 更新頁面 select
+  var displayAssigns=assigns2.length?assigns2:assigns;
+  displayAssigns.forEach(function(a){
+    var sel=document.querySelector('[data-slot-id="'+strId+'-'+a.date+'-'+a.slot+'"]');
+    if(!sel) sel=document.querySelector('[data-slot-id="'+numId+'-'+a.date+'-'+a.slot+'"]');
+    if(sel){
+      sel.value=a.sitter||'';
+      sel.style.borderColor=a.sitter?'#06C755':'var(--pk3)';
+      sel.style.background=a.sitter?'#F0FFF4':'#fff';
+    }
   });
+  // 同步更新 _bCache 讓下次 renderOrders 用正確資料
+  var cacheEntry=(_bCache||[]).find(function(x){return String(x.id)===strId;});
+  if(cacheEntry) cacheEntry.assignedTo=bk.assignedTo;
 }
 
 async function setSlotTransport(orderId, sitter, amount){

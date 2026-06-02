@@ -1265,7 +1265,7 @@ function buildOrderCard(bk, sCls, ownerPws){
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">'
           +'<span style="font-size:.75rem;font-weight:700;min-width:64px;">'+sl.label+'</span>'
           +'<select style="padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--t);background:#fff;outline:none;"'
-          +' data-slot-id="'+bk.id+'-'+date+'-'+sl.slot+'"'           +' onchange="assignSlot('+bk.id+',\"'+date+'\",\"'+sl.slot+'\",this.value)">'
+          +' data-slot-id="'+bk.id+'-'+date+'-'+sl.slot+'"'           +' onchange="assignSlot('+bk.id+',\''+date+'\',\''+sl.slot+'\',this.value)">'
           +'<option value="">— 選擇 —</option>'+opts+'</select>'
           +(cur?'<span style="font-size:.72rem;font-weight:800;color:var(--pk);">'+cur+'</span>':'')
           +'</div>';

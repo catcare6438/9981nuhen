@@ -1381,77 +1381,76 @@ function buildSlotList(bk){
 }
 
 async function assignSlot(orderId, date, slot, sitter){
-  // 用字串 id 避免 bigint 精度問題
-  const strId=String(orderId);
-  const numId=parseInt(orderId)||orderId;
-  const bk=(_bCache||[]).find(function(x){return String(x.id)===strId;});
-  if(!bk){alert('找不到訂單 id='+strId);return;}
+  const numId = parseInt(orderId) || orderId;
 
-  const raw=bk.assignedTo||'';
-  let assigns=[];
+  // 1. 直接從 Supabase 讀取最新資料（不用 cache）
+  var freshRes = await _supa.from('orders').select('id,assigned_to').eq('id', numId).limit(1);
+  if(freshRes.error || !freshRes.data || !freshRes.data.length){
+    alert('找不到訂單 id=' + numId + '\nerr=' + (freshRes.error ? freshRes.error.message : '無資料'));
+    return;
+  }
+  var freshRow = freshRes.data[0];
+  var raw = freshRow.assigned_to || '';
+
+  // 2. 展開時段
+  var assigns = [];
   if(raw){
     try{
-      const parsed=JSON.parse(raw);
-      if(Array.isArray(parsed)&&parsed.length){
-        if(parsed[0].slots!==undefined){
-          // 格式1 → 展開為格式2
+      var parsed = JSON.parse(raw);
+      if(Array.isArray(parsed) && parsed.length){
+        if(parsed[0].slots !== undefined){
           parsed.forEach(function(d){
             (d.slots||[]).forEach(function(s){
-              assigns.push({date:d.date,slot:s,sitter:'',transport:0});
+              assigns.push({date:d.date, slot:s, sitter:'', transport:0});
             });
           });
         } else {
-          assigns=parsed;
+          assigns = parsed;
         }
       }
     }catch(e){}
   }
 
-  var ai=assigns.findIndex(function(x){return x.date===date&&x.slot===slot;});
+  // 3. 設定保母
+  var ai = assigns.findIndex(function(x){ return x.date===date && x.slot===slot; });
   if(sitter){
-    if(ai>=0) assigns[ai].sitter=sitter;
-    else assigns.push({date:date,slot:slot,sitter:sitter,transport:0});
+    if(ai >= 0) assigns[ai].sitter = sitter;
+    else assigns.push({date:date, slot:slot, sitter:sitter, transport:0});
   } else {
-    if(ai>=0) assigns[ai].sitter='';
+    if(ai >= 0) assigns[ai].sitter = '';
   }
 
-  var newJson=JSON.stringify(assigns);
-  // bigint 欄位必須傳數字，不能傳字串
-  // 用 select 先確認找得到這筆訂單
-  var findRes=await _supa.from('orders').select('id,assigned_to').eq('id',numId).limit(1);
-  if(findRes.error||!findRes.data||!findRes.data.length){
-    alert('❌ 找不到訂單\nid='+numId+'\nerror='+(findRes.error?findRes.error.message:'無資料'));
+  // 4. 寫入 Supabase
+  var newJson = JSON.stringify(assigns);
+  var upRes = await _supa.from('orders').update({assigned_to: newJson}).eq('id', numId);
+  if(upRes.error){
+    alert('update 失敗: ' + upRes.error.message);
     return;
   }
-  var res=await _supa.from('orders').update({assigned_to:newJson}).eq('id',numId);
-  if(res.error){alert('❌ 儲存失敗：'+res.error.message);return;}
 
-  // 等 100ms 讓 Supabase 完成寫入，再讀回驗證
-  await new Promise(function(r){setTimeout(r,100);});
-  var verify=await _supa.from('orders').select('assigned_to').eq('id',numId).limit(1);
-  var dbVal=(verify.data&&verify.data[0])?verify.data[0].assigned_to:'';
-  // 用 DB 實際值更新 cache
-  bk.assignedTo=dbVal||newJson;
-  var assigns2=[];
-  try{
-    var p2=JSON.parse(bk.assignedTo);
-    if(Array.isArray(p2)) assigns2=p2;
-  }catch(e){assigns2=assigns;}
+  // 5. 等 200ms 再讀回確認
+  await new Promise(function(r){setTimeout(r,200);});
+  var checkRes = await _supa.from('orders').select('assigned_to').eq('id', numId).limit(1);
+  var saved = checkRes.data && checkRes.data[0] ? checkRes.data[0].assigned_to : '';
+  var ok = saved && saved.includes(sitter || '');
 
-  // 更新頁面 select
-  var displayAssigns=assigns2.length?assigns2:assigns;
-  displayAssigns.forEach(function(a){
-    var sel=document.querySelector('[data-slot-id="'+strId+'-'+a.date+'-'+a.slot+'"]');
-    if(!sel) sel=document.querySelector('[data-slot-id="'+numId+'-'+a.date+'-'+a.slot+'"]');
+  if(!ok && sitter){
+    alert('❌ update 沒有寫入！\n\n送出值: ' + newJson.substring(0,80) + '\n\nDB實際: ' + String(saved).substring(0,80));
+    return;
+  }
+
+  // 6. 更新 cache 和 UI
+  var bk = (_bCache||[]).find(function(x){ return String(x.id) === String(numId); });
+  if(bk) bk.assignedTo = saved || newJson;
+
+  assigns.forEach(function(a){
+    var sel = document.querySelector('[data-slot-id="' + numId + '-' + a.date + '-' + a.slot + '"]');
     if(sel){
-      sel.value=a.sitter||'';
-      sel.style.borderColor=a.sitter?'#06C755':'var(--pk3)';
-      sel.style.background=a.sitter?'#F0FFF4':'#fff';
+      sel.value = a.sitter || '';
+      sel.style.borderColor = a.sitter ? '#06C755' : 'var(--pk3)';
+      sel.style.background = a.sitter ? '#F0FFF4' : '#fff';
     }
   });
-  // 同步更新 _bCache 讓下次 renderOrders 用正確資料
-  var cacheEntry=(_bCache||[]).find(function(x){return String(x.id)===strId;});
-  if(cacheEntry) cacheEntry.assignedTo=bk.assignedTo;
 }
 
 async function setSlotTransport(orderId, sitter, amount){

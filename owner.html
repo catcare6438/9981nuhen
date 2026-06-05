@@ -616,12 +616,12 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
       <div><div class="info-label">狀態</div><div class="info-val"><span class="badge ${bk.status==='完成'?'b-ok':'b-wait'}">${bk.status||'待確認'}</span></div></div>
     </div>`;
 
-  // 好評區：已有好評 → 顯示好評；沒有 → 顯示填寫表單
+  // 好評區：只在已完成且有好評時顯示（填寫好評改由後台管理）
   const reviewSection=myReview
     ? buildReviewDoneHTML(myReview,bk.id)
-    : buildReviewFormHTML(bk,orderIdx);
+    : '';
 
-  return `
+  return 
     <div class="order-header" onclick="toggleOrder('${bk.id}')">
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="order-num">📋 ${orderNum}</span>
@@ -633,7 +633,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
     <div class="order-body ${openClass}" id="body-${bk.id}">
       ${infoHTML}
       <div class="section-sub-title">💰 費用明細 &amp; 記錄</div>
-      <div id="detail-${bk.id}">\${detailHTML}</div>
+      ${buildOwnerDetailHTML(bk)}
       <div class="section-sub-title">🐾 保母照護回報</div>
       <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
       ${reviewSection}

@@ -837,6 +837,8 @@ let videoDataURL=null;
 let videoName='';
 let videoDuration=0;
 let petNames=[];
+let _myCases=[];
+let petProfilePhotos={};  // bookId_petIndex -> base64 photo
 let activePetIdx=0;
 
 
@@ -902,6 +904,7 @@ async function renderMain(){
     return false;
   });
   console.log('myCases:', myCases.length);
+  _myCases=myCases;
   const done=myCases.filter(b=>b.status==='已完成');
   const reps=(await getReps()).filter(r=>r.sitter===ME.name);
   const sessions=done.reduce((s,b)=>s+(b.dateSlotData?.length?b.dateSlotData.reduce((ss,d)=>ss+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1))),0);
@@ -1202,30 +1205,76 @@ function buildReportText(r){
 }
 
 // ── OPEN REPORT ──
-function openReport(bookId,petNameStr){
+function openReport(bookId,petNameStr,bkId){
   currentBookId=bookId;
   videoDataURL=null;videoName='';videoDuration=0;petData={};
   document.getElementById('rModTitle').textContent=`照護回報 — ${petNameStr}`;
   document.getElementById('rDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('rTimeStart').value='';
   document.getElementById('rTimeEnd').value='';
-  // reset all checkboxes
   document.querySelectorAll('#reportMod input[type=checkbox]').forEach(c=>c.checked=false);
   document.querySelectorAll('#reportMod .etag').forEach(e=>e.classList.remove('on'));
   document.getElementById('rDiary').value='';
-  // build pet tabs
+  // Load pet profile photos from cache or localStorage
+  const bk=(_myCases||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
   petNames=petNameStr.trim().split(/[、,，\s]+/).map(s=>s.trim()).filter(Boolean);
   if(!petNames.length)petNames=['寵物'];
-  petNames.forEach((_,i)=>{petData[i]={emotions:[]};});
+  petNames.forEach(function(_,i){
+    petData[i]={emotions:[]};
+    // Load saved profile photo
+    const key='petphoto_'+bookId+'_'+i;
+    const saved=localStorage.getItem(key);
+    if(saved) petProfilePhotos[key]=saved;
+  });
   buildPetTabs(0);
   initPhotoSections();
   document.getElementById('reportMod').classList.add('show');
 }
 
+
+function uploadPetPhoto(idx, input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const dataUrl=e.target.result;
+    // Compress to ~80px circle
+    const img=new Image();
+    img.onload=function(){
+      const canvas=document.createElement('canvas');
+      const size=120;
+      canvas.width=canvas.height=size;
+      const ctx=canvas.getContext('2d');
+      // Draw circle crop
+      ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();
+      const scale=Math.min(size/img.width,size/img.height);
+      const w=img.width*scale,h=img.height*scale;
+      ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);
+      const compressed=canvas.toDataURL('image/jpeg',0.8);
+      // Save to localStorage and memory
+      const key='petphoto_'+currentBookId+'_'+idx;
+      localStorage.setItem(key,compressed);
+      petProfilePhotos[key]=compressed;
+      // Update avatar display
+      const avatar=document.getElementById('pet-avatar-'+idx);
+      if(avatar) avatar.innerHTML='<img src="'+compressed+'" style="width:100%;height:100%;object-fit:cover;">';
+      // Update tab
+      buildPetTabs(activePetIdx);
+    };
+    img.src=dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
 function buildPetTabs(activeIdx){
   activePetIdx=activeIdx;
-  document.getElementById('petTabs').innerHTML=petNames.map((nm,i)=>
-    `<div class="pt${i===activeIdx?' on':''}" onclick="switchPetTab(${i})">${nm}</div>`).join('');
+  document.getElementById('petTabs').innerHTML=petNames.map(function(nm,i){
+    var key='petphoto_'+currentBookId+'_'+i;
+    var photo=petProfilePhotos[key]||'';
+    var avatar=photo
+      ?('<img src="'+photo+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--pk3);">')
+      :'<span style="font-size:1.1rem;">'+(nm.includes('狗')||nm.includes('dog')?'🐶':'🐱')+'</span>';
+    return '<div class="pt'+(i===activeIdx?' on':'')+'" onclick="switchPetTab('+i+')" style="display:flex;align-items:center;gap:6px;">'+avatar+nm+'</div>';
+  }).join('');
   renderPetForm(activeIdx);
 }
 function switchPetTab(idx){
@@ -1236,9 +1285,20 @@ function switchPetTab(idx){
 function renderPetForm(idx){
   const d=petData[idx]||{emotions:[]};
   const nm=petNames[idx];
+  var _pkey='petphoto_'+currentBookId+'_'+idx;
+  var _pphoto=petProfilePhotos[_pkey]||'';
   document.getElementById('petArea').innerHTML=`
   <div style="background:#fff;border-radius:12px;padding:14px;border:1.5px solid var(--pk3);">
-    <div style="font-weight:900;color:var(--pk);margin-bottom:12px;font-family:'Nunito',sans-serif;">🐾 ${nm}</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+      <div id="pet-avatar-${idx}" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2.5px solid var(--pk3);background:var(--pk4);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" onclick="document.getElementById('pet-photo-input-${idx}').click()">
+        ${_pphoto?`<img src="${_pphoto}" style="width:100%;height:100%;object-fit:cover;">`:'<span style="font-size:1.6rem;">📷</span>'}
+      </div>
+      <div>
+        <div style="font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;">${nm}</div>
+        <div style="font-size:.72rem;color:var(--tl);">點擊圓形更換大頭照</div>
+      </div>
+      <input type="file" id="pet-photo-input-${idx}" accept="image/*" style="display:none;" onchange="uploadPetPhoto(${idx},this)">
+    </div>
     <div class="fgrid">
       <div class="field"><label>整體精神狀態</label>
         <select id="ps-spirit"><option ${(!d.spirit||d.spirit==='精神良好')?'selected':''}>精神良好</option><option ${d.spirit==='非常活躍'?'selected':''}>非常活躍</option><option ${d.spirit==='略顯疲憊'?'selected':''}>略顯疲憊</option><option ${d.spirit==='精神不振'?'selected':''}>精神不振</option><option ${d.spirit==='行動遲緩'?'selected':''}>行動遲緩</option></select></div>

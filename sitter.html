@@ -1221,10 +1221,13 @@ function openReport(bookId,petNameStr,bkId){
   if(!petNames.length)petNames=['寵物'];
   petNames.forEach(function(_,i){
     petData[i]={emotions:[]};
-    // Load saved profile photo
     const key='petphoto_'+bookId+'_'+i;
     const saved=localStorage.getItem(key);
     if(saved) petProfilePhotos[key]=saved;
+  });
+  // Load from Supabase (async, will update UI when done)
+  loadPetPhotosFromSupabase(bookId).then(function(){
+    buildPetTabs(activePetIdx);
   });
   buildPetTabs(0);
   initPhotoSections();
@@ -1238,32 +1241,81 @@ function uploadPetPhoto(idx, input){
   const reader=new FileReader();
   reader.onload=function(e){
     const dataUrl=e.target.result;
-    // Compress to ~80px circle
     const img=new Image();
     img.onload=function(){
       const canvas=document.createElement('canvas');
-      const size=120;
+      const size=240;
       canvas.width=canvas.height=size;
       const ctx=canvas.getContext('2d');
-      // Draw circle crop
       ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();
       const scale=Math.min(size/img.width,size/img.height);
       const w=img.width*scale,h=img.height*scale;
       ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);
-      const compressed=canvas.toDataURL('image/jpeg',0.8);
-      // Save to localStorage and memory
+      const compressed=canvas.toDataURL('image/jpeg',0.75);
       const key='petphoto_'+currentBookId+'_'+idx;
-      localStorage.setItem(key,compressed);
+      try{localStorage.setItem(key,compressed);}catch(e){}
       petProfilePhotos[key]=compressed;
-      // Update avatar display
+      savePetPhotoToSupabase(currentBookId,idx,compressed);
       const avatar=document.getElementById('pet-avatar-'+idx);
       if(avatar) avatar.innerHTML='<img src="'+compressed+'" style="width:100%;height:100%;object-fit:cover;">';
-      // Update tab
       buildPetTabs(activePetIdx);
     };
     img.src=dataUrl;
   };
   reader.readAsDataURL(file);
+}
+
+async function savePetPhotoToSupabase(bookId,petIdx,dataUrl){
+  try{
+    const res=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
+    if(res.error||!res.data||!res.data[0])return;
+    const pd=res.data[0].pet_data||[];
+    if(!pd[petIdx])pd[petIdx]={};
+    pd[petIdx].photo=dataUrl;
+    await _supa.from('orders').update({pet_data:pd}).eq('id',parseInt(bookId));
+  }catch(e){console.error('savePetPhoto:',e);}
+}
+
+async function loadPetPhotosFromSupabase(bookId){
+  try{
+    const res=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
+    if(res.error||!res.data||!res.data[0])return;
+    const pd=res.data[0].pet_data||[];
+    pd.forEach(function(p,i){
+      if(p&&p.photo){
+        const key='petphoto_'+bookId+'_'+i;
+        petProfilePhotos[key]=p.photo;
+        try{localStorage.setItem(key,p.photo);}catch(e){}
+      }
+    });
+  }catch(e){console.error('loadPetPhotos:',e);}
+}
+
+async function savePetPhotoToSupabase(bookId, petIdx, dataUrl){
+  try{
+    // Store in orders table as part of pet_data
+    const{data,error}=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
+    if(error||!data||!data[0])return;
+    const petData=data[0].pet_data||[];
+    if(!petData[petIdx])petData[petIdx]={};
+    petData[petIdx].photo=dataUrl;
+    await _supa.from('orders').update({pet_data:petData}).eq('id',parseInt(bookId));
+  }catch(e){console.error('savePetPhoto:',e);}
+}
+
+async function loadPetPhotosFromSupabase(bookId){
+  try{
+    const{data,error}=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
+    if(error||!data||!data[0])return;
+    const petData=data[0].pet_data||[];
+    petData.forEach(function(p,i){
+      if(p&&p.photo){
+        const key='petphoto_'+bookId+'_'+i;
+        petProfilePhotos[key]=p.photo;
+        try{localStorage.setItem(key,p.photo);}catch(e){}
+      }
+    });
+  }catch(e){console.error('loadPetPhotos:',e);}
 }
 function buildPetTabs(activeIdx){
   activePetIdx=activeIdx;
@@ -1271,7 +1323,7 @@ function buildPetTabs(activeIdx){
     var key='petphoto_'+currentBookId+'_'+i;
     var photo=petProfilePhotos[key]||'';
     var avatar=photo
-      ?('<img src="'+photo+'" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:1.5px solid var(--pk3);">')
+      ?('<img src="'+photo+'" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--pk3);">')
       :'<span style="font-size:1.1rem;">'+(nm.includes('狗')||nm.includes('dog')?'🐶':'🐱')+'</span>';
     return '<div class="pt'+(i===activeIdx?' on':'')+'" onclick="switchPetTab('+i+')" style="display:flex;align-items:center;gap:6px;">'+avatar+nm+'</div>';
   }).join('');
@@ -1290,8 +1342,8 @@ function renderPetForm(idx){
   document.getElementById('petArea').innerHTML=`
   <div style="background:#fff;border-radius:12px;padding:14px;border:1.5px solid var(--pk3);">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-      <div id="pet-avatar-${idx}" style="width:56px;height:56px;border-radius:50%;overflow:hidden;border:2.5px solid var(--pk3);background:var(--pk4);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;" onclick="document.getElementById('pet-photo-input-${idx}').click()">
-        ${_pphoto?`<img src="${_pphoto}" style="width:100%;height:100%;object-fit:cover;">`:'<span style="font-size:1.6rem;">📷</span>'}
+      <div id="pet-avatar-${idx}" style="width:100px;height:100px;border-radius:50%;overflow:hidden;border:3px solid var(--pk3);background:var(--pk4);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;box-shadow:0 4px 12px rgba(255,100,140,.15);" onclick="document.getElementById('pet-photo-input-${idx}').click()">
+        ${_pphoto?`<img src="${_pphoto}" style="width:100%;height:100%;object-fit:cover;">`:'<span style="font-size:2.2rem;">📷</span>'}
       </div>
       <div>
         <div style="font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;">${nm}</div>

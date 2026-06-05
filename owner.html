@@ -430,7 +430,12 @@ function dbRowToOrder(r){
     isHoliday:r.is_holiday||false,
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
-    status:r.status||'待確認',assignedTo:r.assigned_to||''
+    status:r.status||'待確認',assignedTo:r.assigned_to||'',
+    manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
+    payMethod:r.pay_method||'',payNote:r.pay_note||''
   };
 }
 </script>
@@ -627,6 +632,8 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
     </div>
     <div class="order-body ${openClass}" id="body-${bk.id}">
       ${infoHTML}
+      <div class="section-sub-title">💰 費用明細 &amp; 記錄</div>
+      <div id="detail-${bk.id}">\${detailHTML}</div>
       <div class="section-sub-title">🐾 保母照護回報</div>
       <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
       ${reviewSection}
@@ -1015,6 +1022,134 @@ function renderReport(r){
 }
 
 
+
+// ── 費用計算 ──
+const OWNER_SVC_PRICE={companion:300,walk:200,both:500};
+const OWNER_HOL_PRICE={companion:450,walk:350,both:750};
+const OWNER_CNY_PRICE={companion:600,walk:500,both:1000};
+const OWNER_CNY_DATES=new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);
+const OWNER_HOL_DATES=new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-12-25","2026-12-26","2026-12-27"]);
+const OWNER_ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+
+function ownerCalcDetail(bk){
+  // Parse slot stats
+  var raw=bk.assignedTo||'';
+  var slots=[];
+  if(raw){try{
+    var p=JSON.parse(raw);
+    if(Array.isArray(p)&&p.length){
+      if(p[0].slot!==undefined) slots=p;
+      else if(p[0].slots!==undefined) p.forEach(function(d){(d.slots||[]).forEach(function(s){slots.push({date:d.date,slot:s});});});
+    }
+  }catch(e){}}
+  var total=slots.length||(bk.tpd||1)*Math.max(1,Math.round((new Date(bk.endDate+'T00:00:00')-new Date(bk.startDate+'T00:00:00'))/86400000)+1);
+  var cny=0,hol=0,norm=0;
+  slots.forEach(function(s){
+    if(OWNER_CNY_DATES.has(s.date)) cny++;
+    else if(OWNER_HOL_DATES.has(s.date)) hol++;
+    else norm++;
+  });
+  if(!slots.length){norm=total;}
+  var rows=[];
+  var SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+  (bk.services||[]).forEach(function(k){
+    var sn=SN[k]||k;
+    if(norm>0) rows.push({label:sn+'（平日）',price:OWNER_SVC_PRICE[k]||0,times:norm,sub:(OWNER_SVC_PRICE[k]||0)*norm});
+    if(hol>0)  rows.push({label:sn+'（連假🎊）',price:OWNER_HOL_PRICE[k]||0,times:hol,sub:(OWNER_HOL_PRICE[k]||0)*hol});
+    if(cny>0)  rows.push({label:sn+'（春節🧧）',price:OWNER_CNY_PRICE[k]||0,times:cny,sub:(OWNER_CNY_PRICE[k]||0)*cny});
+  });
+  (bk.addons||[]).forEach(function(a){
+    var m=a.match(/^(.+?)×(\d+)/);
+    var name=m?m[1]:a; var qty=m?parseInt(m[2]):1;
+    var p=(OWNER_ADDON_P[name]||50)*qty;
+    rows.push({label:a,price:p,times:total,sub:p*total});
+  });
+  var tp=(bk.catCount||0)+(bk.dogCount||0);
+  if(tp>3){var eu=50*(tp-3);rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});}
+  if(bk.urgent>0) rows.push({label:'急件加收',price:bk.urgent,times:1,sub:bk.urgent});
+  if(bk.transport>0) rows.push({label:'車馬費',price:bk.transport,times:total,sub:bk.transport*total});
+  var adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
+  var grandTotal=rows.reduce(function(s,r){return s+r.sub;},0)+adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
+  return {rows:rows,adjs:adjs,grandTotal:grandTotal,total:total};
+}
+
+function buildOwnerDetailHTML(bk){
+  var d=ownerCalcDetail(bk);
+  var rowsHTML=d.rows.map(function(r){
+    return '<tr style="border-bottom:1px solid #FFE8F0;">'
+      +'<td style="padding:8px 10px;">'+r.label+'</td>'
+      +'<td style="padding:8px 10px;color:var(--pk);">$'+r.price+'</td>'
+      +'<td style="padding:8px 10px;color:var(--tl);">× '+r.times+'次</td>'
+      +'<td style="padding:8px 10px;font-weight:800;text-align:right;">$'+r.sub.toLocaleString()+'</td></tr>';
+  }).join('');
+  d.adjs.forEach(function(a){
+    var amt=parseInt(a.amount)||0;
+    if(amt!==0){
+      var col=amt<0?'#06C755':'#E05252';
+      var sign=amt>0?'+':'';
+      rowsHTML+='<tr style="border-bottom:1px solid #FFE8F0;">'
+        +'<td style="padding:8px 10px;">'+(amt<0?'🎫':'➕')+' '+(a.reason||'調整')+'</td>'
+        +'<td colspan="2"></td>'
+        +'<td style="padding:8px 10px;text-align:right;font-weight:900;color:'+col+';">'+sign+amt+'</td></tr>';
+    }
+  });
+
+  // Payment status
+  var paidStatus,paidColor,paidIcon;
+  if(bk.fullPaid){paidStatus='款項全收';paidColor='#06C755';paidIcon='✅';}
+  else if(bk.depositPaid){
+    var remain=Math.max(0,d.grandTotal-(bk.depositAmount||0));
+    paidStatus='已收訂金 $'+(bk.depositAmount||0)+'，剩餘 $'+remain;
+    paidColor='#FF9500';paidIcon='💰';
+  } else {paidStatus='待收款';paidColor='#E05252';paidIcon='⏳';}
+
+  var payMethodStr=bk.payMethod?('　收款方式：'+bk.payMethod):'';
+  var payNoteStr=bk.payNote?('<div style="margin-top:4px;font-size:.76rem;color:var(--tl);">備註：'+bk.payNote+'</div>'):'';
+
+  var sections=[
+    // 費用明細
+    '<div style="margin-top:14px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">💰 費用明細</div>',
+    '<div style="overflow-x:auto;">',
+    '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">',
+    '<thead><tr style="background:#FFF5F8;">',
+    '<th style="padding:8px 10px;text-align:left;color:var(--pk);">項目</th>',
+    '<th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>',
+    '<th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>',
+    '<th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>',
+    '</tr></thead>',
+    '<tbody>'+rowsHTML+'</tbody>',
+    '<tfoot><tr style="background:linear-gradient(135deg,#FFF0F5,#FFFAFB);border-top:2px solid var(--pk3);">',
+    '<td colspan="3" style="padding:10px;font-weight:900;color:var(--pk);">💕 總計</td>',
+    '<td style="padding:10px;font-weight:900;color:var(--pk);font-size:1.05rem;text-align:right;">$'+d.grandTotal.toLocaleString()+'</td>',
+    '</tr></tfoot></table></div></div>',
+
+    // 款項狀態
+    '<div style="margin-top:10px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">💳 款項狀態</div>',
+    '<div style="padding:12px 14px;">',
+    '<div style="display:flex;align-items:center;gap:8px;">',
+    '<span style="font-size:1.2rem;">'+paidIcon+'</span>',
+    '<span style="font-weight:800;color:'+paidColor+';font-size:.9rem;">'+paidStatus+'</span>',
+    '</div>',
+    payMethodStr?('<div style="font-size:.78rem;color:var(--tl);margin-top:4px;">'+payMethodStr+'</div>'):'',
+    payNoteStr,
+    '</div></div>',
+
+    // 家訪資訊
+    (bk.visitDate||bk.visitNotes||bk.caution)?[
+      '<div style="margin-top:10px;background:#fff;border:1.5px solid #7DD3FC;border-radius:14px;overflow:hidden;">',
+      '<div style="padding:10px 14px;background:#F0F9FF;font-size:.8rem;font-weight:900;color:#0369A1;">🏠 家訪記錄</div>',
+      '<div style="padding:12px 14px;font-size:.84rem;line-height:1.8;">',
+      bk.visitDate?('<div>📅 家訪日期：<strong>'+bk.visitDate+'</strong></div>'):'',
+      bk.visitNotes?('<div>📝 飼主備註：'+bk.visitNotes+'</div>'):'',
+      bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution+'</div>'):'',
+      '</div></div>'
+    ].join(''):'',
+  ];
+
+  return sections.join('');
+}
 async function initReferralCode(){
   if(!currentBookId)return;
   try{

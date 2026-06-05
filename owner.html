@@ -533,30 +533,36 @@ async function ownerLogin(){
   document.getElementById('ownerErr').style.display='none';
   const loginBtn=document.querySelector('#loginScreen .l-btn');
   if(loginBtn){loginBtn.textContent='⏳ 驗證中...';loginBtn.disabled=true;}
+
   let pws={};
-  try{pws=await dbGetOwnerPws();}catch(e){console.error(e);}
+  try{pws=await dbGetOwnerPws();}catch(e){
+    alert('讀取密碼失敗：'+e.message);
+    if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
+    return;
+  }
   if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
 
-  // pws = {bookId: pw, ...}，找出符合密碼的 bookId
-  const matchedId=Object.keys(pws).find(id=>String(pws[id])===String(pw));
+  const matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
   if(!matchedId){document.getElementById('ownerErr').style.display='block';return;}
 
-  // 取得該 booking 的飼主電話，找出同一飼主所有訂單
-  const allBooks=await getB();
-  const firstBook=allBooks.find(x=>x.id===parseInt(matchedId));
-  if(!firstBook){document.getElementById('ownerErr').style.display='block';return;}
+  let allBooks=[];
+  try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}
+
+  const firstBook=allBooks.find(function(x){return x.id===parseInt(matchedId);});
+  if(!firstBook){alert('找不到訂單 id='+matchedId);document.getElementById('ownerErr').style.display='block';return;}
 
   currentOwnerPhone=firstBook.ownerPhone;
-  // 找同一電話的所有訂單，依時間排序
-  const myBooks=allBooks
-    .filter(x=>x.ownerPhone&&x.ownerPhone===currentOwnerPhone)
-    .sort((a,b)=>a.id-b.id);
+  const myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return a.id-b.id;});
 
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';
-  document.getElementById('ownerDisplayName').textContent=`${firstBook.ownerName||''}家的毛孩`;
+  document.getElementById('ownerDisplayName').textContent=(firstBook.ownerName||'')+'家的毛孩';
 
-  await renderAllOrders(myBooks);
+  try{
+    await renderAllOrders(myBooks);
+  }catch(e){
+    alert('載入失敗：'+e.message+'\n\n'+e.stack.split('\n').slice(0,3).join('\n'));
+  }
 }
 
 function ownerLogout(){
@@ -591,7 +597,12 @@ async function renderAllOrders(books){
     // 找此單的 review
     const myReview=allReviews.find(r=>r.book_id===bk.id||r.bookId===bk.id);
 
-    el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
+    try{
+      el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
+    }catch(err){
+      el.innerHTML='<div style="padding:14px;color:red;">載入錯誤：'+err.message+'</div>';
+      console.error('buildOrderHTML error for order',bk.id,err);
+    }
     container.appendChild(el);
 
     // 載入回報（非同步）
@@ -621,7 +632,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
     ? buildReviewDoneHTML(myReview,bk.id)
     : '';
 
-  return 
+  return `
     <div class="order-header" onclick="toggleOrder('${bk.id}')">
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="order-num">📋 ${orderNum}</span>

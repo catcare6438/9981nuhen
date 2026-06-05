@@ -2339,96 +2339,102 @@ function toggleDepositInput(){
     document.getElementById('e-dep-paid').checked=false;
 }
 async function saveEditOrder(){
-  const id=_editingBookId;
-  if(!id){alert('無編輯中訂單');return;}
-  if(!_bCache||!_bCache.length) await getB();
-  const bk=(_bCache||[]).find(x=>x.id===parseInt(id)||x.id===id);
-  if(!bk){alert('找不到訂單 id='+id+' cache:'+(_bCache||[]).length);return;}
-
-  // Collect pet data fresh from DOM
-  const petRows=document.getElementById('e-petRows').querySelectorAll('.pet-edit-row');
-  const petData=[];
-  petRows.forEach((row,i)=>{
-    const pet={};
-    row.querySelectorAll('[data-field]').forEach(inp=>{ pet[inp.dataset.field]=inp.value; });
-    if(pet.name||pet.type) petData.push(pet);
-  });
-  const catCount=petData.filter(p=>p.type==='cat').length;
-  const dogCount=petData.filter(p=>p.type==='dog').length;
-
-  // Collect services
-  const services=[...document.querySelectorAll('input[name="e-svc"]:checked')].map(x=>x.value);
-  const addons=[...document.querySelectorAll('input[name="e-addon"]:checked')].map(x=>x.value);
-
-  // Collect slots — only rebuild if dates changed, else keep existing assignedTo
-  const slotContainer=document.getElementById('e-slotsContainer');
-  const allSlotDates=[...new Set([...slotContainer.querySelectorAll('input[type=checkbox]')].map(cb=>cb.name.replace('eslot-','')))];
-  const newSlots=allSlotDates.map(date=>({
-    date,
-    slots:[...slotContainer.querySelectorAll('input[name="eslot-'+(date)+'"]:checked')].map(cb=>cb.value)
-  })).filter(d=>d.slots.length>0);
-  // Keep existing assigned_to (with sitter info) if slots didn't change
-  const existingAssigned=bk.assignedTo||'';
-  let preserveAssigned=false;
-  if(existingAssigned){
-    try{
-      const ex=JSON.parse(existingAssigned);
-      // If format2 (has sitter assignments), check if dates match
-      if(Array.isArray(ex)&&ex.length&&ex[0].slot!==undefined){
-        const exDates=new Set(ex.map(a=>a.date));
-        const newDates=new Set(newSlots.flatMap(d=>d.slots.map(()=>d.date)));
-        const same=[...newDates].every(d=>exDates.has(d))&&[...exDates].every(d=>newDates.has(d));
-        if(same) preserveAssigned=true;
-      }
-    }catch(e){}
-  }
-
-  const startDate=document.getElementById('e-startDate').value;
-  const endDate=document.getElementById('e-endDate').value;
-  const transport=parseInt(document.getElementById('e-transport').value)||0;
-  const note=document.getElementById('e-note').value;
-
-  const fields={
-    owner_name:document.getElementById('e-ownerName').value,
-    owner_phone:document.getElementById('e-ownerPhone').value,
-    owner_line:document.getElementById('e-ownerLine').value,
-    owner_addr:document.getElementById('e-ownerAddr').value,
-    pet_data:petData,
-    cat_count:catCount, dog_count:dogCount,
-    services,addons,transport,
-    start_date:startDate,end_date:endDate,
-    assigned_to:preserveAssigned?existingAssigned:JSON.stringify(newSlots),
-    pet_notes:note,
-    home_visit_date:document.getElementById('e-hv-date')?.value||'',
-    home_visit_note:document.getElementById('e-hv-note')?.value||'',
-    deposit_date:document.getElementById('e-dep-date')?.value||'',
-    deposit_amount:parseInt(document.getElementById('e-dep-amount')?.value)||0,
-    deposit_paid:document.getElementById('e-dep-paid')?.checked||false,
-    full_paid:document.getElementById('e-full-paid')?.checked||false,
-  };
-
-  const btn=document.querySelector('#editOrderMod .btn-pk');
-  if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}
-
   try{
+    const id=_editingBookId;
+    if(!id){alert('無編輯中訂單');return;}
+    if(!_bCache||!_bCache.length) await getB();
+    const bk=(_bCache||[]).find(function(x){return x.id===parseInt(id)||x.id===id;});
+    if(!bk){alert('找不到訂單 id='+id);return;}
+
+    // Check key elements
+    const nameEl=document.getElementById('e-ownerName');
+    const phoneEl=document.getElementById('e-ownerPhone');
+    const startEl=document.getElementById('e-startDate');
+    const endEl=document.getElementById('e-endDate');
+    const slotEl=document.getElementById('e-slotsContainer');
+    const petEl=document.getElementById('e-petRows');
+    if(!nameEl||!phoneEl||!startEl||!endEl){
+      alert('找不到編輯欄位，請關閉後重新點✏️編輯');return;
+    }
+
+    // Collect pet data
+    const petData=[];
+    if(petEl){
+      petEl.querySelectorAll('.pet-edit-row').forEach(function(row){
+        const pet={};
+        row.querySelectorAll('[data-field]').forEach(function(inp){pet[inp.dataset.field]=inp.value;});
+        if(pet.name||pet.type) petData.push(pet);
+      });
+    }
+    const catCount=petData.filter(function(p){return p.type==='cat';}).length;
+    const dogCount=petData.filter(function(p){return p.type==='dog';}).length;
+
+    const services=[...document.querySelectorAll('input[name="e-svc"]:checked')].map(function(x){return x.value;});
+    const addons=[...document.querySelectorAll('input[name="e-addon"]:checked')].map(function(x){return x.value;});
+
+    // Collect slots
+    let newSlots=[];
+    if(slotEl){
+      const allSlotDates=[...new Set([...slotEl.querySelectorAll('input[type=checkbox]')].map(function(cb){return cb.name.replace('eslot-','');}) )];
+      newSlots=allSlotDates.map(function(date){
+        return {date:date,slots:[...slotEl.querySelectorAll('input[name="eslot-'+date+'"]:checked')].map(function(cb){return cb.value;})};
+      }).filter(function(d){return d.slots.length>0;});
+    }
+
+    // Preserve sitter assignments if dates unchanged
+    const existingAssigned=bk.assignedTo||'';
+    let finalAssigned=JSON.stringify(newSlots);
+    if(existingAssigned){
+      try{
+        const ex=JSON.parse(existingAssigned);
+        if(Array.isArray(ex)&&ex.length&&ex[0].slot!==undefined){
+          const exDates=new Set(ex.map(function(a){return a.date;}));
+          const newDates=new Set(newSlots.flatMap(function(d){return d.slots.map(function(){return d.date;});}));
+          const same=[...newDates].every(function(d){return exDates.has(d);})||([...exDates].every(function(d){return newDates.has(d);}));
+          if(same) finalAssigned=existingAssigned;
+        }
+      }catch(e2){}
+    }
+
+    const startDate=startEl.value;
+    const endDate=endEl.value;
+    const transport=parseInt(document.getElementById('e-transport')?.value)||0;
+    const note=document.getElementById('e-note')?.value||'';
+
+    const fields={
+      owner_name:nameEl.value,
+      owner_phone:phoneEl.value,
+      owner_line:document.getElementById('e-ownerLine')?.value||'',
+      owner_addr:document.getElementById('e-ownerAddr')?.value||'',
+      pet_data:petData,
+      cat_count:catCount,dog_count:dogCount,
+      services:services,addons:addons,transport:transport,
+      start_date:startDate,end_date:endDate,
+      assigned_to:finalAssigned,
+      pet_notes:note,
+    };
+
+    const btn=document.querySelector('#editOrderMod .btn-pk');
+    if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}
+
     await dbUpdateOrder(id,fields);
-    // Update cache
+
     Object.assign(bk,{
       ownerName:fields.owner_name,ownerPhone:fields.owner_phone,
       ownerLine:fields.owner_line,ownerAddr:fields.owner_addr,
-      petData:fields.pet_data,catCount,dogCount,
-      services,addons,transport,
-      startDate,endDate,assignedTo:fields.assigned_to,
-      homeVisitDate:fields.home_visit_date,homeVisitNote:fields.home_visit_note,
-      depositDate:fields.deposit_date,depositAmount:fields.deposit_amount,
-      depositPaid:fields.deposit_paid,fullPaid:fields.full_paid,
+      petData:petData,catCount:catCount,dogCount:dogCount,
+      services:services,addons:addons,transport:transport,
+      startDate:startDate,endDate:endDate,assignedTo:finalAssigned,
       petNotes:note,
     });
+
     closeM('editOrderMod');
     await refreshAll();
+    if(btn){btn.textContent='💾 儲存變更';btn.disabled=false;}
+
   }catch(e){
-    alert('儲存失敗：'+e.message);
-  }finally{
+    alert('儲存失敗：'+e.message+'\n\n'+e.stack.split('\n').slice(0,3).join('\n'));
+    const btn=document.querySelector('#editOrderMod .btn-pk');
     if(btn){btn.textContent='💾 儲存變更';btn.disabled=false;}
   }
 }

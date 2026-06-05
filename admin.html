@@ -542,10 +542,10 @@ function dbRowToOrder(r){
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
     visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
-    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||"",
     homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
-    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||""
   };
 }
 </script>
@@ -1506,108 +1506,177 @@ function showPetDetail(bookId){
   document.getElementById('petDetailModal').classList.add('show');
 }
 
+
+function buildAdjHTML(pid,bk,adjs2){
+  var res=[
+    '<div style="margin-top:14px;padding:14px;background:var(--pk4);border-radius:12px;border:1.5px solid var(--pk3);">',
+    '<div style="font-size:.75rem;font-weight:800;color:var(--pk);margin-bottom:10px;">✏️ 手動調整項目（可新增多筆，負數為折扣）</div>',
+    '<div id="adjList-'+pid+'">'
+  ];
+  if(!adjs2.length){
+    res.push('<div style="font-size:.76rem;color:var(--tl);padding:6px 0;">（尚無調整項目）</div>');
+  } else {
+    adjs2.forEach(function(a,i){
+      var amt=parseInt(a.amount)||0;
+      var col=amt<0?'#06C755':'#E05252';
+      var sign=amt>0?'+':'';
+      res.push('<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;background:#fff;border:1.5px solid var(--pk3);border-radius:8px;padding:8px 10px;">');
+      res.push('<span style="font-size:.84rem;font-weight:900;color:'+col+';min-width:60px;">'+sign+amt+'</span>');
+      res.push('<span style="font-size:.82rem;flex:1;color:var(--t);">'+(a.reason||'（未填原因）')+'</span>');
+      res.push('<button onclick="removeAdj('+pid+','+i+')" style="padding:3px 8px;background:#FFF5F5;border:1.5px solid #FFBDBD;border-radius:6px;font-size:.72rem;font-weight:800;color:#E05252;cursor:pointer;">✖</button>');
+      res.push('</div>');
+    });
+  }
+  res.push('</div>');
+  res.push('<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1.5px dashed var(--pk3);">');
+  res.push('<input type="number" id="adjAmt-'+pid+'" placeholder="金額（如 -50）" step="50" style="width:120px;padding:7px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:Nunito,sans-serif;font-size:.84rem;outline:none;">');
+  res.push('<input type="text" id="adjReason-'+pid+'" placeholder="原因（如：優惠券折抵）" style="flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;">');
+  res.push('<button onclick="addAdj('+pid+')" style="padding:7px 16px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;">＋ 新增</button>');
+  res.push('</div>');
+  res.push('<div id="adjMsg-'+pid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-top:6px;min-height:1.2em;"></div>');
+  res.push('</div>');
+  return res.join('');
+}
 function showDetail(bookId){
   try{
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
-  if(!bk){alert('找不到訂單 id='+bookId+' cache='+(_bCache||[]).length);return;}
+  const bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  if(!bk){alert('找不到訂單 id='+bookId);return;}
+
   const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   const SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
-  const{normSvcSub,holSvcSub,cnySvcSub,addonSub,extraSub,svcSub,transportTotal,urgent,manualAdj,total,totalSessions,holSessions,cnySessions,normSessions}=calcBv2(bk);
-  const{slotsByDate,totalDays}=parseSlotStats(bk);
+  const cal=calcBv2(bk);
+  const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
+  const svcSub=cal.svcSub, transportTotal=cal.transportTotal;
+  const urgent=cal.urgent, manualAdj=cal.manualAdj;
+  const total=cal.total;
+  const totalSessions=cal.totalSessions, holSessions=cal.holSessions;
+  const cnySessions=cal.cnySessions||0, normSessions=cal.normSessions;
+  const slotsByDate=parseSlotStats(bk).slotsByDate;
+  const totalDays=parseSlotStats(bk).totalDays;
 
-  const R=(label,unit,times,each,sub)=>
-    `<tr><td style="padding:7px 10px;">${label}</td><td style="padding:7px 10px;color:var(--tl);">${unit}</td><td style="padding:7px 10px;">${times}</td><td style="padding:7px 10px;color:var(--pk);">$${each}</td><td style="padding:7px 10px;font-weight:800;text-align:right;">$'+(sub)+'</td></tr>`;
-
-  let rows='';
-  (bk.services||[]).forEach(k=>{
-    const sn=SN[k]||k;
-    if(normSessions>0) rows+=R(sn+'（平日）','/ 次','× '+(normSessions)+'次',SVC_PRICE[k]||0,(SVC_PRICE[k]||0)*normSessions);
-    if(holSessions>0)  rows+=R(sn+'（連假🎊）','/ 次','× '+(holSessions)+'次',HOL_PRICE[k]||0,(HOL_PRICE[k]||0)*holSessions);
-    if(cnySessions>0)  rows+=R(sn+'（春節🧧）','/ 次','× '+(cnySessions)+'次',CNY_PRICE[k]||0,(CNY_PRICE[k]||0)*cnySessions);
-  });
-  (bk.addons||[]).forEach(a=>{
-    rows+=R(a,'/ 次','× '+(totalSessions)+'次',AN[a]||0,(AN[a]||0)*totalSessions);
-  });
-  const totalPets=(bk.catCount||0)+(bk.dogCount||0);
-  if(totalPets>3){
-    const overPets=totalPets-3;
-    const eu=50*overPets;
-    rows+=R('第4隻起加收（共${totalPets}隻，超額'+(overPets)+'隻 × $50）','/ 次','× '+(totalSessions)+'次',eu,eu*totalSessions);
+  // Table row builder
+  function R(label,unit,times,unitPrice,sub){
+    var priceCell = (typeof unitPrice==='number') ? ('$'+unitPrice) : (unitPrice||'');
+    var subCell   = (typeof sub==='number') ? ('$'+sub.toLocaleString()) : (sub||'');
+    return '<tr style="border-bottom:1px solid #FFF0F5;">'
+      +'<td style="padding:8px 10px;">'+label+'</td>'
+      +'<td style="padding:8px 10px;color:var(--tl);">'+unit+'</td>'
+      +'<td style="padding:8px 10px;">'+times+'</td>'
+      +'<td style="padding:8px 10px;color:var(--pk);">'+priceCell+'</td>'
+      +'<td style="padding:8px 10px;font-weight:800;text-align:right;">'+subCell+'</td></tr>';
   }
-  if(urgent>0)rows+=R('急件加收','/ 單',1,urgent,urgent);
-  if(bk.transport>0)rows+=R(`車馬費`,'/ 次','× '+(totalSessions)+'次',bk.transport||0,(bk.transport||0)*totalSessions);
-  const adjs2=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
-  adjs2.forEach(a=>{
-    const amt=parseInt(a.amount)||0;
-    if(amt!==0){const sign=amt>0?'+':'';rows+=R((amt<0?'🎫':'➕')+' '+(a.reason||'手動調整'),'','','','<span style="color:'+(amt<0?'#06C755':'#E05252')+';font-weight:900;">'+sign+amt+'</span>');}
+
+  var rows='';
+  (bk.services||[]).forEach(function(k){
+    var sn=SN[k]||k;
+    if(normSessions>0) rows+=R(sn+'（平日）','/ 次','× '+normSessions+'次',SVC_PRICE[k]||0,(SVC_PRICE[k]||0)*normSessions);
+    if(holSessions>0)  rows+=R(sn+'（連假🎊）','/ 次','× '+holSessions+'次',HOL_PRICE[k]||0,(HOL_PRICE[k]||0)*holSessions);
+    if(cnySessions>0)  rows+=R(sn+'（春節🧧）','/ 次','× '+cnySessions+'次',CNY_PRICE[k]||0,(CNY_PRICE[k]||0)*cnySessions);
+  });
+  (bk.addons||[]).forEach(function(a){
+    rows+=R(a,'/ 次','× '+totalSessions+'次',AN[a]||0,(AN[a]||0)*totalSessions);
+  });
+  var totalPets=(bk.catCount||0)+(bk.dogCount||0);
+  if(totalPets>3){
+    var overPets=totalPets-3;
+    var eu=50*overPets;
+    rows+=R('第4隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$50）','/ 次','× '+totalSessions+'次',eu,eu*totalSessions);
+  }
+  if(urgent>0) rows+=R('急件加收','/ 單','×1',urgent,urgent);
+  if(bk.transport>0) rows+=R('車馬費','/ 次','× '+totalSessions+'次',bk.transport,(bk.transport)*totalSessions);
+
+  var adjs2=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
+  adjs2.forEach(function(a){
+    var amt=parseInt(a.amount)||0;
+    if(amt!==0){
+      var color=amt<0?'#06C755':'#E05252';
+      var sign=amt>0?'+':'';
+      rows+=R((amt<0?'🎫':'➕')+' '+(a.reason||'手動調整'),'','','',
+        '<span style="color:'+color+';font-weight:900;">'+sign+amt+'</span>');
+    }
   });
 
-  // Always compute totalDays from date range for display
-  let displayDays=totalDays;
+  var displayDays=totalDays;
   if(bk.startDate&&bk.endDate){
-    const _s=new Date(bk.startDate+'T00:00:00'),_e=new Date(bk.endDate+'T00:00:00');
+    var _s=new Date(bk.startDate+'T00:00:00'),_e=new Date(bk.endDate+'T00:00:00');
     displayDays=Math.max(1,Math.round((_e-_s)/86400000)+1);
   }
-  const dateRange=(bk.startDate||'')+'～'+(bk.endDate||'')+'（共'+displayDays+'天，'+totalSessions+'次）';
+  var dateRange=bk.startDate+'～'+bk.endDate+'（共'+displayDays+'天，'+totalSessions+'次）';
+  var holNote='';
+  if(cnySessions>0||holSessions>0){
+    holNote='<span style="color:#C05000;font-weight:800;margin-left:8px;">'
+      +(cnySessions>0?'🧧 春節'+cnySessions+'次 ':'')
+      +(holSessions>0?'🎊 連假'+holSessions+'次 ':'')
+      +'平日'+normSessions+'次</span>';
+  }
 
-  let html=`
-    <div style="margin-bottom:12px;font-size:.82rem;color:var(--tl);">
-      服務期間：<strong>${dateRange}</strong>
-      ${(holSessions>0||cnySessions>0)?('<span style="color:#C05000;font-weight:800;margin-left:8px;">'+(cnySessions>0?'🧧 春節'+cnySessions+'次 ':'')+' '+(holSessions>0?'🎊 連假'+holSessions+'次 ':'')+' 平日'+normSessions+'次</span>'):''}
-    </div>
-    <div style="overflow-x:auto;">
-    <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
-      <thead><tr style="background:var(--pk4);border-bottom:2px solid var(--pk3);">
-        <th style="padding:8px 10px;text-align:left;color:var(--pk);">項目</th>
-        <th style="padding:8px 10px;text-align:left;color:var(--tl);">單位</th>
-        <th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>
-        <th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>
-        <th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-      <tfoot>
-        <tr style="border-top:2px solid var(--pk3);background:linear-gradient(135deg,#FFF0F5,#FFFAFB);">
-          <td colspan="4" style="padding:10px 10px;font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;">💕 總計</td>
-          <td style="padding:10px 10px;font-weight:900;color:var(--pk);font-size:1.05rem;text-align:right;">$${Math.max(0,total).toLocaleString()}</td>
-        </tr>
-      </tfoot>
-    </table></div>
+  // Payment status
+  var pid=bk.id;
+  var paidStatus,paidColor;
+  if(bk.fullPaid){paidStatus='💚 款項全收';paidColor='#06C755';}
+  else if(bk.depositPaid){paidStatus='🟡 已收訂金 $'+(bk.depositAmount||0)+'，剩餘 $'+Math.max(0,total-(bk.depositAmount||0));paidColor='#FF9500';}
+  else{paidStatus='🔴 未收款';paidColor='#E05252';}
 
-    <div style="margin-top:16px;padding:14px;background:var(--pk4);border-radius:12px;border:1.5px solid var(--pk3);">
-      <div style="font-size:.75rem;font-weight:800;color:var(--pk);margin-bottom:10px;">✏️ 手動調整項目（可新增多筆，負數為折扣）</div>
+  var html='<div style="margin-bottom:10px;font-size:.82rem;color:var(--tl);">'
+    +'服務期間：<strong>'+dateRange+'</strong>'+holNote+'</div>'
+    +'<div style="overflow-x:auto;">'
+    +'<table style="width:100%;border-collapse:collapse;font-size:.82rem;">'
+    +'<thead><tr style="background:var(--pk4);border-bottom:2px solid var(--pk3);">'
+    +'<th style="padding:8px 10px;text-align:left;color:var(--pk);">項目</th>'
+    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">單位</th>'
+    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>'
+    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>'
+    +'<th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>'
+    +'</tr></thead>'
+    +'<tbody>'+rows+'</tbody>'
+    +'<tfoot><tr style="border-top:2px solid var(--pk3);background:linear-gradient(135deg,#FFF0F5,#FFFAFB);">'
+    +'<td colspan="4" style="padding:10px 10px;font-weight:900;color:var(--pk);font-family:Nunito,sans-serif;">💕 總計</td>'
+    +'<td style="padding:10px 10px;font-weight:900;color:var(--pk);font-size:1.1rem;text-align:right;">$'+Math.max(0,total).toLocaleString()+'</td>'
+    +'</tr></tfoot></table></div>';
 
-      <!-- 現有調整項目 -->
-      <div id="adjList-${bk.id}" style="margin-bottom:10px;">
-        ${(()=>{
-          const adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'舊調整'}]:[]);
-          if(!adjs.length) return '<div style="font-size:.76rem;color:var(--tl);padding:6px 0;">（尚無調整項目）</div>';
-          return adjs.map((a,i)=>`
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;background:#fff;border:1.5px solid var(--pk3);border-radius:8px;padding:8px 10px;">
-              <span style="font-size:.84rem;font-weight:900;color:${a.amount<0?'#06C755':'#E05252'};min-width:60px;">${a.amount>0?'+':''}${a.amount}</span>
-              <span style="font-size:.82rem;flex:1;color:var(--t);">${a.reason||'（未填原因）'}</span>
-              <button onclick="removeAdj(${bk.id},${i})" style="padding:3px 8px;background:#FFF5F5;border:1.5px solid #FFBDBD;border-radius:6px;font-size:.72rem;font-weight:800;color:#E05252;cursor:pointer;">✖</button>
-            </div>`).join('');
-        })()}
-      </div>
+  // Manual adjustments
+  html+=buildAdjHTML(pid,bk,adjs2);
 
-      <!-- 新增一筆 -->
-      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:8px;border-top:1.5px dashed var(--pk3);">
-        <input type="number" id="adjAmt-${bk.id}" placeholder="金額（如 -50）" step="50"
-          style="width:120px;padding:7px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:'Nunito',sans-serif;font-size:.84rem;outline:none;">
-        <input type="text" id="adjReason-${bk.id}" placeholder="原因（如：優惠券折抵）"
-          style="flex:1;min-width:140px;padding:7px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;">
-        <button onclick="addAdj(${bk.id})"
-          style="padding:7px 16px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;white-space:nowrap;">
-          ＋ 新增
-        </button>
-      </div>
-      <div id="adjMsg-${bk.id}" style="font-size:.76rem;color:var(--g);font-weight:800;margin-top:6px;min-height:1.2em;"></div>
-    </div>`;
+  // Payment section
+  html+=[
+    '<div style="margin-top:14px;padding:14px;background:#F0FFF4;border:1.5px solid #52C48A;border-radius:12px;">',
+    '<div style="font-size:.78rem;font-weight:900;color:#1A7A4A;margin-bottom:10px;">💵 費用收取</div>',
+    '<div style="background:#fff;border:2px solid '+paidColor+';border-radius:10px;padding:8px 14px;margin-bottom:12px;text-align:center;">',
+    '<div style="font-size:.76rem;color:var(--tl);">收款狀態</div>',
+    '<div style="font-size:1rem;font-weight:900;color:'+paidColor+';">'+paidStatus+'</div>',
+    '</div>',
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">',
+    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
+    '<input type="checkbox" id="dep-paid-'+pid+'" '+(bk.depositPaid?'checked':'')+' onchange="toggleDepositInput('+pid+')"> 已收訂金</label>',
+    '<input type="date" id="dep-date-'+pid+'" value="'+(bk.depositDate||'')+'" style="padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-size:.8rem;outline:none;">',
+    '<input type="number" id="dep-amt-'+pid+'" value="'+(bk.depositAmount||'')+'" placeholder="訂金金額" style="width:90px;padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-size:.82rem;outline:none;">',
+    '</div>',
+    '<div style="margin-bottom:8px;">',
+    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
+    '<input type="checkbox" id="full-paid-'+pid+'" '+(bk.fullPaid?'checked':'')+'>',
+    ' ✅ 全額已收（$'+Math.max(0,total).toLocaleString()+'）</label>',
+    '</div>',
+    '<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">',
+    '<span style="font-size:.78rem;font-weight:800;color:var(--tl);align-self:center;">收款方式</span>',
+    '<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;cursor:pointer;"><input type="radio" name="pay-method-'+pid+'" value="現金" '+(bk.payMethod==='現金'?'checked':'')+'>💵 現金</label>',
+    '<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;cursor:pointer;"><input type="radio" name="pay-method-'+pid+'" value="轉帳" '+(bk.payMethod==='轉帳'?'checked':'')+'>🏦 轉帳</label>',
+    '<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;cursor:pointer;"><input type="radio" name="pay-method-'+pid+'" value="LINE PAY" '+(bk.payMethod==='LINE PAY'?'checked':'')+'>💚 LINE PAY</label>',
+    '</div>',
+    '<div style="margin-bottom:10px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📝 備註</div>',
+    '<textarea id="pay-note-'+pid+'" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #52C48A;border-radius:8px;font-family:inherit;font-size:.82rem;resize:vertical;outline:none;" placeholder="例：已匯款至○○帳戶、現金付清...">'+(bk.payNote||'')+'</textarea>',
+    '</div>',
+    '<button onclick="savePaymentInfo('+pid+','+Math.max(0,total)+')" style="padding:7px 18px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存收款</button>',
+    '<span id="pay-msg-'+pid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
+    '</div>'
+  ].join('');
 
+  // Visit info
   html+=buildVisitPaymentHTML(bk, Math.max(0,total));
+
   document.getElementById('detailContent').innerHTML=html;
   document.getElementById('detailMod').classList.add('show');
-  }catch(e){alert('明細錯誤：'+e.message+'\n'+e.stack.split('\n').slice(0,3).join('\n'));}
+  }catch(e){alert('明細錯誤：'+e.message+'\\n'+e.stack.split('\\n').slice(0,3).join('\\n'));}
 }
 
 async function addAdj(bookId){
@@ -2378,9 +2447,12 @@ async function savePaymentInfo(bookId,total){
   const fullPaid=document.getElementById('full-paid-'+bookId)?.checked||false;
   const depositAmount=parseInt(document.getElementById('dep-amt-'+bookId)?.value)||0;
   const depositDate=document.getElementById('dep-date-'+bookId)?.value||'';
-  await dbUpdateOrder(bookId,{deposit_paid:depositPaid,full_paid:fullPaid,deposit_amount:depositAmount,deposit_date:depositDate});
+  const payMethodEl=document.querySelector('input[name="pay-method-'+bookId+'"]:checked');
+  const payMethod=payMethodEl?payMethodEl.value:'';
+  const payNote=document.getElementById('pay-note-'+bookId)?.value||'';
+  await dbUpdateOrder(bookId,{deposit_paid:depositPaid,full_paid:fullPaid,deposit_amount:depositAmount,deposit_date:depositDate,pay_method:payMethod,pay_note:payNote});
   const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
-  if(bk){bk.depositPaid=depositPaid;bk.fullPaid=fullPaid;bk.depositAmount=depositAmount;bk.depositDate=depositDate;}
+  if(bk){bk.depositPaid=depositPaid;bk.fullPaid=fullPaid;bk.depositAmount=depositAmount;bk.depositDate=depositDate;bk.payMethod=payMethod;bk.payNote=payNote;}
   const msg=document.getElementById('pay-msg-'+bookId);
   if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>msg.textContent='',2000);}
   showDetail(bookId);
@@ -2393,23 +2465,12 @@ function toggleDepositInput(bookId){
 }
 
 function buildVisitPaymentHTML(bk, total){
-  const vid=bk.id;
-  const vDate=bk.visitDate||'';
-  const vNotes=(bk.visitNotes||'').replace(/"/g,'&quot;');
-  const vCaution=(bk.caution||'').replace(/"/g,'&quot;');
-  const depPaid=bk.depositPaid?'checked':'';
-  const fullPaid=bk.fullPaid?'checked':'';
-  const depAmt=bk.depositAmount||0;
-  const depDate=bk.depositDate||'';
-  const remaining=Math.max(0,total-depAmt);
-
-  let paidStatus,paidColor;
-  if(bk.fullPaid){paidStatus='款項全收';paidColor='#06C755';}
-  else if(bk.depositPaid){paidStatus='已收訂金 $'+depAmt+'，剩餘 $'+remaining;paidColor='#FF9500';}
-  else{paidStatus='未收款';paidColor='#E05252';}
-
+  var vid=bk.id;
+  var vDate=bk.visitDate||'';
+  var vNotes=(bk.visitNotes||'').replace(/"/g,'&quot;');
+  var vCaution=(bk.caution||'').replace(/"/g,'&quot;');
   return [
-    '<div style="margin-top:16px;padding:14px;background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;">',
+    '<div style="margin-top:14px;padding:14px;background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;">',
     '<div style="font-size:.78rem;font-weight:900;color:#0369A1;margin-bottom:10px;">🏠 家訪資訊</div>',
     '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">',
     '<span style="font-size:.74rem;font-weight:800;color:var(--tl);min-width:56px;">家訪日期</span>',
@@ -2425,26 +2486,6 @@ function buildVisitPaymentHTML(bk, total){
     '</div>',
     '<button onclick="saveVisitInfo('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存家訪</button>',
     '<span id="vi-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
-    '</div>',
-    '<div style="margin-top:12px;padding:14px;background:#F0FFF4;border:1.5px solid #52C48A;border-radius:12px;">',
-    '<div style="font-size:.78rem;font-weight:900;color:#1A7A4A;margin-bottom:10px;">💵 費用收取</div>',
-    '<div style="background:#fff;border:2px solid '+paidColor+';border-radius:10px;padding:8px 14px;margin-bottom:12px;text-align:center;">',
-    '<div style="font-size:.76rem;color:var(--tl);">收款狀態</div>',
-    '<div style="font-size:1rem;font-weight:900;color:'+paidColor+';">'+paidStatus+'</div>',
-    '</div>',
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">',
-    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
-    '<input type="checkbox" id="dep-paid-'+vid+'" '+depPaid+' onchange="toggleDepositInput('+vid+')"> 已收訂金</label>',
-    '<input type="date" id="dep-date-'+vid+'" value="'+depDate+'" style="padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-family:inherit;font-size:.8rem;outline:none;">',
-    '<span style="font-size:.8rem;font-weight:700;">$</span>',
-    '<input type="number" id="dep-amt-'+vid+'" value="'+(depAmt||'')+'" placeholder="訂金金額" style="width:90px;padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-size:.82rem;outline:none;">',
-    '</div>',
-    '<div style="margin-bottom:10px;">',
-    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
-    '<input type="checkbox" id="full-paid-'+vid+'" '+fullPaid+'> ✅ 全額已收（$'+total.toLocaleString()+'）</label>',
-    '</div>',
-    '<button onclick="savePaymentInfo('+vid+','+total+')" style="padding:7px 18px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存收款</button>',
-    '<span id="pay-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
     '</div>'
   ].join('');
 }

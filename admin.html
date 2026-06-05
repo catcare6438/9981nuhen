@@ -360,7 +360,7 @@ function _errMsg(e){
   const msg=e.message||e.msg||'';
   const code=e.code||e.status_code||'';
   const hint=e.hint||e.details||'';
-  return [msg,code?`[${code}]`:'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
+  return [msg,code?'['+(code)+']':'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
 }
 
 // ── Supabase helpers ──
@@ -401,6 +401,12 @@ async function dbUpdateOrder(id,fields){
     total:'total',
     is_holiday:'is_holiday',
     note:'pet_notes',
+    home_visit_date:'home_visit_date',
+    home_visit_note:'home_visit_note',
+    deposit_date:'deposit_date',
+    deposit_amount:'deposit_amount',
+    deposit_paid:'deposit_paid',
+    full_paid:'full_paid',
   };
   const row={};
   Object.keys(fields).forEach(k=>{
@@ -533,7 +539,13 @@ function dbRowToOrder(r){
     isHoliday:r.is_holiday||false,
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
-    status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[]
+    status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
+    homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
+    depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false
   };
 }
 </script>
@@ -848,7 +860,7 @@ function parseSlotStats(bk){
     if(bk.startDate&&bk.endDate){
       const s=new Date(bk.startDate+'T00:00:00'),e=new Date(bk.endDate+'T00:00:00');
       for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
-        const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
         if(ADMIN_HOLIDAYS.has(key))holDays++;
       }
     }
@@ -856,7 +868,7 @@ function parseSlotStats(bk){
     if(bk.startDate&&bk.endDate){
       const s2=new Date(bk.startDate+'T00:00:00'),e2=new Date(bk.endDate+'T00:00:00');
       for(let d=new Date(s2);d<=e2;d.setDate(d.getDate()+1)){
-        const key2=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        const key2=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
         if(CNY_HOLIDAYS.has(key2))cnyCnt++;
       }
     }
@@ -950,7 +962,7 @@ function login(){
     const as=document.getElementById('adminScreen');
     as.style.display='flex';as.classList.add('show');
     const now=new Date();
-    document.getElementById('salMonth').value=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    document.getElementById('salMonth').value=''+(now.getFullYear())+'-'+(String(now.getMonth()+1).padStart(2,'0'))+'';
     // Test Supabase connection first
     testSupabaseConnection().then(ok=>{
       if(ok) refreshAll();
@@ -988,7 +1000,7 @@ function formatDateSlots(dateSlotData){
   return dateSlotData.map(d=>{
     const day=new Date(d.date+'T00:00:00');
     const slots=(d.slots||[]).map(s=>SLOT_NAMES[s]||s).join('、');
-    return `${d.date.slice(5)}(${dayNames[day.getDay()]}) ${slots}`;
+    return '${d.date.slice(5)}('+(dayNames[day.getDay()])+') '+(slots)+'';
   }).join(' ／ ');
 }
 
@@ -999,7 +1011,7 @@ function renderDateSlotsHtml(dateSlotData){
   const dayNames=['日','一','二','三','四','五','六'];
   return dateSlotData.map(d=>{
     const day=new Date(d.date+'T00:00:00');
-    const slotsHtml=(d.slots||[]).map(s=>`<span style="${SLOT_COLORS[s]||''}border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:800;">${SLOT_NAMES[s]||s}</span>`).join(' ');
+    const slotsHtml=(d.slots||[]).map(s=>'<span style="'+(SLOT_COLORS[s]||'')+'border-radius:6px;padding:2px 8px;font-size:.72rem;font-weight:800;">'+(SLOT_NAMES[s]||s)+'</span>').join(' ');
     return `<div style="display:flex;align-items:center;gap:8px;margin:3px 0;flex-wrap:wrap;">
       <span style="font-size:.8rem;font-weight:800;color:var(--t);min-width:72px;">${d.date.slice(5)}(${dayNames[day.getDay()]})</span>
       ${slotsHtml}
@@ -1035,22 +1047,22 @@ function downloadPetFile(bk){
   txt+='║      貓窩裏 🐾 寵物照護明細建檔       ║\n';
   txt+='╚══════════════════════════════════════╝\n\n';
   txt+=`【飼主資訊】\n`;
-  txt+=`姓名：${bk.ownerName}\n`;
-  txt+=`電話：${bk.ownerPhone}\n`;
-  txt+=`地址：${bk.ownerAddr||'—'}\n`;
-  txt+=`LINE：${bk.ownerLine||'—'}\n\n`;
+  txt+='姓名：'+(bk.ownerName)+'\n';
+  txt+='電話：'+(bk.ownerPhone)+'\n';
+  txt+='地址：'+(bk.ownerAddr||'—')+'\n';
+  txt+='LINE：'+(bk.ownerLine||'—')+'\n\n';
   txt+=`【服務資訊】\n`;
-  txt+=`服務項目：${(bk.services||[]).map(s=>SVC[s]||s).join('、')}\n`;
-  txt+=`加購項目：${bk.addons?.length?bk.addons.join('、'):'無'}\n\n`;
+  txt+='服務項目：'+((bk.services||[]).map(s=>SVC[s]||s).join('、'))+'\n';
+  txt+='加購項目：'+(bk.addons?.length?bk.addons.join('、'):'無')+'\n\n';
   txt+=`【服務時段明細】\n`;
   if(bk.dateSlotData?.length){
     bk.dateSlotData.forEach(d=>{
       const day=new Date(d.date+'T00:00:00');
       const slots=(d.slots||[]).map(s=>SLOT[s]||s).join('、');
-      txt+=`  ${d.date}(${dayNames[day.getDay()]})：${slots}\n`;
+      txt+='  ${d.date}(${dayNames[day.getDay()]})：'+(slots)+'\n';
     });
   } else {
-    txt+=`  ${bk.startDate}～${bk.endDate}（${bk.days}天 × ${bk.tpd}次/天）\n`;
+    txt+='  ${bk.startDate}～${bk.endDate}（${bk.days}天 × '+(bk.tpd)+'次/天）\n';
   }
   txt+='\n';
   txt+=`【毛孩資料】\n`;
@@ -1058,22 +1070,22 @@ function downloadPetFile(bk){
   if(pets.length){
     pets.forEach((p,i)=>{
       const icon=p.type==='cat'?'🐱':'🐶';
-      txt+=`\n  ${icon} ${p.name||'寵物'+(i+1)}\n`;
-      txt+=`    性別：${p.gender||'—'}　　年齡：${p.age||'—'}\n`;
-      txt+=`    疫苗：${p.vaccine||'（未填）'}\n`;
-      txt+=`    健康：${(p.health||[]).join('、')||'健康，無疾病'}\n`;
+      txt+='\n  ${icon} '+(p.name||'寵物'+(i+1))+'\n';
+      txt+='    性別：'+(p.gender||'—')+'　　年齡：'+(p.age||'—')+'\n';
+      txt+='    疫苗：'+(p.vaccine||'（未填）')+'\n';
+      txt+='    健康：'+((p.health||[]).join('、')||'健康，無疾病')+'\n';
     });
   } else { txt+='  （未填寫寵物資料）\n'; }
   if(bk.petNotes){
-    txt+=`\n【注意事項】\n  ${bk.petNotes}\n`;
+    txt+='\n【注意事項】\n  '+(bk.petNotes)+'\n';
   }
-  txt+=`\n${'─'.repeat(44)}\n`;
-  txt+=`訂單編號：${bk.id}\n`;
-  txt+=`建檔時間：${new Date().toLocaleString('zh-TW')}\n`;
+  txt+='\n'+('─'.repeat(44))+'\n';
+  txt+='訂單編號：'+(bk.id)+'\n';
+  txt+='建檔時間：'+(new Date().toLocaleString('zh-TW'))+'\n';
 
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
-  a.download=`貓窩裏_${bk.ownerName}_寵物明細.txt`;
+  a.download='貓窩裏_'+(bk.ownerName)+'_寵物明細.txt';
   a.click();
 }
 
@@ -1281,6 +1293,12 @@ function buildOrderCard(bk, sCls, ownerPws){
   const distRow=bk.distance>0?'<div class="order-row"><span class="order-label">距離：</span><span class="order-val">'+bk.distance+' 公里（車馬費 NT$'+(bk.transport||0)+'/次）</span></div>':'';
   const addonRow=bk.addons&&bk.addons.length?'<div class="order-row"><span class="order-label">加購：</span><span class="order-val">'+bk.addons.join('、')+'</span></div>':'';
   const noteRow=bk.petNotes?'<div class="order-row"><span class="order-label">備註：</span><span class="order-val">'+bk.petNotes+'</span></div>':'';
+  const hvRow=bk.homeVisitDate?'<div class="order-row"><span class="order-label">🏠 家訪：</span><span class="order-val">'+bk.homeVisitDate+(bk.homeVisitNote?' ｜ '+bk.homeVisitNote:'')+'</span></div>':'';
+  const payRow=(()=>{
+    if(bk.fullPaid) return '<div class="order-row"><span class="order-label">💰 收款：</span><span class="order-val" style="color:#06C755;font-weight:900;">✅ 款項全收</span></div>';
+    if(bk.depositPaid) return '<div class="order-row"><span class="order-label">💰 收款：</span><span class="order-val" style="color:#FF9500;font-weight:800;">已收訂金 $'+bk.depositAmount+'（'+bk.depositDate+'）</span></div>';
+    return '';
+  })();
 
   // Date display
   let dateDisplay=s||'—';
@@ -1321,7 +1339,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<div class="order-row"><span class="order-label">日期：</span><span class="order-val">'+dateDisplay+'</span></div>'
     +'<div class="order-row"><span class="order-label">服務：</span><span class="order-val">'+svcDisplay+'</span></div>'
 
-    +distRow+addonRow+noteRow
+    +distRow+addonRow+noteRow+hvRow+payRow
 
     +'<div style="margin-top:12px;">'
     +'<div style="font-size:.75rem;font-weight:800;color:var(--pk);margin-bottom:8px;font-family:"Nunito",sans-serif;">👩 時段指派</div>'
@@ -1498,30 +1516,30 @@ function showDetail(bookId){
   const{slotsByDate,totalDays}=parseSlotStats(bk);
 
   const R=(label,unit,times,each,sub)=>
-    `<tr><td style="padding:7px 10px;">${label}</td><td style="padding:7px 10px;color:var(--tl);">${unit}</td><td style="padding:7px 10px;">${times}</td><td style="padding:7px 10px;color:var(--pk);">$${each}</td><td style="padding:7px 10px;font-weight:800;text-align:right;">$${sub}</td></tr>`;
+    '<tr><td style="padding:7px 10px;">${label}</td><td style="padding:7px 10px;color:var(--tl);">${unit}</td><td style="padding:7px 10px;">${times}</td><td style="padding:7px 10px;color:var(--pk);">$${each}</td><td style="padding:7px 10px;font-weight:800;text-align:right;">$'+(sub)+'</td></tr>';
 
   let rows='';
   (bk.services||[]).forEach(k=>{
     const sn=SN[k]||k;
-    if(normSessions>0) rows+=R(sn+'（平日）','/ 次',`× ${normSessions}次`,SVC_PRICE[k]||0,(SVC_PRICE[k]||0)*normSessions);
-    if(holSessions>0)  rows+=R(sn+'（連假🎊）','/ 次',`× ${holSessions}次`,HOL_PRICE[k]||0,(HOL_PRICE[k]||0)*holSessions);
-    if(cnySessions>0)  rows+=R(sn+'（春節🧧）','/ 次',`× ${cnySessions}次`,CNY_PRICE[k]||0,(CNY_PRICE[k]||0)*cnySessions);
+    if(normSessions>0) rows+=R(sn+'（平日）','/ 次','× '+(normSessions)+'次',SVC_PRICE[k]||0,(SVC_PRICE[k]||0)*normSessions);
+    if(holSessions>0)  rows+=R(sn+'（連假🎊）','/ 次','× '+(holSessions)+'次',HOL_PRICE[k]||0,(HOL_PRICE[k]||0)*holSessions);
+    if(cnySessions>0)  rows+=R(sn+'（春節🧧）','/ 次','× '+(cnySessions)+'次',CNY_PRICE[k]||0,(CNY_PRICE[k]||0)*cnySessions);
   });
   (bk.addons||[]).forEach(a=>{
-    rows+=R(a,'/ 次',`× ${totalSessions}次`,AN[a]||0,(AN[a]||0)*totalSessions);
+    rows+=R(a,'/ 次','× '+(totalSessions)+'次',AN[a]||0,(AN[a]||0)*totalSessions);
   });
   const totalPets=(bk.catCount||0)+(bk.dogCount||0);
   if(totalPets>3){
     const overPets=totalPets-3;
     const eu=50*overPets;
-    rows+=R(`第4隻起加收（共${totalPets}隻，超額${overPets}隻 × $50）`,'/ 次',`× ${totalSessions}次`,eu,eu*totalSessions);
+    rows+=R('第4隻起加收（共${totalPets}隻，超額'+(overPets)+'隻 × $50）','/ 次','× '+(totalSessions)+'次',eu,eu*totalSessions);
   }
   if(urgent>0)rows+=R('急件加收','/ 單',1,urgent,urgent);
-  if(bk.transport>0)rows+=R(`車馬費`,'/ 次',`× ${totalSessions}次`,bk.transport||0,(bk.transport||0)*totalSessions);
+  if(bk.transport>0)rows+=R(`車馬費`,'/ 次','× '+(totalSessions)+'次',bk.transport||0,(bk.transport||0)*totalSessions);
   const adjs2=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
   adjs2.forEach(a=>{
     const amt=parseInt(a.amount)||0;
-    if(amt!==0) rows+=R(`${amt<0?'🎫':'➕'} ${a.reason||'手動調整'}`,'','','',`<span style="color:${amt<0?'#06C755':'#E05252'};font-weight:900;">${amt>0?'+':''}${amt}</span>`);
+    if(amt!==0){const sign=amt>0?'+':'';rows+=R((amt<0?'🎫':'➕')+' '+(a.reason||'手動調整'),'','','','<span style="color:'+(amt<0?'#06C755':'#E05252')+';font-weight:900;">'+sign+amt+'</span>');}
   });
 
   // Always compute totalDays from date range for display
@@ -1530,12 +1548,12 @@ function showDetail(bookId){
     const _s=new Date(bk.startDate+'T00:00:00'),_e=new Date(bk.endDate+'T00:00:00');
     displayDays=Math.max(1,Math.round((_e-_s)/86400000)+1);
   }
-  const dateRange=`${bk.startDate||''}～${bk.endDate||''}（共${displayDays}天，${totalSessions}次）`;
+  const dateRange=(bk.startDate||'')+'～'+(bk.endDate||'')+'（共'+displayDays+'天，'+totalSessions+'次）';
 
   const html=`
     <div style="margin-bottom:12px;font-size:.82rem;color:var(--tl);">
       服務期間：<strong>${dateRange}</strong>
-      ${(holSessions>0||cnySessions>0)?`<span style="color:#C05000;font-weight:800;margin-left:8px;">${cnySessions>0?'🧧 春節'+cnySessions+'次 ':''} ${holSessions>0?'🎊 連假'+holSessions+'次 ':''} 平日${normSessions}次</span>`:''}
+      ${(holSessions>0||cnySessions>0)?('<span style="color:#C05000;font-weight:800;margin-left:8px;">'+(cnySessions>0?'🧧 春節'+cnySessions+'次 ':'')+' '+(holSessions>0?'🎊 連假'+holSessions+'次 ':'')+' 平日'+normSessions+'次</span>'):''}
     </div>
     <div style="overflow-x:auto;">
     <table style="width:100%;border-collapse:collapse;font-size:.82rem;">
@@ -1586,14 +1604,15 @@ function showDetail(bookId){
       <div id="adjMsg-${bk.id}" style="font-size:.76rem;color:var(--g);font-weight:800;margin-top:6px;min-height:1.2em;"></div>
     </div>`;
 
+  html+=buildVisitPaymentHTML(bk, Math.max(0,total));
   document.getElementById('detailContent').innerHTML=html;
   document.getElementById('detailMod').classList.add('show');
   }catch(e){alert('明細錯誤：'+e.message);}
 }
 
 async function addAdj(bookId){
-  const amt=parseInt(document.getElementById(`adjAmt-${bookId}`).value);
-  const reason=document.getElementById(`adjReason-${bookId}`).value.trim();
+  const amt=parseInt(document.getElementById('adjAmt-'+bookId).value);
+  const reason=document.getElementById('adjReason-'+bookId).value.trim();
   if(!amt){alert('請輸入金額');return;}
   if(!reason){alert('請填寫原因');return;}
   const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
@@ -1603,7 +1622,7 @@ async function addAdj(bookId){
   await dbUpdateOrder(bookId,{manual_adjs:adjs,manual_adj:adjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0)});
   bk.manualAdjs=adjs;
   bk.manualAdj=adjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0);
-  const msg=document.getElementById(`adjMsg-${bookId}`);
+  const msg=document.getElementById('adjMsg-'+bookId);
   if(msg){msg.textContent='✅ 已新增';setTimeout(()=>msg.textContent='',2000);}
   // Re-render the detail modal
   showDetail(bookId);
@@ -1652,7 +1671,7 @@ async function saveOwnerPw(){
   if(!pw){alert('請輸入數字密碼');return;}
   await dbSetOwnerPw(id,pw);
   closeM('genPwMod');refreshAll();
-  alert(`✅ 會員密碼已儲存：${pw}\n請告知飼主到前台點「🏠 毛孩爸媽」輸入此數字密碼\n（密碼可隨時在此修改）`);
+  alert('✅ 會員密碼已儲存：'+(pw)+'\n請告知飼主到前台點「🏠 毛孩爸媽」輸入此數字密碼\n（密碼可隨時在此修改）');
 }
 
 // These mirror the SITTER_INIT_PWS in sitter.html
@@ -1701,8 +1720,8 @@ async function renderSitterPwStatus(){
         <span>${avs[n]} <strong>${n}</strong></span>
         <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:2px;font-size:.88rem;">${currentPw}</span>
         ${changed
-          ?`<span style="font-size:.68rem;color:var(--g);font-weight:800;">✓ 已自行修改</span>${lastChange?`<span style="font-size:.66rem;color:var(--tl);">${new Date(lastChange.ts).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>`:''}`
-          :`<span style="font-size:.68rem;color:var(--tl);">初始密碼</span>`}
+          ?'<span style="font-size:.68rem;color:var(--g);font-weight:800;">✓ 已自行修改</span>'+(lastChange?('<span style="font-size:.66rem;color:var(--tl);">'+new Date(lastChange.ts).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})+'</span>'):'')
+          :'<span style="font-size:.68rem;color:var(--tl);">初始密碼</span>'}
       </div>
     </div>`;
   }).join('');
@@ -1758,7 +1777,7 @@ async function renderSalary(){
       <div class="sc-row"><span class="sc-l">已完成</span><span class="sc-v">${done.length} 件</span></div>
       <div class="sc-row"><span class="sc-l">服務次數</span><span class="sc-v">${sessions} 次</span></div>
       <div class="sc-row"><span class="sc-l">本期薪資</span><span class="sc-v">$${sal.toLocaleString()}</span></div>
-      <button class="sc-exp" onclick="exportSitter('${s}')">📄 匯出薪資明細</button>
+      <button class="sc-exp" onclick="exportSitter(''+(s)+'')">📄 匯出薪資明細</button>
     </div>`;
   }).join('');
 }
@@ -1773,46 +1792,46 @@ function exportSitter(name){
     return x.assignedTo===name;
   });
   const m=month||'全部月份';
-  let txt=`【貓窩裏寵物褓姆】薪資明細\n保母：${name}（${ROLES[name]}）\n月份：${m}\n匯出：${new Date().toLocaleString('zh-TW')}\n${'─'.repeat(44)}\n\n`;
+  let txt='【貓窩裏寵物褓姆】薪資明細\n保母：${name}（${ROLES[name]}）\n月份：${m}\n匯出：${new Date().toLocaleString()}\n'+('─'.repeat(44))+'\n\n';
   let grand=0;
   if(!cases.length){txt+='本期間無已完成訂單\n';}
   cases.forEach((bk,i)=>{
     const sessions=(bk.days||0)*(bk.tpd||1);
     const sal=sessions*SITTER_RATE+(bk.transport||0)*sessions;
     grand+=sal;
-    txt+=`【訂單 ${i+1}】飼主：${bk.ownerName}\n`;
-    txt+=`日期：${bk.startDate}～${bk.endDate}（${bk.days}天×${bk.tpd}次）\n`;
-    txt+=`服務費：${sessions}次 × $${SITTER_RATE} = $${sessions*SITTER_RATE}\n`;
-    if(bk.transport>0)txt+=`車馬費：$${bk.transport}/次 × ${sessions}次 = $${bk.transport*sessions}\n`;
-    txt+=`本單合計：$${sal}\n\n`;
+    txt+='【訂單 ${i+1}】飼主：'+(bk.ownerName)+'\n';
+    txt+='日期：${bk.startDate}～${bk.endDate}（${bk.days}天×'+(bk.tpd)+'次）\n';
+    txt+='服務費：${sessions}次 × $${SITTER_RATE} = $'+(sessions*SITTER_RATE)+'\n';
+    if(bk.transport>0)txt+='車馬費：$${bk.transport}/次 × ${sessions}次 = $'+(bk.transport*sessions)+'\n';
+    txt+='本單合計：$'+(sal)+'\n\n';
   });
-  txt+=`${'─'.repeat(44)}\n總計：${cases.length}件｜薪資 $${grand.toLocaleString()}\n`;
-  showExp(`${name} 薪資明細（${m}）`,txt);
+  txt+=''+('─'.repeat(44))+'\n總計：${cases.length}件｜薪資 $'+(grand.toLocaleString())+'\n';
+  showExp(''+(name)+' 薪資明細（'+(m)+'）',txt);
 }
 
 function exportAllSalary(){
   const month=document.getElementById('salMonth').value;
   const m=month||'全部月份';
-  let txt=`【貓窩裏寵物褓姆】全體薪資\n月份：${m}\n匯出：${new Date().toLocaleString('zh-TW')}\n${'═'.repeat(44)}\n\n`;
+  let txt='【貓窩裏寵物褓姆】全體薪資\n月份：${m}\n匯出：${new Date().toLocaleString()}\n'+('═'.repeat(44))+'\n\n';
   SITTERS_LIST.forEach(s=>{
     const cases=_bCache.filter(x=>x.assignedTo===s&&x.status==='已完成'&&(!month||x.startDate.startsWith(month)));
     const sessions=cases.reduce((s2,x)=>s2+(x.days||0)*(x.tpd||1),0);
     const sal=sessions*SITTER_RATE+cases.reduce((s2,x)=>s2+(x.transport||0),0);
-    txt+=`${AVA[s]} ${s}：${cases.length}件 ｜ $${sal.toLocaleString()}\n`;
+    txt+='${AVA[s]} ${s}：'+(cases.length)+'件 ｜ $'+(sal.toLocaleString())+'\n';
   });
   showExp('全體薪資總表',txt);
 }
 
 function exportAll(){
   const b=_bCache;
-  let txt=`貓窩裏 全部預約\n匯出：${new Date().toLocaleString('zh-TW')}\n${'─'.repeat(50)}\n\n`;
+  let txt='貓窩裏 全部預約\n匯出：${new Date().toLocaleString()}\n'+('─'.repeat(50))+'\n\n';
   b.forEach((bk,i)=>{
     const{total}=calcB(bk);
-    txt+=`[${i+1}] ${bk.ownerName}｜${bk.startDate}～${bk.endDate}｜$${total}｜${bk.assignedTo||'未指派'}｜${bk.status}\n`;
+    txt+='[${i+1}] ${bk.ownerName}｜${bk.startDate}～${bk.endDate}｜$${total}｜'+(bk.assignedTo||'未指派')+'｜'+(bk.status)+'\n';
   });
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob(['\ufeff'+txt],{type:'text/plain;charset=utf-8'}));
-  a.download=`貓窩裏預約_${new Date().toLocaleDateString('zh-TW').replace(/\//g,'')}.txt`;
+  a.download='貓窩裏預約_'+(new Date().toLocaleDateString('zh-TW').replace(/\//g,''))+'.txt';
   a.click();
 }
 
@@ -1846,12 +1865,12 @@ async function renderReviewsAdmin(){
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
           <span style="font-size:1rem;">${r.rating||'★★★★★'}</span>
           <span style="font-weight:800;color:var(--pk);font-size:.86rem;">｜${r.sitter||'—'} 保母</span>
-          ${r.best?`<span class="badge b-ok" style="font-size:.66rem;">${r.best.split('、')[0]}</span>`:''}
+          ${r.best?'<span class="badge b-ok" style="font-size:.66rem;">'+(r.best.split('、')[0])+'</span>':''}
         </div>
         <div style="font-size:.84rem;color:var(--t);line-height:1.7;">
           🐾 <strong>${r.pet_name||r.petName||'—'}</strong>（${r.pet_type||r.petType||'—'}）
-          ${r.comment?`<br>💬「${r.comment}」`:''}
-          ${r.best?`<br>✨ 最滿意：${r.best}`:''}
+          ${r.comment?'<br>💬「'+(r.comment)+'」':''}
+          ${r.best?'<br>✨ 最滿意：'+(r.best)+'':''}
         </div>
         <div style="font-size:.72rem;color:var(--tl);margin-top:6px;">— ${r.author||'匿名'} ｜ ${r.ts?new Date(r.ts).toLocaleDateString('zh-TW'):''}</div>
         <div class="rev-admin-actions">
@@ -1885,18 +1904,18 @@ async function renderReviewsAdmin(){
 }
 
 function openRevEdit(id){
-  document.getElementById(`rvc-view-${id}`).style.display='none';
-  document.getElementById(`rvc-edit-${id}`).style.display='block';
+  document.getElementById('rvc-view-'+id).style.display='none';
+  document.getElementById('rvc-edit-'+id).style.display='block';
 }
 function cancelRevEdit(id){
-  document.getElementById(`rvc-view-${id}`).style.display='block';
-  document.getElementById(`rvc-edit-${id}`).style.display='none';
+  document.getElementById('rvc-view-'+id).style.display='block';
+  document.getElementById('rvc-edit-'+id).style.display='none';
 }
 async function saveRevEdit(id){
-  const rating=document.getElementById(`re-rating-${id}`).value;
-  const author=document.getElementById(`re-author-${id}`).value.trim();
-  const best=document.getElementById(`re-best-${id}`).value.trim();
-  const comment=document.getElementById(`re-comment-${id}`).value.trim();
+  const rating=document.getElementById('re-rating-'+id).value;
+  const author=document.getElementById('re-author-'+id).value.trim();
+  const best=document.getElementById('re-best-'+id).value.trim();
+  const comment=document.getElementById('re-comment-'+id).value.trim();
   await dbUpdateReview(id,{rating,author,best,comment});
   _rCache=null;
   await renderReviewsAdmin();
@@ -1964,7 +1983,7 @@ function goPage(page,el){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
   ['orders','salary','owners','coupons','reviews','passwords'].forEach(p=>{
-    document.getElementById(`page-${p}`).style.display=p===page?'block':'none';
+    document.getElementById('page-'+(p)+'').style.display=p===page?'block':'none';
   });
   const titles={orders:'📋 訂單管理',salary:'💰 薪資計算',owners:'🏠 毛孩爸媽系統',coupons:'🎟 折抵券',reviews:'⭐ 好評管理',passwords:'🔐 密碼總覽'};
   document.getElementById('pageTitle').textContent=titles[page]||'';
@@ -2010,7 +2029,7 @@ async function openEditOrder(bookId){
   if(!slots.length && bk.startDate && bk.endDate){
     const s=new Date(bk.startDate+'T00:00:00'), e=new Date(bk.endDate+'T00:00:00');
     for(let d=new Date(s);d<=e;d.setDate(d.getDate()+1)){
-      const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
       slots.push({date:key, slots:[]});
     }
   }
@@ -2083,15 +2102,17 @@ async function openEditOrder(bookId){
     <div class="edit-section">
       <div class="edit-section-title">📋 服務設定</div>
       <div class="edit-row"><span class="edit-label">服務</span>
-        ${SVC_OPT.map(s=>`<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;">
-          <input type="checkbox" name="e-svc" value="${s.k}" ${(bk.services||[]).includes(s.k)?'checked':''}> ${s.l}
-        </label>`).join('')}
+        ${SVC_OPT.map(function(s){
+          var chk=(bk.services||[]).includes(s.k)?'checked':'';
+          return '<label style="display:flex;align-items:center;gap:4px;font-size:.82rem;font-weight:700;"><input type="checkbox" name="e-svc" value="'+s.k+'" '+chk+'> '+s.l+'</label>';
+        }).join('')}
       </div>
       <div class="edit-row"><span class="edit-label">加購</span>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
-          ${ADDON_OPT.map(a=>`<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;">
-            <input type="checkbox" name="e-addon" value="${a}" ${(bk.addons||[]).includes(a)?'checked':''}> ${a}
-          </label>`).join('')}
+          ${ADDON_OPT.map(function(a){
+            var chk=(bk.addons||[]).includes(a)?'checked':'';
+            return '<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;"><input type="checkbox" name="e-addon" value="'+a+'" '+chk+'> '+a+'</label>';
+          }).join('')}
         </div>
       </div>
       <div class="edit-row"><span class="edit-label">車馬費</span><input class="edit-in" id="e-transport" type="number" value="${bk.transport||0}" style="width:80px;flex:none;"></div>
@@ -2112,8 +2133,34 @@ async function openEditOrder(bookId){
     </div>
 
     <div class="edit-section">
-      <div class="edit-section-title">📝 備註</div>
+      <div class="edit-section-title">📝 備註（飼主交代事項）</div>
       <textarea class="edit-in-full" id="e-note" rows="3" style="resize:vertical;">${bk.petNotes||bk.note||''}</textarea>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-section-title">🏠 家訪記錄</div>
+      <div class="edit-row"><span class="edit-label">家訪日期</span><input class="edit-in" id="e-hv-date" type="date" value="${bk.homeVisitDate||''}"></div>
+      <div class="edit-row"><span class="edit-label">家訪備註</span></div>
+      <textarea class="edit-in-full" id="e-hv-note" rows="3" style="resize:vertical;" placeholder="飼主環境說明、交代事項、注意事項...">${bk.homeVisitNote||''}</textarea>
+    </div>
+
+    <div class="edit-section">
+      <div class="edit-section-title">💰 費用收取</div>
+      <div class="edit-row"><span class="edit-label">收款日期</span><input class="edit-in" id="e-dep-date" type="date" value="${bk.depositDate||''}"></div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.84rem;font-weight:700;cursor:pointer;">
+          <input type="checkbox" id="e-dep-paid" ${bk.depositPaid?'checked':''} onchange="toggleDepositInput()">
+          已收訂金
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.84rem;font-weight:700;cursor:pointer;">
+          <input type="checkbox" id="e-full-paid" ${bk.fullPaid?'checked':''} onchange="toggleDepositInput()">
+          全額已收
+        </label>
+      </div>
+      <div id="e-dep-amount-row" style="display:${bk.depositPaid&&!bk.fullPaid?'flex':'none'};align-items:center;gap:8px;">
+        <span class="edit-label">訂金金額</span>
+        <input class="edit-in" id="e-dep-amount" type="number" value="${bk.depositAmount||0}" style="width:100px;flex:none;" placeholder="0">
+      </div>
     </div>
   `;
 
@@ -2134,7 +2181,7 @@ function updateEditSlotDate(input){
   const container = input.closest('div[style]');
   if(container){
     container.querySelectorAll('input[type=checkbox]').forEach(cb=>{
-      cb.name = `eslot-${newDate}`;
+      cb.name = 'eslot-'+newDate;
     });
     // Update date display
     const d=new Date(newDate+'T00:00:00');
@@ -2142,7 +2189,7 @@ function updateEditSlotDate(input){
     const dow=DAY_N[d.getDay()];
     const isHol=ADMIN_HOLIDAYS.has(newDate);
     const dateLabel=container.querySelector('div[style*="font-weight:900"]');
-    if(dateLabel) dateLabel.innerHTML=`📅 ${newDate}（${dow}）${isHol?'🎊':''} <input type="date" value="${newDate}" data-olddate="${newDate}" onchange="updateEditSlotDate(this)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--pk3);border-radius:6px;font-size:.74rem;">`;
+    if(dateLabel) dateLabel.innerHTML='📅 '+newDate+'（'+dow+'）'+(isHol?'🎊':'')+' <input type="date" value="'+newDate+'" data-olddate="'+newDate+'" onchange="updateEditSlotDate(this)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--pk3);border-radius:6px;font-size:.74rem;">';
     container.style.borderColor = isHol?'#FFB347':'var(--pk3)';
     container.style.background = isHol?'#FFFAF0':'#fff';
   }
@@ -2158,18 +2205,19 @@ function rebuildEditSlots(){
   const SLOT_OPT=[{k:'morning',l:'🌅 早上'},{k:'noon',l:'☀️ 中午'},{k:'evening',l:'🌙 晚上'}];
   let html='';
   for(let d=new Date(sd);d<=ed;d.setDate(d.getDate()+1)){
-    const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const key=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
     const dow=DAY_N[d.getDay()];
     const isHol=ADMIN_HOLIDAYS.has(key);
-    html+=`<div style="border:1.5px solid ${isHol?'#FFB347':'var(--pk3)'};border-radius:10px;padding:10px 12px;margin-bottom:8px;background:${isHol?'#FFFAF0':'#fff'};">
-      <div style="font-size:.78rem;font-weight:900;color:${isHol?'#C05000':'var(--pk)'};margin-bottom:6px;">
-        📅 ${key}（${dow}）${isHol?'🎊':''}
-        <input type="date" value="${key}" data-olddate="${key}" onchange="updateEditSlotDate(this)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--pk3);border-radius:6px;font-size:.74rem;">
-      </div>
-      <div class="slot-check-grid">
-        ${SLOT_OPT.map(sl=>`<label class="slot-check-label"><input type="checkbox" name="eslot-${key}" value="${sl.k}"> ${sl.l}</label>`).join('')}
-      </div>
-    </div>`;
+    const slotInputs=SLOT_OPT.map(function(sl){
+      return '<label class="slot-check-label"><input type="checkbox" name="eslot-'+key+'" value="'+sl.k+'"> '+sl.l+'</label>';
+    }).join('');
+    html+='<div style="border:1.5px solid '+(isHol?'#FFB347':'var(--pk3)')+';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:'+(isHol?'#FFFAF0':'#fff')+';">'
+      +'<div style="font-size:.78rem;font-weight:900;color:'+(isHol?'#C05000':'var(--pk)')+';margin-bottom:6px;">'
+      +'📅 '+key+'（'+dow+'）'+(isHol?' <span style="background:#FFE0A0;padding:1px 6px;border-radius:5px;font-size:.68rem;">連假</span>':'')
+      +'<input type="date" value="'+key+'" data-olddate="'+key+'" onchange="updateEditSlotDate(this)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--pk3);border-radius:6px;font-size:.74rem;">'
+      +'</div>'
+      +'<div class="slot-check-grid">'+slotInputs+'</div>'
+      +'</div>';
   }
   document.getElementById('e-slotsContainer').innerHTML=html;
 }
@@ -2181,7 +2229,7 @@ function updateEditPetCount(){
   if(cnt){
     const cats=[...rows].filter(r=>r.querySelector('[data-field="type"]')?.value==='cat').length;
     const dogs=[...rows].filter(r=>r.querySelector('[data-field="type"]')?.value==='dog').length;
-    cnt.textContent=`目前：🐱 ${cats}隻 🐶 ${dogs}隻（共${cats+dogs}隻）${cats+dogs>3?' ⚡第4隻起+$50/次':''}`;
+    cnt.textContent='目前：🐱 '+cats+'隻 🐶 '+dogs+'隻（共'+(cats+dogs)+'隻）'+(cats+dogs>3?' ⚡第4隻起+$50/次':'');
   }
 }
 
@@ -2191,47 +2239,52 @@ function addEditPet(type){
   const i=existing.length;
   const newPet={name:'',type,gender:'',age:''};
   const row=document.createElement('div');
-  row.innerHTML=`<div class="pet-edit-row" id="e-pet-${i}">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <span style="font-size:.74rem;font-weight:800;color:var(--tl);">第${i+1}隻 ${type==='cat'?'🐱':'🐶'} <span style="color:var(--pk);font-size:.7rem;">(新增)</span></span>
-      <button onclick="removeEditPet(${i})" style="padding:3px 8px;background:#FFF5F5;border:1.5px solid #FFBDBD;border-radius:6px;font-size:.72rem;font-weight:800;color:#E05252;cursor:pointer;">✖ 移除</button>
-    </div>
-    <div class="edit-row">
-      <span class="edit-label">名字</span>
-      <input class="edit-in" data-pet="${i}" data-field="name" placeholder="毛孩名字" onchange="updateEditPetCount()">
-      <span class="edit-label">種類</span>
-      <select class="edit-in" data-pet="${i}" data-field="type" style="flex:.5;" onchange="updateEditPetCount()">
-        <option value="cat" ${type==='cat'?'selected':''}>🐱 貓</option>
-        <option value="dog" ${type==='dog'?'selected':''}>🐶 狗</option>
-      </select>
-    </div>
-    <div class="edit-row">
-      <span class="edit-label">性別</span>
-      <input class="edit-in" data-pet="${i}" data-field="gender" placeholder="公/母">
-      <span class="edit-label">年齡</span>
-      <input class="edit-in" data-pet="${i}" data-field="age" placeholder="幾歲">
-    </div>
-  </div>`;
+  row.innerHTML='<div class="pet-edit-row" id="e-pet-'+i+'">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+      +'<span style="font-size:.74rem;font-weight:800;color:var(--tl);">第'+(i+1)+'隻 '+(type==='cat'?'🐱':'🐶')+' <span style=\"color:var(--pk);font-size:.7rem;\">(新增)</span></span>'
+      +'<button onclick="removeEditPet('+i+')" style="padding:3px 8px;background:#FFF5F5;border:1.5px solid #FFBDBD;border-radius:6px;font-size:.72rem;font-weight:800;color:#E05252;cursor:pointer;">✖ 移除</button>'
+      +'</div>'
+      +'<div class="edit-row"><span class="edit-label">名字</span>'
+      +'<input class="edit-in" data-pet="'+i+'" data-field="name" placeholder="毛孩名字" onchange="updateEditPetCount()">'
+      +'<span class="edit-label">種類</span>'
+      +'<select class="edit-in" data-pet="'+i+'" data-field="type" style="flex:.5;" onchange="updateEditPetCount()">'
+      +'<option value="cat"'+(type==='cat'?' selected':'')+'>🐱 貓</option>'
+      +'<option value="dog"'+(type==='dog'?' selected':'')+'>🐶 狗</option>'
+      +'</select></div>'
+      +'<div class="edit-row"><span class="edit-label">性別</span>'
+      +'<input class="edit-in" data-pet="'+i+'" data-field="gender" placeholder="公/母">'
+      +'<span class="edit-label">年齡</span>'
+      +'<input class="edit-in" data-pet="'+i+'" data-field="age" placeholder="幾歲">'
+      +'</div></div>';;
   container.appendChild(row.firstElementChild);
   updateEditPetCount();
 }
 
 function removeEditPet(idx){
-  const row=document.getElementById(`e-pet-${idx}`);
+  const row=document.getElementById('e-pet-'+idx);
   if(row){
     if(!confirm('確定移除這隻毛孩？'))return;
     row.remove();
     // Re-index remaining rows
     document.querySelectorAll('.pet-edit-row').forEach((r,i)=>{
-      r.id=`e-pet-${i}`;
+      r.id='e-pet-'+(i)+'';
       r.querySelectorAll('[data-pet]').forEach(el=>el.dataset.pet=i);
       const label=r.querySelector('span[style*="font-weight:800"]');
-      if(label) label.textContent=`第${i+1}隻 `+(r.querySelector('[data-field="type"]')?.value==='cat'?'🐱':'🐶');
+      if(label) label.textContent='第'+(i+1)+'隻 '+(r.querySelector('[data-field="type"]')?.value==='cat'?'🐱':'🐶');
     });
     updateEditPetCount();
   }
 }
 
+
+function toggleDepositInput(){
+  const depPaid=document.getElementById('e-dep-paid')?.checked;
+  const fullPaid=document.getElementById('e-full-paid')?.checked;
+  const row=document.getElementById('e-dep-amount-row');
+  if(row) row.style.display=(depPaid&&!fullPaid)?'flex':'none';
+  if(fullPaid && document.getElementById('e-dep-paid'))
+    document.getElementById('e-dep-paid').checked=false;
+}
 async function saveEditOrder(){
   const id=_editingBookId;
   if(!id){alert('無編輯中訂單');return;}
@@ -2254,13 +2307,28 @@ async function saveEditOrder(){
   const services=[...document.querySelectorAll('input[name="e-svc"]:checked')].map(x=>x.value);
   const addons=[...document.querySelectorAll('input[name="e-addon"]:checked')].map(x=>x.value);
 
-  // Collect slots
+  // Collect slots — only rebuild if dates changed, else keep existing assignedTo
   const slotContainer=document.getElementById('e-slotsContainer');
   const allSlotDates=[...new Set([...slotContainer.querySelectorAll('input[type=checkbox]')].map(cb=>cb.name.replace('eslot-','')))];
   const newSlots=allSlotDates.map(date=>({
     date,
-    slots:[...slotContainer.querySelectorAll(`input[name="eslot-${date}"]:checked`)].map(cb=>cb.value)
+    slots:[...slotContainer.querySelectorAll('input[name="eslot-'+(date)+'"]:checked')].map(cb=>cb.value)
   })).filter(d=>d.slots.length>0);
+  // Keep existing assigned_to (with sitter info) if slots didn't change
+  const existingAssigned=bk.assignedTo||'';
+  let preserveAssigned=false;
+  if(existingAssigned){
+    try{
+      const ex=JSON.parse(existingAssigned);
+      // If format2 (has sitter assignments), check if dates match
+      if(Array.isArray(ex)&&ex.length&&ex[0].slot!==undefined){
+        const exDates=new Set(ex.map(a=>a.date));
+        const newDates=new Set(newSlots.flatMap(d=>d.slots.map(()=>d.date)));
+        const same=[...newDates].every(d=>exDates.has(d))&&[...exDates].every(d=>newDates.has(d));
+        if(same) preserveAssigned=true;
+      }
+    }catch(e){}
+  }
 
   const startDate=document.getElementById('e-startDate').value;
   const endDate=document.getElementById('e-endDate').value;
@@ -2276,8 +2344,14 @@ async function saveEditOrder(){
     cat_count:catCount, dog_count:dogCount,
     services,addons,transport,
     start_date:startDate,end_date:endDate,
-    assigned_to:JSON.stringify(newSlots),
+    assigned_to:preserveAssigned?existingAssigned:JSON.stringify(newSlots),
     pet_notes:note,
+    home_visit_date:document.getElementById('e-hv-date')?.value||'',
+    home_visit_note:document.getElementById('e-hv-note')?.value||'',
+    deposit_date:document.getElementById('e-dep-date')?.value||'',
+    deposit_amount:parseInt(document.getElementById('e-dep-amount')?.value)||0,
+    deposit_paid:document.getElementById('e-dep-paid')?.checked||false,
+    full_paid:document.getElementById('e-full-paid')?.checked||false,
   };
 
   const btn=document.querySelector('#editOrderMod .btn-pk');
@@ -2292,6 +2366,9 @@ async function saveEditOrder(){
       petData:fields.pet_data,catCount,dogCount,
       services,addons,transport,
       startDate,endDate,assignedTo:fields.assigned_to,
+      homeVisitDate:fields.home_visit_date,homeVisitNote:fields.home_visit_note,
+      depositDate:fields.deposit_date,depositAmount:fields.deposit_amount,
+      depositPaid:fields.deposit_paid,fullPaid:fields.full_paid,
       petNotes:note,
     });
     closeM('editOrderMod');
@@ -2308,6 +2385,93 @@ async function checkAssigned(orderId){
   if(res.error){alert('讀取失敗：'+res.error.message);return;}
   var val=(res.data&&res.data[0])?res.data[0].assigned_to:'(空)';
   alert('訂單 #'+orderId+' DB中的 assigned_to:\n\n'+String(val));
+}
+
+async function saveVisitInfo(bookId){
+  const visitDate=document.getElementById('vi-date-'+bookId)?.value||'';
+  const visitNotes=document.getElementById('vi-notes-'+bookId)?.value||'';
+  const caution=document.getElementById('vi-caution-'+bookId)?.value||'';
+  await dbUpdateOrder(bookId,{visit_date:visitDate,visit_notes:visitNotes,caution});
+  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  if(bk){bk.visitDate=visitDate;bk.visitNotes=visitNotes;bk.caution=caution;}
+  const msg=document.getElementById('vi-msg-'+bookId);
+  if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>msg.textContent='',2000);}
+}
+
+async function savePaymentInfo(bookId,total){
+  const depositPaid=document.getElementById('dep-paid-'+bookId)?.checked||false;
+  const fullPaid=document.getElementById('full-paid-'+bookId)?.checked||false;
+  const depositAmount=parseInt(document.getElementById('dep-amt-'+bookId)?.value)||0;
+  const depositDate=document.getElementById('dep-date-'+bookId)?.value||'';
+  await dbUpdateOrder(bookId,{deposit_paid:depositPaid,full_paid:fullPaid,deposit_amount:depositAmount,deposit_date:depositDate});
+  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  if(bk){bk.depositPaid=depositPaid;bk.fullPaid=fullPaid;bk.depositAmount=depositAmount;bk.depositDate=depositDate;}
+  const msg=document.getElementById('pay-msg-'+bookId);
+  if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>msg.textContent='',2000);}
+  showDetail(bookId);
+}
+
+function toggleDepositInput(bookId){
+  const checked=document.getElementById('dep-paid-'+bookId)?.checked;
+  const amt=document.getElementById('dep-amt-'+bookId);
+  if(amt)amt.style.opacity=checked?'1':'0.4';
+}
+
+function buildVisitPaymentHTML(bk, total){
+  const vid=bk.id;
+  const vDate=bk.visitDate||'';
+  const vNotes=(bk.visitNotes||'').replace(/"/g,'&quot;');
+  const vCaution=(bk.caution||'').replace(/"/g,'&quot;');
+  const depPaid=bk.depositPaid?'checked':'';
+  const fullPaid=bk.fullPaid?'checked':'';
+  const depAmt=bk.depositAmount||0;
+  const depDate=bk.depositDate||'';
+  const remaining=Math.max(0,total-depAmt);
+
+  let paidStatus,paidColor;
+  if(bk.fullPaid){paidStatus='款項全收';paidColor='#06C755';}
+  else if(bk.depositPaid){paidStatus='已收訂金 $'+depAmt+'，剩餘 $'+remaining;paidColor='#FF9500';}
+  else{paidStatus='未收款';paidColor='#E05252';}
+
+  return [
+    '<div style="margin-top:16px;padding:14px;background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;">',
+    '<div style="font-size:.78rem;font-weight:900;color:#0369A1;margin-bottom:10px;">🏠 家訪資訊</div>',
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">',
+    '<span style="font-size:.74rem;font-weight:800;color:var(--tl);min-width:56px;">家訪日期</span>',
+    '<input type="date" id="vi-date-'+vid+'" value="'+vDate+'" style="padding:6px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;outline:none;">',
+    '</div>',
+    '<div style="margin-bottom:8px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">飼主備註</div>',
+    '<textarea id="vi-notes-'+vid+'" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;resize:vertical;outline:none;">'+vNotes+'</textarea>',
+    '</div>',
+    '<div style="margin-bottom:10px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">注意事項</div>',
+    '<textarea id="vi-caution-'+vid+'" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;resize:vertical;outline:none;">'+vCaution+'</textarea>',
+    '</div>',
+    '<button onclick="saveVisitInfo('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存家訪</button>',
+    '<span id="vi-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
+    '</div>',
+    '<div style="margin-top:12px;padding:14px;background:#F0FFF4;border:1.5px solid #52C48A;border-radius:12px;">',
+    '<div style="font-size:.78rem;font-weight:900;color:#1A7A4A;margin-bottom:10px;">💵 費用收取</div>',
+    '<div style="background:#fff;border:2px solid '+paidColor+';border-radius:10px;padding:8px 14px;margin-bottom:12px;text-align:center;">',
+    '<div style="font-size:.76rem;color:var(--tl);">收款狀態</div>',
+    '<div style="font-size:1rem;font-weight:900;color:'+paidColor+';">'+paidStatus+'</div>',
+    '</div>',
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">',
+    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
+    '<input type="checkbox" id="dep-paid-'+vid+'" '+depPaid+' onchange="toggleDepositInput('+vid+')"> 已收訂金</label>',
+    '<input type="date" id="dep-date-'+vid+'" value="'+depDate+'" style="padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-family:inherit;font-size:.8rem;outline:none;">',
+    '<span style="font-size:.8rem;font-weight:700;">$</span>',
+    '<input type="number" id="dep-amt-'+vid+'" value="'+(depAmt||'')+'" placeholder="訂金金額" style="width:90px;padding:5px 8px;border:1.5px solid #52C48A;border-radius:7px;font-size:.82rem;outline:none;">',
+    '</div>',
+    '<div style="margin-bottom:10px;">',
+    '<label style="display:flex;align-items:center;gap:5px;font-size:.82rem;font-weight:800;cursor:pointer;">',
+    '<input type="checkbox" id="full-paid-'+vid+'" '+fullPaid+'> ✅ 全額已收（$'+total.toLocaleString()+'）</label>',
+    '</div>',
+    '<button onclick="savePaymentInfo('+vid+','+total+')" style="padding:7px 18px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存收款</button>',
+    '<span id="pay-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
+    '</div>'
+  ].join('');
 }
 async function refreshAll(){await renderStats();renderOrders();}
 

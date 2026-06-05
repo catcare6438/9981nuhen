@@ -1607,7 +1607,7 @@ function showDetail(bookId){
   html+=buildVisitPaymentHTML(bk, Math.max(0,total));
   document.getElementById('detailContent').innerHTML=html;
   document.getElementById('detailMod').classList.add('show');
-  }catch(e){alert('明細錯誤：'+e.message);}
+  }catch(e){alert('明細錯誤：'+e.message+'\n'+e.stack.split('\n').slice(0,3).join('\n'));}
 }
 
 async function addAdj(bookId){

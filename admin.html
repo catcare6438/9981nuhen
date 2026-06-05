@@ -1516,7 +1516,7 @@ function showDetail(bookId){
   const{slotsByDate,totalDays}=parseSlotStats(bk);
 
   const R=(label,unit,times,each,sub)=>
-    '<tr><td style="padding:7px 10px;">${label}</td><td style="padding:7px 10px;color:var(--tl);">${unit}</td><td style="padding:7px 10px;">${times}</td><td style="padding:7px 10px;color:var(--pk);">$${each}</td><td style="padding:7px 10px;font-weight:800;text-align:right;">$'+(sub)+'</td></tr>';
+    `<tr><td style="padding:7px 10px;">${label}</td><td style="padding:7px 10px;color:var(--tl);">${unit}</td><td style="padding:7px 10px;">${times}</td><td style="padding:7px 10px;color:var(--pk);">$${each}</td><td style="padding:7px 10px;font-weight:800;text-align:right;">$'+(sub)+'</td></tr>`;
 
   let rows='';
   (bk.services||[]).forEach(k=>{
@@ -2137,31 +2137,6 @@ async function openEditOrder(bookId){
       <textarea class="edit-in-full" id="e-note" rows="3" style="resize:vertical;">${bk.petNotes||bk.note||''}</textarea>
     </div>
 
-    <div class="edit-section">
-      <div class="edit-section-title">🏠 家訪記錄</div>
-      <div class="edit-row"><span class="edit-label">家訪日期</span><input class="edit-in" id="e-hv-date" type="date" value="${bk.homeVisitDate||''}"></div>
-      <div class="edit-row"><span class="edit-label">家訪備註</span></div>
-      <textarea class="edit-in-full" id="e-hv-note" rows="3" style="resize:vertical;" placeholder="飼主環境說明、交代事項、注意事項...">${bk.homeVisitNote||''}</textarea>
-    </div>
-
-    <div class="edit-section">
-      <div class="edit-section-title">💰 費用收取</div>
-      <div class="edit-row"><span class="edit-label">收款日期</span><input class="edit-in" id="e-dep-date" type="date" value="${bk.depositDate||''}"></div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;">
-        <label style="display:flex;align-items:center;gap:6px;font-size:.84rem;font-weight:700;cursor:pointer;">
-          <input type="checkbox" id="e-dep-paid" ${bk.depositPaid?'checked':''} onchange="toggleDepositInput()">
-          已收訂金
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:.84rem;font-weight:700;cursor:pointer;">
-          <input type="checkbox" id="e-full-paid" ${bk.fullPaid?'checked':''} onchange="toggleDepositInput()">
-          全額已收
-        </label>
-      </div>
-      <div id="e-dep-amount-row" style="display:${bk.depositPaid&&!bk.fullPaid?'flex':'none'};align-items:center;gap:8px;">
-        <span class="edit-label">訂金金額</span>
-        <input class="edit-in" id="e-dep-amount" type="number" value="${bk.depositAmount||0}" style="width:100px;flex:none;" placeholder="0">
-      </div>
-    </div>
   `;
 
   document.getElementById('editOrderContent').innerHTML = html;

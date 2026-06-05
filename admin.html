@@ -1363,6 +1363,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn oa-del" onclick="event.stopPropagation();delO('+bk.id+')">🗑 刪除</button>'
     +'<button class="oa-btn" style="background:var(--pk4);color:var(--pk);border-color:var(--pk2);" onclick="event.stopPropagation();openGenPw('+bk.id+')">'+(hasPw?'🔑 查看':'🔑 設定')+'密碼</button>'
     +'<button class="oa-btn" style="background:#F0FFF4;color:#1A7A4A;border-color:#52C48A;" onclick="event.stopPropagation();showPetDetail('+bk.id+')">🐾 寵物資料</button>'
+    +(bk.status==='已完成'?('<button class="oa-btn" style="background:#FFF9E8;color:#B8860B;border-color:#FFD700;" onclick="event.stopPropagation();openAdminReview('+bk.id+')">⭐ 好評管理</button>'):'')
     +'</div>'
     +'</div></div></div>';
 }
@@ -1573,7 +1574,12 @@ function showDetail(bookId){
     if(cnySessions>0)  rows+=R(sn+'（春節🧧）',CNY_PRICE[k]||0,'× '+cnySessions+'次',(CNY_PRICE[k]||0)*cnySessions);
   });
   (bk.addons||[]).forEach(function(a){
-    rows+=R(a,AN[a]||0,'× '+totalSessions+'次',(AN[a]||0)*totalSessions);
+    // 支援 "餵藥×3隻" 格式
+    var m2=a.match(/^(.+?)[×x\*×](\d+)/);
+    var aName=m2?m2[1].trim():a;
+    var aQty=m2?parseInt(m2[2]):1;
+    var aPrice=(AN[aName]||AN[a]||50)*aQty;
+    rows+=R(a,aPrice,'× '+totalSessions+'次',aPrice*totalSessions);
   });
   var totalPets=(bk.catCount||0)+(bk.dogCount||0);
   if(totalPets>3){
@@ -2486,6 +2492,35 @@ function buildVisitPaymentHTML(bk, total){
     '<span id="vi-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
     '</div>'
   ].join('');
+}
+
+async function openAdminReview(bookId){
+  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  if(!bk)return;
+  const petName=bk.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk.petName||'毛孩');
+  const sitterName=parseAssignedSitters(bk.assignedTo).join('、')||'保母';
+
+  // Check if review already exists
+  let existingReview=null;
+  try{
+    const{data}=await _supa.from('reviews').select('*').eq('book_id',bookId).limit(1);
+    if(data&&data[0]) existingReview=data[0];
+  }catch(e){}
+
+  const el=document.getElementById('reviewListAdmin');
+  // Open review tab and highlight this order
+  showPage('reviews');
+  setTimeout(function(){
+    document.getElementById('reviewListAdmin').insertAdjacentHTML('afterbegin',
+      '<div style="background:linear-gradient(135deg,#FFF9E8,#FFF3C0);border:2px solid #FFD700;border-radius:14px;padding:16px;margin-bottom:12px;">'
+      +'<div style="font-weight:900;color:#B8860B;margin-bottom:8px;">⭐ 訂單 #'+bookId+' — '+petName+' — '+sitterName+'</div>'
+      +(existingReview
+        ?('<div style="color:#06C755;font-weight:800;">✅ 已有好評：'+( existingReview.rating||'★★★★★')+'　'+( existingReview.comment||'')+'</div>'
+          +'<div style="font-size:.76rem;color:var(--tl);margin-top:4px;">— '+(existingReview.author||'')+'</div>')
+        :('<div style="color:var(--tl);font-size:.84rem;">尚無好評，可以聯絡飼主請他填寫好評</div>'))
+      +'</div>'
+    );
+  },300);
 }
 async function refreshAll(){await renderStats();renderOrders();}
 

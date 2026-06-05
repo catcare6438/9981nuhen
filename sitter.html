@@ -248,6 +248,10 @@ async function dbGetReports(bookId){
     hasVideo:!!(r.video_data_url)
   }));
 }
+async function dbUpdateReport(ts, fields){
+  const{error}=await _supa.from('reports').update(fields).eq('ts',ts);
+  if(error)console.error('updateReport:',error.message);
+}
 async function dbInsertReport(r){
   const row={
     ts:     Number(r.ts)||Date.now(),
@@ -1127,7 +1131,10 @@ async function renderHistList(reps){
           <div class="rep-date">📅 ${r.date}　${r.timeStart||''}${r.timeEnd?' — '+r.timeEnd:''}</div>
           <div style="font-size:.78rem;color:var(--tm);margin-top:2px;font-weight:700;">📋 ${r.bookName}　🐾 共 ${r.petReports?.length||0} 隻</div>
         </div>
-        <button class="abtn ab-g" onclick="exportSingleReport(${r.ts})" style="font-size:.74rem;padding:6px 12px;">📄 匯出明細</button>
+        <div style="display:flex;gap:6px;">
+          <button class="abtn" style="font-size:.74rem;padding:6px 12px;background:var(--pk4);border:1.5px solid var(--pk3);color:var(--pk);" onclick="openEditReport(${r.ts})">✏️ 編輯</button>
+          <button class="abtn ab-g" onclick="exportSingleReport(${r.ts})" style="font-size:.74rem;padding:6px 12px;">📄 匯出明細</button>
+        </div>
       </div>
       ${disinfectHtml}
       ${petsHtml}
@@ -1138,6 +1145,82 @@ async function renderHistList(reps){
   }).join('');
 }
 
+
+let _editingRepTs = null;
+
+async function openEditReport(ts){
+  _editingRepTs = ts;
+  const allRep = await getReps();
+  const r = allRep.find(x=>x.ts===ts);
+  if(!r){alert('找不到回報記錄');return;}
+
+  document.getElementById('editRepContent').innerHTML = [
+    '<div style="margin-bottom:10px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📅 日期</div>',
+    '<input type="date" id="er-date" value="'+(r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;">',
+    '</div>',
+    '<div style="display:flex;gap:10px;margin-bottom:10px;">',
+    '<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 開始時間</div>',
+    '<input type="time" id="er-start" value="'+(r.timeStart||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>',
+    '<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 結束時間</div>',
+    '<input type="time" id="er-end" value="'+(r.timeEnd||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>',
+    '</div>',
+    '<div style="margin-bottom:10px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記／備註</div>',
+    '<textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(r.diary||'')+'</textarea>',
+    '</div>',
+    r.petReports&&r.petReports.length ? '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:8px;">🐾 毛孩狀況（可修改備註）</div>' +
+      r.petReports.map(function(p,i){
+        return '<div style="margin-bottom:8px;padding:10px;background:var(--pk4);border-radius:10px;">'
+          +'<div style="font-weight:800;font-size:.82rem;color:var(--pk);margin-bottom:6px;">'+(p.name||'毛孩'+(i+1))+'</div>'
+          +'<textarea id="er-pet-'+i+'" rows="2" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;resize:vertical;box-sizing:border-box;" placeholder="狀況備註...">'+(p.note||p.status||'')+'</textarea>'
+          +'</div>';
+      }).join('') : '',
+    '<div id="er-msg" style="font-size:.76rem;color:var(--g);font-weight:800;min-height:1.2em;"></div>'
+  ].join('');
+
+  document.getElementById('editRepMod').style.display='block';
+}
+
+async function saveEditReport(){
+  const ts = _editingRepTs;
+  if(!ts)return;
+  const allRep = await getReps();
+  const r = allRep.find(x=>x.ts===ts);
+  if(!r)return;
+
+  const date = document.getElementById('er-date').value;
+  const timeStart = document.getElementById('er-start').value;
+  const timeEnd = document.getElementById('er-end').value;
+  const diary = document.getElementById('er-diary').value;
+
+  // Update pet notes
+  const petReports = (r.petReports||[]).map(function(p,i){
+    const noteEl = document.getElementById('er-pet-'+i);
+    if(noteEl) p.note = noteEl.value;
+    return p;
+  });
+
+  const updates = {date, time_start:timeStart, time_end:timeEnd, diary, pet_reports:petReports};
+
+  const btn = document.querySelector('#editRepMod button');
+  if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}
+
+  try{
+    await dbUpdateReport(ts, updates);
+    // Update local cache
+    Object.assign(r, {date, timeStart, timeEnd, diary, petReports});
+    document.getElementById('er-msg').textContent='✅ 已儲存';
+    setTimeout(function(){
+      document.getElementById('editRepMod').style.display='none';
+      renderCases(); // refresh report list
+    }, 800);
+  }catch(e){
+    alert('儲存失敗：'+e.message);
+  }finally{
+    if(btn){btn.textContent='💾 儲存';btn.disabled=false;}
+  }
+}
 async function exportSingleReport(ts){
   const _allRep=await getReps();
   const r=_allRep.find(x=>x.ts===ts);
@@ -1719,6 +1802,18 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
     <h3>🐾 寵物照護資料</h3>
     <div id="spDetailInner"></div>
     <button class="btn btn-ghost" style="width:100%;margin-top:12px;padding:11px;border-radius:12px;" onclick="closeM('spDetailMod')">關閉</button>
+  </div>
+</div>
+
+<!-- EDIT REPORT MODAL -->
+<div class="r-mod" id="editRepMod" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;overflow-y:auto;padding:20px;">
+  <div style="background:#fff;border-radius:20px;max-width:540px;margin:0 auto;padding:24px;">
+    <h3 style="color:var(--pk);font-family:'Nunito',sans-serif;margin:0 0 16px;">✏️ 編輯回報</h3>
+    <div id="editRepContent"></div>
+    <div style="display:flex;gap:10px;margin-top:16px;">
+      <button onclick="saveEditReport()" style="flex:1;padding:12px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:12px;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">💾 儲存</button>
+      <button onclick="document.getElementById('editRepMod').style.display='none'" style="flex:1;padding:12px;background:#f5f5f5;border:1.5px solid #ddd;color:var(--t);border-radius:12px;font-weight:800;cursor:pointer;">取消</button>
+    </div>
   </div>
 </div>
 </body>

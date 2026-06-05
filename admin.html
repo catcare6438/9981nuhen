@@ -2468,11 +2468,22 @@ async function uploadContractFiles(bookId){
   if(feeFile) fields.fee_table_url=await toDataUrl(feeFile);
 
   try{
-    await dbUpdateOrder(bookId,fields);
-    const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+    // Direct update to Supabase with correct field names
+    const numId=parseInt(bookId)||bookId;
+    const{error:upErr}=await _supa.from('orders').update(fields).eq('id',numId);
+    if(upErr) throw new Error(upErr.message);
+
+    // Verify by reading back
+    const{data:vData}=await _supa.from('orders').select('contract_url,fee_table_url').eq('id',numId).limit(1);
+    const saved=vData&&vData[0];
+    if(!saved||(fields.contract_url&&!saved.contract_url)){
+      throw new Error('儲存成功但讀取不到，可能欄位不存在，請先執行 add_visit_payment.sql');
+    }
+
+    const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===numId);
     if(bk){
-      if(fields.contract_url) bk.contractUrl=fields.contract_url;
-      if(fields.fee_table_url) bk.feeTableUrl=fields.fee_table_url;
+      if(saved.contract_url) bk.contractUrl=saved.contract_url;
+      if(saved.fee_table_url) bk.feeTableUrl=saved.fee_table_url;
     }
     if(msg)msg.textContent='✅ 上傳成功';
     setTimeout(function(){showDetail(bookId);},500);

@@ -882,7 +882,12 @@ function parseSlotStats(bk){
 function calcBv2(bk){
   const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   const{totalSessions,holSessions,cnySessions,normSessions}=parseSlotStats(bk);
-  const addon=(bk.addons||[]).reduce((s,a)=>s+(AN[a]||0),0);
+  const addon=(bk.addons||[]).reduce((s,a)=>{
+    var m2=a.match(/^(.+?)[×x\*×](\d+)/);
+    var nm=m2?m2[1].trim():a;
+    var qty=m2?parseInt(m2[2]):1;
+    return s+(AN[nm]||AN[a]||50)*qty;
+  },0);
   const totalPets=(bk.catCount||0)+(bk.dogCount||0);
   const extra=totalPets>3?(totalPets-3)*50:0;
   let normSvcSub=0,holSvcSub=0,cnySvcSub=0;
@@ -1596,7 +1601,7 @@ function showDetail(bookId){
     if(amt!==0){
       var color=amt<0?'#06C755':'#E05252';
       var sign=amt>0?'+':'';
-      rows+=R((amt<0?'🎫':'➕')+' '+(a.reason||'手動調整'),'','','',
+      rows+=R((amt<0?'🎫':'➕')+' '+(a.reason||'手動調整'),'','',
         '<span style="color:'+color+';font-weight:900;">'+sign+amt+'</span>');
     }
   });

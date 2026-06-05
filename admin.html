@@ -1550,7 +1550,7 @@ function showDetail(bookId){
   }
   const dateRange=(bk.startDate||'')+'～'+(bk.endDate||'')+'（共'+displayDays+'天，'+totalSessions+'次）';
 
-  const html=`
+  let html=`
     <div style="margin-bottom:12px;font-size:.82rem;color:var(--tl);">
       服務期間：<strong>${dateRange}</strong>
       ${(holSessions>0||cnySessions>0)?('<span style="color:#C05000;font-weight:800;margin-left:8px;">'+(cnySessions>0?'🧧 春節'+cnySessions+'次 ':'')+' '+(holSessions>0?'🎊 連假'+holSessions+'次 ':'')+' 平日'+normSessions+'次</span>'):''}

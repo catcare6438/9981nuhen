@@ -435,7 +435,7 @@ function dbRowToOrder(r){
     visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
-    payMethod:r.pay_method||'',payNote:r.pay_note||''
+    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||''
   };
 }
 </script>
@@ -1159,7 +1159,41 @@ function buildOwnerDetailHTML(bk){
     ].join(''):'',
   ];
 
+  // Contract & Fee table section
+  sections.push(buildContractSection(bk));
+
   return sections.join('');
+}
+
+function buildContractSection(bk){
+  var contract = bk.contractUrl||'';
+  var feeTable = bk.feeTableUrl||'';
+  if(!contract && !feeTable) return '';
+  var html = ['<div style="margin-top:10px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">📄 合約 &amp; 費用表</div>',
+    '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">'];
+  if(contract){
+    html.push('<div>');
+    html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📋 服務合約書</div>');
+    if(contract.startsWith('data:image')){
+      html.push('<img src="'+contract+'" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);">');
+    } else if(contract.startsWith('data:application/pdf')){
+      html.push('<a href="'+contract+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 點擊查看合約書 PDF</a>');
+    }
+    html.push('</div>');
+  }
+  if(feeTable){
+    html.push('<div>');
+    html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">💰 服務費用表</div>');
+    if(feeTable.startsWith('data:image')){
+      html.push('<img src="'+feeTable+'" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);">');
+    } else if(feeTable.startsWith('data:application/pdf')){
+      html.push('<a href="'+feeTable+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 點擊查看費用表 PDF</a>');
+    }
+    html.push('</div>');
+  }
+  html.push('</div></div>');
+  return html.join('');
 }
 async function initReferralCode(){
   if(!currentBookId)return;

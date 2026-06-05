@@ -1555,35 +1555,34 @@ function showDetail(bookId){
   const totalDays=parseSlotStats(bk).totalDays;
 
   // Table row builder
-  function R(label,unit,times,unitPrice,sub){
-    var priceCell = (typeof unitPrice==='number') ? ('$'+unitPrice) : (unitPrice||'');
-    var subCell   = (typeof sub==='number') ? ('$'+sub.toLocaleString()) : (sub||'');
+  function R(label,unitPrice,times,sub){
+    var priceCell=(typeof unitPrice==='number')?('$'+unitPrice):(unitPrice||'');
+    var subCell=(typeof sub==='number')?('$'+sub.toLocaleString()):(sub||'');
     return '<tr style="border-bottom:1px solid #FFF0F5;">'
       +'<td style="padding:8px 10px;">'+label+'</td>'
-      +'<td style="padding:8px 10px;color:var(--tl);">'+unit+'</td>'
-      +'<td style="padding:8px 10px;">'+times+'</td>'
       +'<td style="padding:8px 10px;color:var(--pk);">'+priceCell+'</td>'
+      +'<td style="padding:8px 10px;color:var(--tl);">'+times+'</td>'
       +'<td style="padding:8px 10px;font-weight:800;text-align:right;">'+subCell+'</td></tr>';
   }
 
   var rows='';
   (bk.services||[]).forEach(function(k){
     var sn=SN[k]||k;
-    if(normSessions>0) rows+=R(sn+'（平日）','/ 次','× '+normSessions+'次',SVC_PRICE[k]||0,(SVC_PRICE[k]||0)*normSessions);
-    if(holSessions>0)  rows+=R(sn+'（連假🎊）','/ 次','× '+holSessions+'次',HOL_PRICE[k]||0,(HOL_PRICE[k]||0)*holSessions);
-    if(cnySessions>0)  rows+=R(sn+'（春節🧧）','/ 次','× '+cnySessions+'次',CNY_PRICE[k]||0,(CNY_PRICE[k]||0)*cnySessions);
+    if(normSessions>0) rows+=R(sn+'（平日）',SVC_PRICE[k]||0,'× '+normSessions+'次',(SVC_PRICE[k]||0)*normSessions);
+    if(holSessions>0)  rows+=R(sn+'（連假🎊）',HOL_PRICE[k]||0,'× '+holSessions+'次',(HOL_PRICE[k]||0)*holSessions);
+    if(cnySessions>0)  rows+=R(sn+'（春節🧧）',CNY_PRICE[k]||0,'× '+cnySessions+'次',(CNY_PRICE[k]||0)*cnySessions);
   });
   (bk.addons||[]).forEach(function(a){
-    rows+=R(a,'/ 次','× '+totalSessions+'次',AN[a]||0,(AN[a]||0)*totalSessions);
+    rows+=R(a,AN[a]||0,'× '+totalSessions+'次',(AN[a]||0)*totalSessions);
   });
   var totalPets=(bk.catCount||0)+(bk.dogCount||0);
   if(totalPets>3){
     var overPets=totalPets-3;
     var eu=50*overPets;
-    rows+=R('第4隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$50）','/ 次','× '+totalSessions+'次',eu,eu*totalSessions);
+    rows+=R('第4隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$50）',eu,'× '+totalSessions+'次',eu*totalSessions);
   }
-  if(urgent>0) rows+=R('急件加收','/ 單','×1',urgent,urgent);
-  if(bk.transport>0) rows+=R('車馬費','/ 次','× '+totalSessions+'次',bk.transport,(bk.transport)*totalSessions);
+  if(urgent>0) rows+=R('急件加收',urgent,'×1',urgent);
+  if(bk.transport>0) rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
 
   var adjs2=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
   adjs2.forEach(function(a){
@@ -1623,9 +1622,8 @@ function showDetail(bookId){
     +'<table style="width:100%;border-collapse:collapse;font-size:.82rem;">'
     +'<thead><tr style="background:var(--pk4);border-bottom:2px solid var(--pk3);">'
     +'<th style="padding:8px 10px;text-align:left;color:var(--pk);">項目</th>'
-    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">單位</th>'
-    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>'
     +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>'
+    +'<th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>'
     +'<th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>'
     +'</tr></thead>'
     +'<tbody>'+rows+'</tbody>'

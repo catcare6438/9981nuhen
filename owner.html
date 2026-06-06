@@ -763,6 +763,23 @@ function ownerLogout(){
 }
 
 // ── 渲染所有訂單手風琴 ──
+// Date accordion click delegation  
+document.addEventListener('click',function(e){
+  var hdr=e.target.closest('[data-dkey2]');
+  if(hdr){toggleDateAcc(hdr.dataset.dkey2);}
+});
+// Slot tab click delegation
+document.addEventListener('click',function(e){
+  var tab=e.target.closest('.slot-tab[data-dkey]');
+  if(tab){
+    var dKey=tab.dataset.dkey;
+    var si=parseInt(tab.dataset.si)||0;
+    var tabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');
+    var panels=document.querySelectorAll('[id^="sp-'+dKey+'-"]');
+    tabs.forEach(function(t,j){t.classList.toggle('on',j===si);});
+    panels.forEach(function(p,j){p.classList.toggle('hidden',j!==si);});
+  }
+});
 // Pet photo click delegation
 document.addEventListener('click',function(e){
   var el=e.target.closest('.pet-thumb');
@@ -862,6 +879,8 @@ function toggleOrder(bookId){
   arrow.classList.toggle('open');
 }
 
+var SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+
 async function loadOrderReports(bookId){
   var container=document.getElementById(`reps-${bookId}`);
   if(!container)return;
@@ -878,48 +897,46 @@ async function loadOrderReports(bookId){
   }
 }
 
-var SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
 
 function buildReportAccordion(reps,bookId){
-  // 依日期分組
+  if(!reps||!reps.length) return '<div class="no-rep">尚無回報</div>';
   var byDate={};
-  reps.forEach(r=>{
-    const d=r.date||'未知日期';
-    if(!byDate[d])byDate[d]=[];
+  reps.forEach(function(r){
+    var d=(r&&r.date)||'未知日期';
+    if(!byDate[d]) byDate[d]=[];
     byDate[d].push(r);
   });
   var dates=Object.keys(byDate).sort();
-
-  return dates.map((date,di)=>{
-    const dayReps=byDate[date];
-    const isOpenDefault=(di===dates.length-1); // 最新日期預設展開
-    const dKey=`dr-${bookId}-${date.replace(/-/g,'')}`;
-
-    // 同日多筆時段顯示
-    let innerHtml='';
+  return dates.map(function(date,di){
+    var dayReps=byDate[date]||[];
+    var isOpenDefault=(di===dates.length-1);
+    var dKey='dr-'+bookId+'-'+date.replace(/-/g,'');
+    var innerHtml='';
     if(dayReps.length===1){
-      // 單筆直接展開
-      try{innerHtml=renderReport(dayReps[0]);}catch(_e){innerHtml='<div style="color:red;padding:10px;">'+_e.message+'</div>';}
+      try{ innerHtml=renderReport(dayReps[0]); }
+      catch(e){ innerHtml='<div style="color:red;padding:8px;">回報顯示錯誤：'+e.message+'</div>'; }
     } else {
-      // 多筆：用時段 tabs 切換
-      innerHtml=`<div class="slot-tabs" id="stabs-${dKey}">
-        ${dayReps.map((r,si)=>{
-          const slotLabel=SLOT_LABEL_MAP[r.slot]||r.timeStart||`第${si+1}次`;
-          return `<button class="slot-tab${si===0?' on':''}" onclick="switchSlot('${dKey}',${si},this)">${slotLabel}</button>`;
-        }).join('')}
-      </div>
-      ${dayReps.map((r,si)=>{try{return `<div class="slot-panel${si===0?'':' hidden'}" id="sp-${dKey}-${si}">${renderReport(r)}</div>`;}catch(_e){return '<div style="color:red;padding:10px;">'+_e.message+'</div>';}}).join('')}`;
+      var tabs=dayReps.map(function(r,si){
+        var slot=r&&r.slot;
+        var slotLabel=(slot&&SLOT_LABEL_MAP[slot])||(r&&r.timeStart)||('第'+(si+1)+'次');
+        return '<button class="slot-tab'+(si===0?' on':'')+'" data-dkey="'+dKey+'" data-si="'+si+'">'+slotLabel+'</button>';
+      }).join('');
+      var panels=dayReps.map(function(r,si){
+        var html='';
+        try{ html=renderReport(r); }
+        catch(e){ html='<div style="color:red;padding:8px;">'+e.message+'</div>'; }
+        return '<div class="slot-panel'+(si===0?'':' hidden')+'" id="sp-'+dKey+'-'+si+'">'+html+'</div>';
+      }).join('');
+      innerHtml='<div class="slot-tabs" id="stabs-'+dKey+'">'+tabs+'</div>'+panels;
     }
-
-    return `<div class="date-accordion" id="${dKey}-wrap">
-      <div class="date-header" onclick="toggleDateAcc('${dKey}')">
-        <span class="date-header-l">📅 ${date}（${dayReps.length}筆回報）</span>
-        <span class="date-arrow${isOpenDefault?' open':''}" id="${dKey}-arrow">▼</span>
-      </div>
-      <div class="date-body${isOpenDefault?' open':''}" id="${dKey}-body">
-        ${innerHtml}
-      </div>
-    </div>`;
+    var openClass=isOpenDefault?' open':'';
+    return '<div class="date-accordion" id="'+dKey+'-wrap">'
+      +'<div class="date-header" data-dkey2="'+dKey+'">'
+      +'<span class="date-header-l">📅 '+date+'（'+dayReps.length+'筆回報）</span>'
+      +'<span class="date-arrow'+openClass+'" id="'+dKey+'-arrow">▼</span>'
+      +'</div>'
+      +'<div class="date-body'+openClass+'" id="'+dKey+'-body">'+innerHtml+'</div>'
+      +'</div>';
   }).join('');
 }
 

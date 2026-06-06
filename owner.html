@@ -1550,10 +1550,17 @@ document.head.appendChild(_shakeStyle);
 // openLB/closeLB defined above
 // ── AUTO LOGIN FROM INDEX.HTML ──
 (async function autoLoginCheck(){
-  var pw=sessionStorage.getItem('ownerAutoLogin');
+  // Try URL hash first (#pw=xxx), then sessionStorage
+  var pw='';
+  var hash=window.location.hash;
+  if(hash && hash.startsWith('#pw=')){
+    pw=decodeURIComponent(hash.slice(4));
+    window.location.hash=''; // clear from URL
+  } else {
+    pw=sessionStorage.getItem('ownerAutoLogin')||'';
+    if(pw) sessionStorage.removeItem('ownerAutoLogin');
+  }
   if(!pw)return;
-  sessionStorage.removeItem('ownerAutoLogin');
-  // Pre-fill and trigger login
   var inp=document.getElementById('ownerPwIn');
   if(inp)inp.value=pw;
   await ownerLogin();

@@ -581,22 +581,27 @@ function openCarouselLB(slide){
     if(photos.length) openLB(photos[idx],'照片.jpg',photos,idx);
   }catch(e){ console.error(e); }
 }
+var _carouselPhotos={};
+
 function buildPhotoCarousel(id, photos){
   if(!photos||!photos.length) return '';
+  // Store photos in global map (avoids HTML attribute size limit for base64)
+  _carouselPhotos[id]=photos;
   if(photos.length===1){
     return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照</div>'
-      +'<div style="border-radius:14px;overflow:hidden;margin-top:8px;">'
-      +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block;" onclick="openLB(this)">'
+      +'<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="0" style="border-radius:14px;overflow:hidden;margin-top:8px;cursor:pointer;">'
+      +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;pointer-events:none;">'
       +'</div></div>';
   }
   var slides=photos.map(function(src,i){
-    return '<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="'+i+'" style="cursor:pointer;"><img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;"></div>';
+    return '<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="'+i+'" style="cursor:pointer;">'
+      +'<img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></div>';
   }).join('');
   var dots=photos.map(function(_,i){
     return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
   }).join('');
-  return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);font-weight:700;">左右滑動瀏覽</span></div>'
-    +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'" data-photos="'+encodeURIComponent(JSON.stringify(photos))+'">'
+  return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);font-weight:700;">點擊放大 ‧ 左右滑動</span></div>'
+    +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'">'
     +'<div class="photo-carousel-track" id="'+id+'-track">'+slides+'</div>'
     +'<div class="photo-carousel-count"><span id="'+id+'-cur">1</span>/'+photos.length+'</div>'
     +'<div class="photo-carousel-dots" id="'+id+'-dots">'+dots+'</div>'

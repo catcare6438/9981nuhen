@@ -1041,30 +1041,45 @@ function renderDateSlotsHtml(dateSlotData){
 function renderPetDataHtml(petData, bookId){
   if(!petData||!petData.length) return '<span style="color:var(--tl);">（無寵物資料）</span>';
   return petData.map(function(p,i){
-    var icon=p.type==='cat'?'🐱':'🐶';
-    var health=Array.isArray(p.health)?(p.health.join('、')||'健康'):(p.health||'健康');
-    var photo=p.photo||'';
-    var name=p.name||('寵物'+(i+1));
-    var avatarHtml=photo
-      ?('<img src="'+photo+'" class="admin-pet-photo" data-idx="'+i+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;flex-shrink:0;" title="點擊放大">')
-      :('<button onclick="event.stopPropagation();triggerPetPhotoUpload('+bookId+','+i+')" style="width:80px;height:80px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;cursor:pointer;padding:0;" title="點擊上傳照片">'+icon+'</button>');
+    var icon = p.type==='cat' ? '🐱' : '🐶';
+    var health = Array.isArray(p.health) ? (p.health.join('、')||'健康') : (p.health||'健康');
+    var photo = p.photo||'';
+    var name = p.name || ('寵物'+(i+1));
+
+    var avatarHtml = photo
+      ? ('<img src="'+photo+'" '
+          +'onclick="event.stopPropagation();adminOpenLB(this.src,\''+name+'照片.jpg\')" '
+          +'style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;flex-shrink:0;display:block;"'
+          +' title="點擊放大">')
+      : ('<div '
+          +'onclick="event.stopPropagation();triggerPetPhotoUpload('+bookId+','+i+')" '
+          +'style="width:80px;height:80px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;cursor:pointer;"'
+          +' title="點擊上傳">'+icon+'</div>');
+
+    var changeBtnHtml = '<button '
+      +'onclick="event.stopPropagation();triggerPetPhotoUpload('+bookId+','+i+')" '
+      +'style="margin-top:5px;padding:3px 10px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:8px;color:var(--pk);font-size:.72rem;font-weight:800;cursor:pointer;width:80px;white-space:nowrap;">'
+      +(photo ? '🔄 更換' : '📷 上傳')+'</button>';
+
     return '<div style="background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">'
       +'<div style="display:flex;gap:14px;align-items:flex-start;">'
+      +'<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">'
       +avatarHtml
+      +changeBtnHtml
+      +'</div>'
       +'<div style="flex:1;min-width:0;">'
       +'<div style="font-weight:900;color:var(--pk);font-family:Nunito,sans-serif;margin-bottom:8px;">'
-      +icon+' '+name+(p.age?' <span style="font-size:.74rem;color:var(--tl);font-weight:700;">'+p.age+'</span>':'')
+      +icon+' '+name+(p.age ? ' <span style="font-size:.74rem;color:var(--tl);font-weight:700;">'+p.age+'</span>' : '')
       +'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.8rem;">'
       +'<div><span style="color:var(--tl);">性別：</span><strong>'+(p.gender||'—')+'</strong></div>'
       +'<div><span style="color:var(--tl);">疫苗：</span><strong>'+(p.vaccine||'—')+'</strong></div>'
       +'<div style="grid-column:1/-1;"><span style="color:var(--tl);">健康：</span><strong>'+health+'</strong></div>'
-      +(p.special?'<div style="grid-column:1/-1;"><span style="color:var(--tl);">特殊：</span><strong>'+p.special+'</strong></div>':'')
+      +(p.special ? '<div style="grid-column:1/-1;"><span style="color:var(--tl);">特殊：</span><strong>'+p.special+'</strong></div>' : '')
       +'</div>'
-      +'<div style="font-size:.68rem;color:var(--tl);margin-top:4px;">'
-      +(photo?'📷 點擊頭像可放大查看':'📷 點擊頭像上傳照片')
       +'</div>'
-      +'</div></div></div>';
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 

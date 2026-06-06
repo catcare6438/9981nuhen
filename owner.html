@@ -750,7 +750,7 @@ async function ownerLogin(){
   try{
     await renderAllOrders(myBooks);
   }catch(e){
-    alert('載入失敗：'+e.message+'\n\n'+e.stack.split('\n').slice(0,3).join('\n'));
+    alert('載入失敗：'+e.message+'\n\n位置：'+e.stack.split('\n').slice(1,3).join('\n'));
   }
 }
 

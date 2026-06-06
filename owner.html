@@ -583,6 +583,18 @@ function openCarouselLB(slide){
 }
 var _carouselPhotos={};
 
+// Carousel slide click → open lightbox
+document.addEventListener('click', function(e){
+  var slide = e.target.closest('.photo-carousel-slide');
+  if(slide){
+    var cid = slide.dataset.carouselId;
+    var si = parseInt(slide.dataset.idx) || 0;
+    if(cid && _carouselPhotos[cid] && _carouselPhotos[cid].length){
+      openLB(_carouselPhotos[cid][si], '照片.jpg', _carouselPhotos[cid], si);
+    }
+  }
+});
+
 function buildPhotoCarousel(id, photos){
   if(!photos||!photos.length) return '';
   // Store photos in global map (avoids HTML attribute size limit for base64)
@@ -639,11 +651,7 @@ function carouselNext(id){var el=document.getElementById(id);if(el)carouselGoTo(
     if(Math.abs(dx)>40){dx<0?carouselNext(startId):carouselPrev(startId);}
     startId='';
   },{passive:true});
-  // Click to open lightbox
-  document.addEventListener('click',function(e){
-    var img=e.target.closest('.photo-carousel-slide img');
-    if(img) openLB(img,'照片.jpg');
-  });
+  // carousel click handled by delegation below
 })();
 function buildOwnerPetPhotos(bk){
   var pets=bk.petData||[];
@@ -768,11 +776,14 @@ async function ownerLogin(){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';
   document.getElementById('ownerDisplayName').textContent=(firstBook.ownerName||'')+'家的毛孩';
+  window._ownerLoggedIn=true;
 
   try{
     await renderAllOrders(myBooks);
   }catch(e){
-    // Show error inside main screen instead of alert
+    // Keep mainScreen visible even on error
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainScreen').style.display='block';
     document.getElementById('ordersContainer').innerHTML=
       '<div style="padding:20px;color:red;font-size:.82rem;">載入失敗：'+e.message
       +'<br><br>'+e.stack.replace(/</g,'&lt;').split('\n').slice(0,5).join('<br>')+'</div>';
@@ -780,6 +791,7 @@ async function ownerLogin(){
 }
 
 function ownerLogout(){
+  window._ownerLoggedIn=false;
   currentOwnerPhone=null;
   document.getElementById('loginScreen').style.display='flex';
   document.getElementById('mainScreen').style.display='none';
@@ -827,7 +839,7 @@ async function renderAllOrders(books){
     try{
       el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
     }catch(err){
-      el.innerHTML='<div style="padding:14px;color:red;">載入錯誤：'+err.message+'</div>';
+      el.innerHTML='<div style="padding:14px;color:red;font-size:.8rem;">訂單載入錯誤：'+err.message+'</div>';
       console.error('buildOrderHTML error for order',bk.id,err);
     }
     container.appendChild(el);
@@ -874,7 +886,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
         <span>💰 費用明細 &amp; 記錄</span>
         <span class="detail-toggle-arrow" id="darrow-${bk.id}">▼</span>
       </button>
-      <div class="detail-body" id="detail-${bk.id}">${buildOwnerDetailHTML(bk)}</div>
+      <div class="detail-body" id="detail-${bk.id}">${(function(){try{return buildOwnerDetailHTML(bk);}catch(e){return '<div style="color:red;padding:10px;font-size:.8rem;">費用明細錯誤：'+e.message+'</div>';}})()}</div>
       <div class="section-sub-title">🐾 保母照護回報</div>
       <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
       ${reviewSection}

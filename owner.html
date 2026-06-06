@@ -775,10 +775,23 @@ document.addEventListener('click',function(e){
     e.stopPropagation();
     var dKey=tab.dataset.dkey;
     var si=parseInt(tab.dataset.si)||0;
-    var tabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');
-    var panels=document.querySelectorAll('[id^="sp-'+dKey+'-"]');
-    tabs.forEach(function(t,j){t.classList.toggle('on',j===si);});
-    panels.forEach(function(p,j){p.classList.toggle('hidden',j!==si);});
+    // Switch tabs
+    var allTabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');
+    allTabs.forEach(function(t){t.classList.remove('on');});
+    tab.classList.add('on');
+    // Switch panels by exact id
+    var i=0;
+    while(true){
+      var panel=document.getElementById('sp-'+dKey+'-'+i);
+      if(!panel) break;
+      panel.classList.toggle('hidden', i!==si);
+      i++;
+    }
+    // Ensure date-body is open
+    var body=document.getElementById(dKey+'-body');
+    if(body) body.classList.add('open');
+    var arrow=document.getElementById(dKey+'-arrow');
+    if(arrow) arrow.classList.add('open');
   }
 });
 // Pet photo click delegation

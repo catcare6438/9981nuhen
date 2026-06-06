@@ -591,11 +591,12 @@ document.addEventListener('click', function(e){
     var cid = slide.dataset.carouselId;
     var si = parseInt(slide.dataset.idx) || 0;
     var photos = _carouselPhotos[cid];
+    console.log('[carousel click] cid='+cid+' si='+si+' photos='+(photos?photos.length:0)+' keys='+Object.keys(_carouselPhotos));
     if(photos && photos.length){
       openLB(photos[si], '照片.jpg', photos, si);
     } else {
-      // fallback: use img src directly
       var img = slide.querySelector('img');
+      console.log('[carousel fallback] img.src len='+(img&&img.src?img.src.length:0));
       if(img && img.src) openLB(img.src, '照片.jpg', [img.src], 0);
     }
   }
@@ -687,7 +688,8 @@ var _lbPhotos=[], _lbIdx=0;
 
 function openLB(src, filename, allSrcs, startIdx){
   var actualSrc=(src instanceof HTMLElement)?src.src:(typeof src==='string'?src:'');
-  if(!actualSrc)return;
+  console.log('[openLB] src type='+typeof src+' actualSrc len='+(actualSrc?actualSrc.length:0)+' allSrcs='+(allSrcs?allSrcs.length:0));
+  if(!actualSrc){console.warn('[openLB] empty src, aborting');return;}
   // If allSrcs provided, use carousel mode
   if(allSrcs&&allSrcs.length>1){
     _lbPhotos=allSrcs;

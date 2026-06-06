@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1780710124 -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>貓窩裏｜後台管理</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -1032,19 +1036,76 @@ function renderDateSlotsHtml(dateSlotData){
 // ── PET DETAIL DISPLAY ──
 function renderPetDataHtml(petData){
   if(!petData||!petData.length) return '<span style="color:var(--tl);">（無寵物資料）</span>';
-  return petData.map((p,i)=>{
-    const icon=p.type==='cat'?'🐱':'🐶';
-    const health=(p.health||[]).join('、')||'健康';
-    return `<div style="background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
-      <div style="font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;margin-bottom:8px;">${icon} ${p.name||'寵物'+(i+1)}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.8rem;">
-        <div><span style="color:var(--tl);">性別：</span><strong>${p.gender||'—'}</strong></div>
-        <div><span style="color:var(--tl);">年齡：</span><strong>${p.age||'—'}</strong></div>
-        <div style="grid-column:1/-1;"><span style="color:var(--tl);">疫苗：</span><strong>${p.vaccine||'（未填寫）'}</strong></div>
-        <div style="grid-column:1/-1;"><span style="color:var(--tl);">健康：</span><strong>${health}</strong></div>
-      </div>
-    </div>`;
+  return petData.map(function(p,i){
+    var icon=p.type==='cat'?'🐱':'🐶';
+    var health=Array.isArray(p.health)?(p.health.join('、')||'健康'):(p.health||'健康');
+    var photo=p.photo||'';
+    var name=p.name||('寵物'+(i+1));
+    var avatarHtml=photo
+      ?('<img src="'+photo+'" class="admin-pet-photo" data-idx="'+i+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;flex-shrink:0;" title="點擊放大">')
+      :('<div class="admin-pet-upload" data-idx="'+i+'" style="width:80px;height:80px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;cursor:pointer;" title="點擊上傳照片">'+icon+'</div>');
+    return '<div style="background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">'
+      +'<div style="display:flex;gap:14px;align-items:flex-start;">'
+      +avatarHtml
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-weight:900;color:var(--pk);font-family:Nunito,sans-serif;margin-bottom:8px;">'
+      +icon+' '+name+(p.age?' <span style="font-size:.74rem;color:var(--tl);font-weight:700;">'+p.age+'</span>':'')
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;font-size:.8rem;">'
+      +'<div><span style="color:var(--tl);">性別：</span><strong>'+(p.gender||'—')+'</strong></div>'
+      +'<div><span style="color:var(--tl);">疫苗：</span><strong>'+(p.vaccine||'—')+'</strong></div>'
+      +'<div style="grid-column:1/-1;"><span style="color:var(--tl);">健康：</span><strong>'+health+'</strong></div>'
+      +(p.special?'<div style="grid-column:1/-1;"><span style="color:var(--tl);">特殊：</span><strong>'+p.special+'</strong></div>':'')
+      +'</div>'
+      +'<div style="font-size:.68rem;color:var(--tl);margin-top:4px;">'
+      +(photo?'📷 點擊頭像可放大查看':'📷 點擊頭像上傳照片')
+      +'</div>'
+      +'</div></div></div>';
   }).join('');
+}
+
+function triggerPetPhotoUpload(petIdx, petName){
+  var inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=function(){
+    var file=inp.files[0];
+    if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var size=240; canvas.width=canvas.height=size;
+        var ctx=canvas.getContext('2d');
+        ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();
+        var scale=Math.min(size/img.width,size/img.height);
+        var w=img.width*scale,h=img.height*scale;
+        ctx.drawImage(img,(size-w)/2,(size-h)/2,w,h);
+        var compressed=canvas.toDataURL('image/jpeg',0.8);
+        // Find current bookId from petDetailModal
+        var modal=document.getElementById('petDetailModal');
+        var bookId=modal?modal.dataset.bookId:null;
+        if(!bookId){alert('請重新開啟寵物資料');return;}
+        uploadPetProfilePhoto(parseInt(bookId),petIdx,compressed);
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+async function uploadPetProfilePhoto(bookId, petIdx, dataUrl){
+  var res=await _supa.from('orders').select('pet_data').eq('id',bookId).limit(1);
+  if(res.error||!res.data||!res.data[0])return;
+  var pd=res.data[0].pet_data||[];
+  if(!pd[petIdx])pd[petIdx]={};
+  pd[petIdx].photo=dataUrl;
+  var upRes=await _supa.from('orders').update({pet_data:pd}).eq('id',bookId);
+  if(upRes.error){alert('上傳失敗：'+upRes.error.message);return;}
+  var bk=(_bCache||[]).find(function(x){return x.id===bookId;});
+  if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
+  showPetDetail(bookId);
 }
 
 // ── PET FILE DOWNLOAD ──
@@ -1514,6 +1575,7 @@ function showPetDetail(bookId){
     <div style="margin-bottom:8px;font-size:.82rem;color:var(--tl);">飼主：<strong>${bk.ownerName}</strong></div>
     ${petHtml}${notesHtml}
     <button onclick="downloadPetFile((_bCache||[]).find(x=>x.id===${bookId}))" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細</button>`;
+  document.getElementById('petDetailModal').dataset.bookId=bookId;
   document.getElementById('petDetailModal').classList.add('show');
 }
 
@@ -2623,6 +2685,58 @@ function adminCloseLB(e){
   if(!e||e.target===document.getElementById('adminLB')||e.target.classList.contains('lb-close')){
     document.getElementById('adminLB').classList.remove('show');
   }
+}
+
+// Pet photo click delegation in admin
+document.addEventListener('click', function(e){
+  var photoEl = e.target.closest('.admin-pet-photo');
+  var uploadEl = e.target.closest('.admin-pet-upload');
+  if(photoEl){
+    adminOpenLB(photoEl.src, '寵物照片.jpg');
+  } else if(uploadEl){
+    var idx2 = parseInt(uploadEl.dataset.idx)||0;
+    var modal = document.getElementById('petDetailModal');
+    var bookId = modal ? parseInt(modal.dataset.bookId) : 0;
+    if(!bookId){alert('請重新開啟寵物資料');return;}
+    triggerPetPhotoUpload(bookId, idx2);
+  }
+});
+
+function triggerPetPhotoUpload(bookId, petIdx){
+  var inp=document.createElement('input');
+  inp.type='file'; inp.accept='image/*';
+  inp.onchange=function(){
+    var file=inp.files[0]; if(!file)return;
+    var reader=new FileReader();
+    reader.onload=function(e2){
+      var img=new Image();
+      img.onload=function(){
+        var canvas=document.createElement('canvas');
+        var sz=240; canvas.width=canvas.height=sz;
+        var ctx=canvas.getContext('2d');
+        ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2,0,Math.PI*2);ctx.clip();
+        var sc=Math.min(sz/img.width,sz/img.height);
+        ctx.drawImage(img,(sz-img.width*sc)/2,(sz-img.height*sc)/2,img.width*sc,img.height*sc);
+        uploadPetProfilePhoto(bookId,petIdx,canvas.toDataURL('image/jpeg',0.8));
+      };
+      img.src=e2.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+  inp.click();
+}
+
+async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
+  var res=await _supa.from('orders').select('pet_data').eq('id',bookId).limit(1);
+  if(res.error||!res.data||!res.data[0]){alert('讀取失敗');return;}
+  var pd=res.data[0].pet_data||[];
+  if(!pd[petIdx])pd[petIdx]={};
+  pd[petIdx].photo=dataUrl;
+  var up=await _supa.from('orders').update({pet_data:pd}).eq('id',bookId);
+  if(up.error){alert('上傳失敗：'+up.error.message);return;}
+  var bk=(_bCache||[]).find(function(x){return x.id===bookId;});
+  if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
+  showPetDetail(bookId);
 }
 async function refreshAll(){await renderStats();renderOrders();}
 

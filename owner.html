@@ -749,22 +749,23 @@ function closeLB(){
 }
 
 // Touch swipe in lightbox
-(function(){
-  var sx=0;
-  document.getElementById('lbOverlay').addEventListener('touchstart',function(e){
+document.addEventListener('DOMContentLoaded',function(){
+  var lbOv=document.getElementById('lbOverlay');
+  if(!lbOv)return;
+  var sx=0, sy=0;
+  lbOv.addEventListener('touchstart',function(e){
     if(e.target.closest('button')||e.target.closest('a'))return;
     sx=e.touches[0].clientX; sy=e.touches[0].clientY||0;
   },{passive:true});
-  document.getElementById('lbOverlay').addEventListener('touchend',function(e){
+  lbOv.addEventListener('touchend',function(e){
     var dx=e.changedTouches[0].clientX-sx;
     var dy=Math.abs((e.changedTouches[0].clientY||0)-sy);
     if(Math.abs(dx)>40&&dy<80&&_lbPhotos.length>1) lbNav(dx<0?1:-1);
   },{passive:true});
-  // Click overlay to close
-  document.getElementById('lbOverlay').addEventListener('click',function(e){
+  lbOv.addEventListener('click',function(e){
     if(e.target===this) closeLB();
   });
-})();
+});
 async function ownerLogin(){
   var pw=document.getElementById('ownerPwIn').value.trim();
   if(!pw){alert('請輸入密碼');return;}
@@ -1487,8 +1488,9 @@ function buildContractSection(bk){
   html.push('</div></div>');
   return html.join('');
 }
-async function initReferralCode(){
-  if(!currentBookId)return;
+async function initReferralCode(bookId){
+  if(!bookId)return;
+  var currentBookId=bookId;
   try{
     const _opws=await dbGetOwnerPws();
     const pw=_opws[currentBookId]||'';

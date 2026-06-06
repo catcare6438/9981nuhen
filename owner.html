@@ -566,6 +566,14 @@ function parseAssignedSummary(assignedTo){
 
 
 
+
+function openCarouselLB(slide){
+  try{
+    var photos=JSON.parse(decodeURIComponent(slide.dataset.photos||'[]'));
+    var idx=parseInt(slide.dataset.idx)||0;
+    if(photos.length) openLB(photos[idx],'照片.jpg',photos,idx);
+  }catch(e){ console.error(e); }
+}
 function buildPhotoCarousel(id, photos){
   if(!photos||!photos.length) return '';
   if(photos.length===1){
@@ -574,8 +582,9 @@ function buildPhotoCarousel(id, photos){
       +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block;" onclick="openLB(this)">'
       +'</div></div>';
   }
+  var photosJson=encodeURIComponent(JSON.stringify(photos));
   var slides=photos.map(function(src,i){
-    return '<div class="photo-carousel-slide"><img src="'+src+'" alt="照片'+(i+1)+'" data-idx="'+i+'" data-carousel="'+id+'"></div>';
+    return '<div class="photo-carousel-slide" onclick="openCarouselLB(this)" data-idx="'+i+'" data-photos="'+photosJson+'" style="cursor:pointer;"><img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></div>';
   }).join('');
   var dots=photos.map(function(_,i){
     return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
@@ -583,8 +592,6 @@ function buildPhotoCarousel(id, photos){
   return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);font-weight:700;">左右滑動瀏覽</span></div>'
     +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'" data-photos="'+encodeURIComponent(JSON.stringify(photos))+'">'
     +'<div class="photo-carousel-track" id="'+id+'-track">'+slides+'</div>'
-    +(photos.length>1?'<button class="photo-carousel-btn photo-carousel-prev" data-carousel="'+id+'" data-dir="prev">&#8249;</button>':'')
-    +(photos.length>1?'<button class="photo-carousel-btn photo-carousel-next" data-carousel="'+id+'" data-dir="next">&#8250;</button>':'')
     +'<div class="photo-carousel-count"><span id="'+id+'-cur">1</span>/'+photos.length+'</div>'
     +'<div class="photo-carousel-dots" id="'+id+'-dots">'+dots+'</div>'
     +'</div></div>';
@@ -708,11 +715,12 @@ function closeLB(){
   var sx=0;
   document.getElementById('lbOverlay').addEventListener('touchstart',function(e){
     if(e.target.closest('button')||e.target.closest('a'))return;
-    sx=e.touches[0].clientX;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY||0;
   },{passive:true});
   document.getElementById('lbOverlay').addEventListener('touchend',function(e){
     var dx=e.changedTouches[0].clientX-sx;
-    if(Math.abs(dx)>50&&_lbPhotos.length>1) lbNav(dx<0?1:-1);
+    var dy=Math.abs((e.changedTouches[0].clientY||0)-sy);
+    if(Math.abs(dx)>40&&dy<80&&_lbPhotos.length>1) lbNav(dx<0?1:-1);
   },{passive:true});
   // Click overlay to close
   document.getElementById('lbOverlay').addEventListener('click',function(e){

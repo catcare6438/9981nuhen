@@ -647,19 +647,71 @@ function toggleDetail(id){
   if(arrow)arrow.classList.toggle('open',!isOpen);
 }
 
-function openLB(src, filename){
-  var actualSrc=(src instanceof HTMLElement)?src.src:src;
-  var lbImg=document.getElementById('lbImg');
-  var dl=document.getElementById('lbDownload');
-  if(lbImg) lbImg.src=actualSrc;
-  if(dl){dl.href=actualSrc; dl.download=filename||'照片.jpg';}
+var _lbPhotos=[], _lbIdx=0;
+
+function openLB(src, filename, allSrcs, startIdx){
+  var actualSrc=(src instanceof HTMLElement)?src.src:(typeof src==='string'?src:'');
+  if(!actualSrc)return;
+  // If allSrcs provided, use carousel mode
+  if(allSrcs&&allSrcs.length>1){
+    _lbPhotos=allSrcs;
+    _lbIdx=startIdx||0;
+  } else {
+    _lbPhotos=[actualSrc];
+    _lbIdx=0;
+  }
+  lbRender();
   document.getElementById('lbOverlay').classList.add('show');
 }
-function closeLB(e){
-  if(!e||e.target===document.getElementById('lbOverlay')||e.target.classList.contains('lb-close')){
-    document.getElementById('lbOverlay').classList.remove('show');
+
+function lbRender(){
+  var src=_lbPhotos[_lbIdx]||'';
+  var img=document.getElementById('lbImg');
+  var dl=document.getElementById('lbDownload');
+  var prev=document.getElementById('lbPrev');
+  var next=document.getElementById('lbNext');
+  var count=document.getElementById('lbCount');
+  var dots=document.getElementById('lbDots');
+  if(img) img.src=src;
+  if(dl){dl.href=src;dl.download='照片'+(_lbIdx+1)+'.jpg';}
+  var multi=_lbPhotos.length>1;
+  if(prev)prev.style.display=multi?'flex':'none';
+  if(next)next.style.display=multi?'flex':'none';
+  if(count)count.textContent=multi?(_lbIdx+1)+' / '+_lbPhotos.length:'';
+  if(dots){
+    dots.innerHTML=_lbPhotos.length>1?_lbPhotos.map(function(_,i){
+      return '<div style="width:8px;height:8px;border-radius:50%;background:'+(i===_lbIdx?'#fff':'rgba(255,255,255,.4)')+';cursor:pointer;" onclick="lbGoTo('+i+')"></div>';
+    }).join(''):'';
   }
 }
+
+function lbNav(dir){
+  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
+  lbRender();
+}
+function lbGoTo(i){_lbIdx=i;lbRender();}
+
+function closeLB(){
+  document.getElementById('lbOverlay').classList.remove('show');
+  _lbPhotos=[];_lbIdx=0;
+}
+
+// Touch swipe in lightbox
+(function(){
+  var sx=0;
+  document.getElementById('lbOverlay').addEventListener('touchstart',function(e){
+    if(e.target.closest('button')||e.target.closest('a'))return;
+    sx=e.touches[0].clientX;
+  },{passive:true});
+  document.getElementById('lbOverlay').addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-sx;
+    if(Math.abs(dx)>50&&_lbPhotos.length>1) lbNav(dx<0?1:-1);
+  },{passive:true});
+  // Click overlay to close
+  document.getElementById('lbOverlay').addEventListener('click',function(e){
+    if(e.target===this) closeLB();
+  });
+})();
 async function ownerLogin(){
   const pw=document.getElementById('ownerPwIn').value.trim();
   if(!pw){alert('請輸入密碼');return;}
@@ -710,7 +762,13 @@ function ownerLogout(){
 // Pet photo click delegation
 document.addEventListener('click',function(e){
   var el=e.target.closest('.pet-thumb');
-  if(el) openLB(el.src, (el.dataset.name||'毛孩')+'照片.jpg');
+  if(el){
+    var container=el.closest('.detail-body')||document;
+    var allThumbs=Array.from(container.querySelectorAll('.pet-thumb'));
+    var idx4=allThumbs.indexOf(el);
+    var srcs=allThumbs.map(function(t){return t.src;});
+    openLB(el.src,(el.dataset.name||'毛孩')+'照片.jpg',srcs.length>1?srcs:null,idx4>=0?idx4:0);
+  }
 });
 
 async function renderAllOrders(books){
@@ -1429,10 +1487,18 @@ function closeLB(){document.getElementById('lightbox').classList.remove('show');
 
 </script>
 
-<div class="lb-overlay" id="lbOverlay" onclick="closeLB(event)">
+<div class="lb-overlay" id="lbOverlay">
   <span class="lb-close" onclick="closeLB()">✕</span>
-  <img id="lbImg" src="" alt="">
-  <a id="lbDownload" class="lb-download" download="photo.jpg">⬇️ 下載</a>
+  <div style="position:relative;display:flex;align-items:center;justify-content:center;width:100%;max-width:600px;">
+    <button id="lbPrev" onclick="lbNav(-1)" style="position:absolute;left:-50px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:2rem;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;">‹</button>
+    <img id="lbImg" src="" alt="" style="max-width:90vw;max-height:80vh;border-radius:10px;object-fit:contain;cursor:zoom-out;" onclick="closeLB()">
+    <button id="lbNext" onclick="lbNav(1)" style="position:absolute;right:-50px;background:rgba(255,255,255,.2);border:none;color:#fff;font-size:2rem;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;">›</button>
+  </div>
+  <div id="lbDots" style="display:flex;gap:6px;margin-top:10px;"></div>
+  <div style="display:flex;gap:10px;margin-top:12px;align-items:center;">
+    <span id="lbCount" style="color:rgba(255,255,255,.7);font-size:.78rem;"></span>
+    <a id="lbDownload" class="lb-download" download="photo.jpg">⬇️ 下載</a>
+  </div>
 </div>
 </body>
 </html>

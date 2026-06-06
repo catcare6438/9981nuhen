@@ -775,23 +775,24 @@ document.addEventListener('click',function(e){
     e.stopPropagation();
     var dKey=tab.dataset.dkey;
     var si=parseInt(tab.dataset.si)||0;
-    // Switch tabs
     var allTabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');
     allTabs.forEach(function(t){t.classList.remove('on');});
     tab.classList.add('on');
-    // Switch panels by exact id
-    var i=0;
+    var found=[];
+    var k=0;
     while(true){
-      var panel=document.getElementById('sp-'+dKey+'-'+i);
+      var panel=document.getElementById('sp-'+dKey+'-'+k);
       if(!panel) break;
-      panel.classList.toggle('hidden', i!==si);
-      i++;
+      panel.classList.toggle('hidden', k!==si);
+      found.push('sp-'+dKey+'-'+k+' hidden='+(k!==si));
+      k++;
     }
-    // Ensure date-body is open
     var body=document.getElementById(dKey+'-body');
     if(body) body.classList.add('open');
     var arrow=document.getElementById(dKey+'-arrow');
     if(arrow) arrow.classList.add('open');
+    if(k===0) alert('找不到任何 panel！dKey='+dKey);
+    else if(k<2) alert('只找到'+k+'個panel: '+found.join(', '));
   }
 });
 // Pet photo click delegation

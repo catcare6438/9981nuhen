@@ -763,38 +763,7 @@ function ownerLogout(){
 }
 
 // ── 渲染所有訂單手風琴 ──
-// Date accordion click delegation  
-document.addEventListener('click',function(e){
-  var hdr=e.target.closest('[data-dkey2]');
-  if(hdr){toggleDateAcc(hdr.dataset.dkey2);}
-});
-// Slot tab click delegation
-document.addEventListener('click',function(e){
-  var tab=e.target.closest('.slot-tab[data-dkey]');
-  if(tab){
-    e.stopPropagation();
-    var dKey=tab.dataset.dkey;
-    var si=parseInt(tab.dataset.si)||0;
-    var allTabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');
-    allTabs.forEach(function(t){t.classList.remove('on');});
-    tab.classList.add('on');
-    var found=[];
-    var k=0;
-    while(true){
-      var panel=document.getElementById('sp-'+dKey+'-'+k);
-      if(!panel) break;
-      panel.classList.toggle('hidden', k!==si);
-      found.push('sp-'+dKey+'-'+k+' hidden='+(k!==si));
-      k++;
-    }
-    var body=document.getElementById(dKey+'-body');
-    if(body) body.classList.add('open');
-    var arrow=document.getElementById(dKey+'-arrow');
-    if(arrow) arrow.classList.add('open');
-    if(k===0) alert('找不到任何 panel！dKey='+dKey);
-    else if(k<2) alert('只找到'+k+'個panel: '+found.join(', '));
-  }
-});
+// Slot tab and date accordion handled by direct onclick
 // Pet photo click delegation
 document.addEventListener('click',function(e){
   var el=e.target.closest('.pet-thumb');
@@ -934,7 +903,7 @@ function buildReportAccordion(reps,bookId){
       var tabs=dayReps.map(function(r,si){
         var slot=r&&r.slot;
         var slotLabel=(slot&&SLOT_LABEL_MAP[slot])||(r&&r.timeStart)||('第'+(si+1)+'次');
-        return '<button class="slot-tab'+(si===0?' on':'')+'" data-dkey="'+dKey+'" data-si="'+si+'">'+slotLabel+'</button>';
+        return '<button class="slot-tab'+(si===0?' on':'')+'" data-dkey="'+dKey+'" data-si="'+si+'" onclick="switchSlotNew(this.dataset.dkey,parseInt(this.dataset.si))">'+slotLabel+'</button>';
       }).join('');
       var panels=dayReps.map(function(r,si){
         var html='';
@@ -946,7 +915,7 @@ function buildReportAccordion(reps,bookId){
     }
     var openClass=isOpenDefault?' open':'';
     return '<div class="date-accordion" id="'+dKey+'-wrap">'
-      +'<div class="date-header" data-dkey2="'+dKey+'">'
+      +'<div class="date-header" onclick="toggleDateAcc(this.dataset.dkey)" data-dkey="'+dKey+'">'
       +'<span class="date-header-l">📅 '+date+'（'+dayReps.length+'筆回報）</span>'
       +'<span class="date-arrow'+openClass+'" id="'+dKey+'-arrow">▼</span>'
       +'</div>'
@@ -956,10 +925,33 @@ function buildReportAccordion(reps,bookId){
 }
 
 function toggleDateAcc(key){
-  var body=document.getElementById(`${key}-body`);
-  var arrow=document.getElementById(`${key}-arrow`);
+  var body=document.getElementById(key+'-body');
+  var arrow=document.getElementById(key+'-arrow');
+  if(!body)return;
   body.classList.toggle('open');
-  arrow.classList.toggle('open');
+  if(arrow)arrow.classList.toggle('open');
+}
+
+function switchSlotNew(dKey,si){
+  // Remove all tab .on
+  var k=0;
+  while(true){
+    var t=document.querySelector('.slot-tab[data-dkey="'+dKey+'"][data-si="'+k+'"]');
+    if(!t)break;
+    t.classList.toggle('on',k===si);
+    k++;
+  }
+  // Toggle panels
+  k=0;
+  while(true){
+    var p=document.getElementById('sp-'+dKey+'-'+k);
+    if(!p)break;
+    p.classList.toggle('hidden',k!==si);
+    k++;
+  }
+  // Keep date-body open
+  var body=document.getElementById(dKey+'-body');
+  if(body)body.classList.add('open');
 }
 
 function switchSlot(dKey,idx,btn){

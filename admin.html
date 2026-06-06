@@ -1575,6 +1575,7 @@ function showPetDetail(bookId){
     <div style="margin-bottom:8px;font-size:.82rem;color:var(--tl);">飼主：<strong>${bk.ownerName}</strong></div>
     ${petHtml}${notesHtml}
     <button onclick="downloadPetFile((_bCache||[]).find(x=>x.id===${bookId}))" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細</button>`;
+  window._petDetailBookId = parseInt(bookId)||bookId;
   document.getElementById('petDetailModal').dataset.bookId=bookId;
   document.getElementById('petDetailModal').classList.add('show');
 }
@@ -2694,16 +2695,10 @@ document.addEventListener('click', function(e){
   if(photoEl){
     adminOpenLB(photoEl.src, '寵物照片.jpg');
   } else if(uploadEl){
-    var idx2 = parseInt(uploadEl.dataset.idx)||0;
-    var modal = document.getElementById('petDetailModal');
-    var bookId = modal ? parseInt(modal.dataset.bookId) : 0;
-    if(!bookId){
-      // Try reading from modal's show state
-      var allModals=document.querySelectorAll('.m-ov.show');
-      alert('Debug: modal='+( modal?modal.id:'null')+' bookId='+bookId+' dataset='+JSON.stringify(modal?modal.dataset:{})+' showModals='+allModals.length);
-      return;
-    }
-    triggerPetPhotoUpload(bookId, idx2);
+    var petIdx2 = parseInt(uploadEl.dataset.idx)||0;
+    var bookId2 = window._petDetailBookId || 0;
+    if(!bookId2){alert('找不到訂單，請關閉後重新點🐾寵物資料');return;}
+    triggerPetPhotoUpload(bookId2, petIdx2);
   }
 });
 

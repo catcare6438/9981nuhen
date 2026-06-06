@@ -567,6 +567,13 @@ function parseAssignedSummary(assignedTo){
 
 
 
+
+function openGlobalLB(carouselId, idx){
+  var photos=_carouselPhotos[carouselId];
+  if(!photos||!photos.length){ console.warn('no photos for',carouselId); return; }
+  idx=idx||0;
+  openLB(photos[idx],'照片.jpg',photos,idx);
+}
 function openCarouselLB(slide){
   try{
     var photos=JSON.parse(decodeURIComponent(slide.dataset.photos||'[]'));
@@ -582,9 +589,8 @@ function buildPhotoCarousel(id, photos){
       +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block;" onclick="openLB(this)">'
       +'</div></div>';
   }
-  var photosJson=encodeURIComponent(JSON.stringify(photos));
   var slides=photos.map(function(src,i){
-    return '<div class="photo-carousel-slide" onclick="openCarouselLB(this)" data-idx="'+i+'" data-photos="'+photosJson+'" style="cursor:pointer;"><img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></div>';
+    return '<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="'+i+'" style="cursor:pointer;"><img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;"></div>';
   }).join('');
   var dots=photos.map(function(_,i){
     return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
@@ -761,7 +767,10 @@ async function ownerLogin(){
   try{
     await renderAllOrders(myBooks);
   }catch(e){
-    alert('載入失敗：'+e.message+'\n\n位置：'+e.stack.split('\n').slice(1,3).join('\n'));
+    // Show error inside main screen instead of alert
+    document.getElementById('ordersContainer').innerHTML=
+      '<div style="padding:20px;color:red;font-size:.82rem;">載入失敗：'+e.message
+      +'<br><br>'+e.stack.replace(/</g,'&lt;').split('\n').slice(0,5).join('<br>')+'</div>';
   }
 }
 

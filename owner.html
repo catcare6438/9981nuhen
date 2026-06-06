@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1780735153 -->
+<!-- build:1780737620 -->
 
 
 
@@ -643,10 +643,10 @@ function buildOwnerPetPhotos(bk){
     +'<div style="padding:12px 14px;display:flex;gap:14px;flex-wrap:wrap;">'+items+'</div></div>';
 }
 function toggleDetail(id){
-  const body=document.getElementById('detail-'+id);
-  const arrow=document.getElementById('darrow-'+id);
+  var body=document.getElementById('detail-'+id);
+  var arrow=document.getElementById('darrow-'+id);
   if(!body)return;
-  const isOpen=body.classList.contains('open');
+  var isOpen=body.classList.contains('open');
   body.classList.toggle('open',!isOpen);
   if(arrow)arrow.classList.toggle('open',!isOpen);
 }
@@ -717,10 +717,10 @@ function closeLB(){
   });
 })();
 async function ownerLogin(){
-  const pw=document.getElementById('ownerPwIn').value.trim();
+  var pw=document.getElementById('ownerPwIn').value.trim();
   if(!pw){alert('請輸入密碼');return;}
   document.getElementById('ownerErr').style.display='none';
-  const loginBtn=document.querySelector('#loginScreen .l-btn');
+  var loginBtn=document.querySelector('#loginScreen .l-btn');
   if(loginBtn){loginBtn.textContent='⏳ 驗證中...';loginBtn.disabled=true;}
 
   let pws={};
@@ -731,17 +731,17 @@ async function ownerLogin(){
   }
   if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
 
-  const matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
+  var matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
   if(!matchedId){document.getElementById('ownerErr').style.display='block';return;}
 
   let allBooks=[];
   try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}
 
-  const firstBook=allBooks.find(function(x){return x.id===parseInt(matchedId);});
+  var firstBook=allBooks.find(function(x){return x.id===parseInt(matchedId);});
   if(!firstBook){alert('找不到訂單 id='+matchedId);document.getElementById('ownerErr').style.display='block';return;}
 
   currentOwnerPhone=firstBook.ownerPhone;
-  const myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return a.id-b.id;});
+  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return a.id-b.id;});
 
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';
@@ -776,7 +776,7 @@ document.addEventListener('click',function(e){
 });
 
 async function renderAllOrders(books){
-  const container=document.getElementById('ordersContainer');
+  var container=document.getElementById('ordersContainer');
   if(!books.length){
     container.innerHTML=`<div class="no-rep">找不到預約資料 🐾</div>`;
     return;
@@ -815,12 +815,12 @@ async function renderAllOrders(books){
 }
 
 function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
-  const svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、')||'—';
-  const sitterSummary=parseAssignedSummary(bk.assignedTo);
-  const openClass=defaultOpen?'open':'';
+  var svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、')||'—';
+  var sitterSummary=parseAssignedSummary(bk.assignedTo);
+  var openClass=defaultOpen?'open':'';
 
   // 生成 info grid
-  const infoHTML=`
+  var infoHTML=`
     <div class="info-grid">
       <div><div class="info-label">服務期間</div><div class="info-val">${bk.startDate||'—'} ～ ${bk.endDate||'—'}</div></div>
       <div><div class="info-label">服務項目</div><div class="info-val">${svcNames}</div></div>
@@ -829,7 +829,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
     </div>`;
 
   // 好評區：只在已完成且有好評時顯示（填寫好評改由後台管理）
-  const reviewSection=myReview
+  var reviewSection=myReview
     ? buildReviewDoneHTML(myReview,bk.id)
     : '';
 
@@ -856,14 +856,14 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
 }
 
 function toggleOrder(bookId){
-  const body=document.getElementById(`body-${bookId}`);
-  const arrow=document.getElementById(`arrow-${bookId}`);
+  var body=document.getElementById(`body-${bookId}`);
+  var arrow=document.getElementById(`arrow-${bookId}`);
   body.classList.toggle('open');
   arrow.classList.toggle('open');
 }
 
 async function loadOrderReports(bookId){
-  const container=document.getElementById(`reps-${bookId}`);
+  var container=document.getElementById(`reps-${bookId}`);
   if(!container)return;
   try{
     const reps=(await getReps(bookId)).sort((a,b)=>a.ts-b.ts); // 舊→新
@@ -882,13 +882,13 @@ var SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚
 
 function buildReportAccordion(reps,bookId){
   // 依日期分組
-  const byDate={};
+  var byDate={};
   reps.forEach(r=>{
     const d=r.date||'未知日期';
     if(!byDate[d])byDate[d]=[];
     byDate[d].push(r);
   });
-  const dates=Object.keys(byDate).sort();
+  var dates=Object.keys(byDate).sort();
 
   return dates.map((date,di)=>{
     const dayReps=byDate[date];
@@ -924,29 +924,29 @@ function buildReportAccordion(reps,bookId){
 }
 
 function toggleDateAcc(key){
-  const body=document.getElementById(`${key}-body`);
-  const arrow=document.getElementById(`${key}-arrow`);
+  var body=document.getElementById(`${key}-body`);
+  var arrow=document.getElementById(`${key}-arrow`);
   body.classList.toggle('open');
   arrow.classList.toggle('open');
 }
 
 function switchSlot(dKey,idx,btn){
   // Switch tab active
-  const tabs=document.getElementById(`stabs-${dKey}`);
+  var tabs=document.getElementById(`stabs-${dKey}`);
   tabs.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
   // Show panel
-  const wrap=document.getElementById(`${dKey}-wrap`);
+  var wrap=document.getElementById(`${dKey}-wrap`);
   wrap.querySelectorAll('.slot-panel').forEach((p,i)=>p.classList.toggle('hidden',i!==idx));
 }
 
 
 // ── 已填好評 → 顯示好評內容＋券碼 ──
 function buildReviewDoneHTML(rv,bookId){
-  const stars=rv.rating||'★★★★★';
-  const code=rv.coupon_code||rv.couponCode||'';
-  const best=rv.best||'';
-  const comment=rv.comment||'';
-  const author=rv.author||'';
+  var stars=rv.rating||'★★★★★';
+  var code=rv.coupon_code||rv.couponCode||'';
+  var best=rv.best||'';
+  var comment=rv.comment||'';
+  var author=rv.author||'';
   return `
     <div class="section-sub-title">💬 我的好評</div>
     <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
@@ -967,7 +967,7 @@ function buildReviewDoneHTML(rv,bookId){
 
 // ── 未填好評 → 顯示好評填寫表單 ──
 function buildReviewFormHTML(bk,orderIdx){
-  const formId=`rvForm-${bk.id}`;
+  var formId=`rvForm-${bk.id}`;
   return `
     <div class="section-sub-title">💬 分享您的好評</div>
     <div id="${formId}">
@@ -1027,21 +1027,21 @@ function buildReviewFormHTML(bk,orderIdx){
 // ── 星星評分（per-order）──
 var STAR_LABELS=['','★ 還需改進','★★ 普通','★★★ 還不錯','★★★★ 很滿意','★★★★★ 非常滿意！'];
 function setStarFor(bookId,n){
-  const container=document.getElementById(`stars-${bookId}`);
+  var container=document.getElementById(`stars-${bookId}`);
   if(!container)return;
   container.querySelectorAll('.rv-star').forEach(s=>{
     s.classList.toggle('on',parseInt(s.dataset.n)<=n);
   });
-  const map={1:'★',2:'★★',3:'★★★',4:'★★★★',5:'★★★★★'};
+  var map={1:'★',2:'★★',3:'★★★',4:'★★★★',5:'★★★★★'};
   document.getElementById(`rating-${bookId}`).value=map[n];
-  const lbl=document.getElementById(`starLabel-${bookId}`);
+  var lbl=document.getElementById(`starLabel-${bookId}`);
   if(lbl)lbl.textContent=STAR_LABELS[n]||'';
 }
 
 // ── 最滿意複選（最多3項）──
 function toggleBestFor(bookId,el){
-  const grid=document.getElementById(`best-${bookId}`);
-  const checked=grid.querySelectorAll('.rv-chip.on');
+  var grid=document.getElementById(`best-${bookId}`);
+  var checked=grid.querySelectorAll('.rv-chip.on');
   if(!el.classList.contains('on')&&checked.length>=3){
     el.style.animation='shake .3s ease';
     setTimeout(()=>el.style.animation='',400);
@@ -1052,17 +1052,17 @@ function toggleBestFor(bookId,el){
 
 // ── 提交好評 ──
 async function submitReviewFor(bookId){
-  const allBooks=await getB();
-  const bk=allBooks.find(x=>x.id===bookId);
-  const petName=bk?.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk?.petName||'毛孩');
-  const author=document.getElementById(`author-${bookId}`).value||`${petName}主人`;
-  const rating=document.getElementById(`rating-${bookId}`).value||'★★★★★';
-  const comment=document.getElementById(`comment-${bookId}`).value||'';
-  const bestEls=document.getElementById(`best-${bookId}`)?.querySelectorAll('.rv-chip.on')||[];
-  const best=[...bestEls].map(e=>e.textContent.trim()).join('、');
+  var allBooks=await getB();
+  var bk=allBooks.find(x=>x.id===bookId);
+  var petName=bk?.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk?.petName||'毛孩');
+  var author=document.getElementById(`author-${bookId}`).value||`${petName}主人`;
+  var rating=document.getElementById(`rating-${bookId}`).value||'★★★★★';
+  var comment=document.getElementById(`comment-${bookId}`).value||'';
+  var bestEls=document.getElementById(`best-${bookId}`)?.querySelectorAll('.rv-chip.on')||[];
+  var best=[...bestEls].map(e=>e.textContent.trim()).join('、');
 
   // 生成短券碼（6位英數）
-  const code=Math.random().toString(36).substring(2,8).toUpperCase();
+  var code=Math.random().toString(36).substring(2,8).toUpperCase();
 
   // 儲存 review 到 Supabase
   try{
@@ -1093,7 +1093,7 @@ async function submitReviewFor(bookId){
   // 已存入 reviews 表，前台下次載入即顯示
 
   // 替換表單為已填結果
-  const formEl=document.getElementById(`rvForm-${bookId}`);
+  var formEl=document.getElementById(`rvForm-${bookId}`);
   if(formEl){
     const rv={rating,best,comment,author,coupon_code:code};
     formEl.outerHTML=buildReviewDoneHTML(rv,bookId).replace(`<div class="section-sub-title">💬 我的好評</div>`,'').trimStart();
@@ -1115,7 +1115,7 @@ async function submitReviewFor(bookId){
 
 
 function renderReport(r){
-  const timeStr=r.timeStart?(r.timeStart+(r.timeEnd?' — '+r.timeEnd:'')):'';
+  var timeStr=r.timeStart?(r.timeStart+(r.timeEnd?' — '+r.timeEnd:'')):'';
   let html=`<div class="rep-card">
     <div class="rep-date">📅 ${r.date}${timeStr?' 　🕐 '+timeStr:''} ｜ 保母：${r.sitter}</div>`;
 
@@ -1170,8 +1170,8 @@ function renderReport(r){
   }
 
   // 清潔前後對比照
-  const beforePhotos=r.photos?.filter(p=>p.key.startsWith('before'));
-  const afterPhotos=r.photos?.filter(p=>p.key.startsWith('after'));
+  var beforePhotos=r.photos?.filter(p=>p.key.startsWith('before'));
+  var afterPhotos=r.photos?.filter(p=>p.key.startsWith('after'));
   if(beforePhotos?.length||afterPhotos?.length){
     const groups=[
       {label:'貓砂',bKey:'before-litter',aKey:'after-litter'},
@@ -1451,7 +1451,7 @@ async function initReferralCode(){
 }
 
 function copyRefCode(){
-  const code=document.getElementById('myRefCode').textContent;
+  var code=document.getElementById('myRefCode').textContent;
   navigator.clipboard.writeText(code).then(()=>{
     const msg=document.getElementById('refCopyMsg');
     msg.textContent='✅ 已複製！快分享給好朋友吧 💕';
@@ -1475,18 +1475,18 @@ async function dbGetReviews(){
 }
 
 // CSS shake animation
-const _shakeStyle=document.createElement('style');
+var _shakeStyle=document.createElement('style');
 _shakeStyle.textContent='@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}';
 document.head.appendChild(_shakeStyle);
 
 // openLB/closeLB defined above
 // ── AUTO LOGIN FROM INDEX.HTML ──
 (async function autoLoginCheck(){
-  const pw=sessionStorage.getItem('ownerAutoLogin');
+  var pw=sessionStorage.getItem('ownerAutoLogin');
   if(!pw)return;
   sessionStorage.removeItem('ownerAutoLogin');
   // Pre-fill and trigger login
-  const inp=document.getElementById('ownerPwIn');
+  var inp=document.getElementById('ownerPwIn');
   if(inp)inp.value=pw;
   await ownerLogin();
 })();

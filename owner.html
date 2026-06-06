@@ -288,6 +288,22 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);
 }
 .rv-copy-btn:hover{transform:translateY(-2px);}
 
+
+.detail-section{margin-top:14px;}
+.detail-toggle-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;cursor:pointer;font-size:.82rem;font-weight:900;color:var(--pk);box-sizing:border-box;margin-bottom:2px;}
+.detail-toggle-btn:hover{background:var(--pk3);}
+.detail-toggle-arrow{transition:transform .22s;font-size:.8rem;}
+.detail-toggle-arrow.open{transform:rotate(180deg);}
+.detail-body{display:none;}
+.detail-body.open{display:block;}
+/* Lightbox */
+.lb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;align-items:center;justify-content:center;flex-direction:column;}
+.lb-overlay.show{display:flex;}
+.lb-overlay img{max-width:90vw;max-height:80vh;border-radius:10px;object-fit:contain;}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:2rem;cursor:pointer;font-weight:900;line-height:1;}
+.lb-download{margin-top:14px;padding:10px 24px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;}
+.clickable-img{cursor:pointer;transition:transform .2s;}
+.clickable-img:hover{transform:scale(1.02);}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -527,6 +543,27 @@ function parseAssignedSummary(assignedTo){
 }
 
 // ── 登入 ──
+
+function toggleDetail(id){
+  const body=document.getElementById('detail-'+id);
+  const arrow=document.getElementById('darrow-'+id);
+  if(!body)return;
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  if(arrow)arrow.classList.toggle('open',!isOpen);
+}
+
+function openLB(src, filename){
+  document.getElementById('lbImg').src=src;
+  const dl=document.getElementById('lbDownload');
+  dl.href=src; dl.download=filename||'image.jpg';
+  document.getElementById('lbOverlay').classList.add('show');
+}
+function closeLB(e){
+  if(!e||e.target===document.getElementById('lbOverlay')||e.target.classList.contains('lb-close')){
+    document.getElementById('lbOverlay').classList.remove('show');
+  }
+}
 async function ownerLogin(){
   const pw=document.getElementById('ownerPwIn').value.trim();
   if(!pw){alert('請輸入密碼');return;}
@@ -1176,9 +1213,9 @@ function buildContractSection(bk){
     html.push('<div>');
     html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📋 服務合約書</div>');
     if(contract.startsWith('data:image')){
-      html.push('<img src="'+contract+'" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);">');
+      html.push('<img src="'+contract+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);" onclick="openLB(this.src,\'合約書.jpg\')">');
     } else if(contract.startsWith('data:application/pdf')){
-      html.push('<a href="'+contract+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 點擊查看合約書 PDF</a>');
+      html.push('<div style="display:flex;gap:8px;"><a href="'+contract+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看合約書</a><a href="'+contract+'" download="合約書.pdf" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a></div>');
     }
     html.push('</div>');
   }
@@ -1186,9 +1223,9 @@ function buildContractSection(bk){
     html.push('<div>');
     html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">💰 服務費用表</div>');
     if(feeTable.startsWith('data:image')){
-      html.push('<img src="'+feeTable+'" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);">');
+      html.push('<img src="'+feeTable+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);" onclick="openLB(this.src,\'費用表.jpg\')">');
     } else if(feeTable.startsWith('data:application/pdf')){
-      html.push('<a href="'+feeTable+'" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 點擊查看費用表 PDF</a>');
+      html.push('<div style="display:flex;gap:8px;"><a href="'+feeTable+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看費用表</a><a href="'+feeTable+'" download="費用表.pdf" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a></div>');
     }
     html.push('</div>');
   }
@@ -1285,5 +1322,11 @@ function closeLB(){document.getElementById('lightbox').classList.remove('show');
 })();
 
 </script>
+
+<div class="lb-overlay" id="lbOverlay" onclick="closeLB(event)">
+  <span class="lb-close" onclick="closeLB()">✕</span>
+  <img id="lbImg" src="" alt="">
+  <a id="lbDownload" class="lb-download" download="photo.jpg">⬇️ 下載</a>
+</div>
 </body>
 </html>

@@ -2712,35 +2712,35 @@ document.addEventListener('click', function(e){
 });
 
 function triggerPetPhotoUpload(bookId, petIdx){
-  // Remove any previous hidden input
-  var old=document.getElementById('_petPhotoInp');
-  if(old) old.remove();
-  var inp=document.createElement('input');
-  inp.type='file'; inp.accept='image/*'; inp.id='_petPhotoInp';
-  inp.style.cssText='position:fixed;top:-999px;left:-999px;opacity:0;';
-  document.body.appendChild(inp);
-  inp.onchange=function(){
-    var file=inp.files[0];
-    inp.remove();
-    if(!file)return;
-    var reader=new FileReader();
-    reader.onload=function(e2){
-      var img2=new Image();
-      img2.onload=function(){
-        var canvas=document.createElement('canvas');
-        var sz=300; canvas.width=canvas.height=sz;
-        var ctx=canvas.getContext('2d');
-        ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2,0,Math.PI*2);ctx.clip();
-        var sc=Math.min(sz/img2.width,sz/img2.height);
-        ctx.drawImage(img2,(sz-img2.width*sc)/2,(sz-img2.height*sc)/2,img2.width*sc,img2.height*sc);
-        uploadPetProfilePhoto(bookId,petIdx,canvas.toDataURL('image/jpeg',0.85));
-      };
-      img2.src=e2.target.result;
+  window._uploadBookId=bookId;
+  window._uploadPetIdx=petIdx;
+  var inp=document.getElementById('petPhotoFileInput');
+  if(!inp){alert('上傳元件不存在，請重新整理');return;}
+  inp.value='';
+  inp.click();
+}
+
+function handlePetPhotoFile(inp){
+  var file=inp.files[0];
+  if(!file)return;
+  var bookId=window._uploadBookId;
+  var petIdx=window._uploadPetIdx||0;
+  if(!bookId){alert('找不到訂單，請重新開啟寵物資料');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var sz=300; canvas.width=canvas.height=sz;
+      var ctx=canvas.getContext('2d');
+      ctx.beginPath();ctx.arc(sz/2,sz/2,sz/2,0,Math.PI*2);ctx.clip();
+      var sc=Math.min(sz/img.width,sz/img.height);
+      ctx.drawImage(img,(sz-img.width*sc)/2,(sz-img.height*sc)/2,img.width*sc,img.height*sc);
+      uploadPetProfilePhoto(bookId,petIdx,canvas.toDataURL('image/jpeg',0.85));
     };
-    reader.readAsDataURL(file);
+    img.src=e.target.result;
   };
-  // Must click after appending to DOM
-  setTimeout(function(){inp.click();},10);
+  reader.readAsDataURL(file);
 }
 
 async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){

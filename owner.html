@@ -115,6 +115,18 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);
 .photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;
   border:2.5px solid var(--pk3);cursor:pointer;transition:transform .2s;}
 .photo-thumb:hover{transform:scale(1.05);border-color:var(--pk);}
+.photo-carousel{position:relative;width:100%;margin-top:8px;overflow:hidden;border-radius:14px;background:#000;aspect-ratio:1;touch-action:pan-y;}
+.photo-carousel-track{display:flex;transition:transform .32s cubic-bezier(.4,0,.2,1);height:100%;will-change:transform;}
+.photo-carousel-slide{flex:0 0 100%;height:100%;position:relative;}
+.photo-carousel-slide img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+.photo-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.85);border:none;border-radius:50%;width:36px;height:36px;font-size:1.1rem;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .2s;}
+.photo-carousel-btn:hover{background:#fff;}
+.photo-carousel-prev{left:8px;}
+.photo-carousel-next{right:8px;}
+.photo-carousel-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3;}
+.photo-carousel-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
+.photo-carousel-dot.active{background:#fff;}
+.photo-carousel-count{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.45);color:#fff;font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:8px;z-index:3;}
 .photo-group-label{font-size:.74rem;font-weight:700;color:var(--tl);margin:8px 0 4px;font-family:'Nunito',sans-serif;}
 
 /* COMPARE PHOTOS */
@@ -549,6 +561,68 @@ function parseAssignedSummary(assignedTo){
 // ── 登入 ──
 
 
+
+function buildPhotoCarousel(id, photos){
+  if(!photos||!photos.length) return '';
+  if(photos.length===1){
+    return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照</div>'
+      +'<div style="border-radius:14px;overflow:hidden;margin-top:8px;">'
+      +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block;" onclick="openLB(this)">'
+      +'</div></div>';
+  }
+  var slides=photos.map(function(src,i){
+    return '<div class="photo-carousel-slide"><img src="'+src+'" alt="照片'+(i+1)+'" data-idx="'+i+'" data-carousel="'+id+'"></div>';
+  }).join('');
+  var dots=photos.map(function(_,i){
+    return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
+  }).join('');
+  return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);font-weight:700;">左右滑動瀏覽</span></div>'
+    +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'">'
+    +'<div class="photo-carousel-track" id="'+id+'-track">'+slides+'</div>'
+    +(photos.length>1?'<button class="photo-carousel-btn photo-carousel-prev" data-carousel="'+id+'" data-dir="prev">&#8249;</button>':'')
+    +(photos.length>1?'<button class="photo-carousel-btn photo-carousel-next" data-carousel="'+id+'" data-dir="next">&#8250;</button>':'')
+    +'<div class="photo-carousel-count"><span id="'+id+'-cur">1</span>/'+photos.length+'</div>'
+    +'<div class="photo-carousel-dots" id="'+id+'-dots">'+dots+'</div>'
+    +'</div></div>';
+}
+
+function carouselGoTo(id, idx){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var total=parseInt(el.dataset.total)||1;
+  idx=Math.max(0,Math.min(idx,total-1));
+  el.dataset.idx=idx;
+  var track=document.getElementById(id+'-track');
+  if(track) track.style.transform='translateX(-'+( idx*100)+'%)';
+  var cur=document.getElementById(id+'-cur');
+  if(cur) cur.textContent=idx+1;
+  var dots=document.querySelectorAll('#'+id+'-dots .photo-carousel-dot');
+  dots.forEach(function(d,i){d.classList.toggle('active',i===idx);});
+}
+function carouselPrev(id){var el=document.getElementById(id);if(el)carouselGoTo(id,parseInt(el.dataset.idx||0)-1);}
+function carouselNext(id){var el=document.getElementById(id);if(el)carouselGoTo(id,parseInt(el.dataset.idx||0)+1);}
+
+// Touch swipe for carousel
+(function(){
+  var startX=0, startId='';
+  document.addEventListener('touchstart',function(e){
+    var c2=e.target.closest('.photo-carousel');
+    if(!c2)return;
+    startX=e.touches[0].clientX;
+    startId=c2.id;
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!startId)return;
+    var dx=e.changedTouches[0].clientX-startX;
+    if(Math.abs(dx)>40){dx<0?carouselNext(startId):carouselPrev(startId);}
+    startId='';
+  },{passive:true});
+  // Click to open lightbox
+  document.addEventListener('click',function(e){
+    var img=e.target.closest('.photo-carousel-slide img');
+    if(img) openLB(img,'照片.jpg');
+  });
+})();
 function buildOwnerPetPhotos(bk){
   var pets=bk.petData||[];
   var withPhoto=pets.filter(function(p){return p&&p.photo;});
@@ -574,9 +648,11 @@ function toggleDetail(id){
 }
 
 function openLB(src, filename){
-  document.getElementById('lbImg').src=src;
-  const dl=document.getElementById('lbDownload');
-  dl.href=src; dl.download=filename||'image.jpg';
+  var actualSrc=(src instanceof HTMLElement)?src.src:src;
+  var lbImg=document.getElementById('lbImg');
+  var dl=document.getElementById('lbDownload');
+  if(lbImg) lbImg.src=actualSrc;
+  if(dl){dl.href=actualSrc; dl.download=filename||'照片.jpg';}
   document.getElementById('lbOverlay').classList.add('show');
 }
 function closeLB(e){
@@ -1017,10 +1093,9 @@ function renderReport(r){
 
   // 毛孩照片
   if(r.petPhotos?.length){
-    html+=`<div class="rblock">
-      <div class="rblock-title">📸 毛孩當日美照</div>
-      <div class="photo-grid">${r.petPhotos.map(p=>`<img class="photo-thumb" src="${p.dataUrl||p.url||''}" onclick="openLB(this)">`).join('')}</div>
-    </div>`;
+    const carouselId='pc-'+r.ts;
+    const photos=r.petPhotos.map(function(p){return p.dataUrl||p.url||'';}).filter(Boolean);
+    html+=buildPhotoCarousel(carouselId, photos);
   }
 
   // 影片

@@ -1179,8 +1179,8 @@ function renderReport(r){
       {label:'飲水機',bKey:'before-water',aKey:'after-water'},
     ];
     const compareHtml=groups.map(g=>{
-      const b=r.photos.find(p=>p.key===g.bKey);
-      const a=r.photos.find(p=>p.key===g.aKey);
+      const b=(r.photos||[]).find(p=>p.key===g.bKey);
+      const a=(r.photos||[]).find(p=>p.key===g.aKey);
       if(!b&&!a)return '';
       return `<div>
         <div class="photo-group-label">🔄 ${g.label}清潔前後</div>

@@ -524,8 +524,8 @@ function dbRowToOrder(r){
 
 <script>
 let currentOwnerPhone=null; // 用電話號碼識別同一飼主的所有訂單
-const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
-const SLOT_NAME={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
+var SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+var SLOT_NAME={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
 
 async function getB(){return await dbGetOrders();}
 async function getReps(bookId){return await dbGetReports(bookId);}
@@ -878,7 +878,7 @@ async function loadOrderReports(bookId){
   }
 }
 
-const SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+var SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
 
 function buildReportAccordion(reps,bookId){
   // 依日期分組
@@ -1025,7 +1025,7 @@ function buildReviewFormHTML(bk,orderIdx){
 }
 
 // ── 星星評分（per-order）──
-const STAR_LABELS=['','★ 還需改進','★★ 普通','★★★ 還不錯','★★★★ 很滿意','★★★★★ 非常滿意！'];
+var STAR_LABELS=['','★ 還需改進','★★ 普通','★★★ 還不錯','★★★★ 很滿意','★★★★★ 非常滿意！'];
 function setStarFor(bookId,n){
   const container=document.getElementById(`stars-${bookId}`);
   if(!container)return;
@@ -1461,7 +1461,7 @@ function copyRefCode(){
 
 
 // ── REVIEW UI HELPERS ──
-const RV_STAR_LABELS=['','★ 一般般','★★ 還可以','★★★ 不錯喔','★★★★ 很滿意！','★★★★★ 非常滿意！'];
+var RV_STAR_LABELS=['','★ 一般般','★★ 還可以','★★★ 不錯喔','★★★★ 很滿意！','★★★★★ 非常滿意！'];
 let _rvStar=5;
 
 // ── dbGetReviews helper ──

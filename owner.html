@@ -1478,11 +1478,7 @@ const _shakeStyle=document.createElement('style');
 _shakeStyle.textContent='@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}';
 document.head.appendChild(_shakeStyle);
 
-function openLB(img){
-  document.getElementById('lbImg').src=img.src;
-  document.getElementById('lightbox').classList.add('show');
-}
-function closeLB(){document.getElementById('lightbox').classList.remove('show');}
+// openLB/closeLB defined above
 // ── AUTO LOGIN FROM INDEX.HTML ──
 (async function autoLoginCheck(){
   const pw=sessionStorage.getItem('ownerAutoLogin');

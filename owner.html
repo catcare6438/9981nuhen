@@ -544,6 +544,22 @@ function parseAssignedSummary(assignedTo){
 
 // ── 登入 ──
 
+
+function buildOwnerPetPhotos(bk){
+  var pets=bk.petData||[];
+  var withPhoto=pets.filter(function(p){return p&&p.photo;});
+  if(!withPhoto.length) return '';
+  var items=withPhoto.map(function(p,i){
+    var name=p.name||('毛孩'+(i+1));
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+      +'<img src="'+p.photo+'" class="pet-thumb" data-name="'+name+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2.5px solid var(--pk3);cursor:pointer;">'
+      +'<span style="font-size:.72rem;font-weight:800;color:var(--pk);">'+name+'</span>'
+      +'</div>';
+  }).join('');
+  return '<div style="margin-top:14px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">'
+    +'<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">🐾 毛孩大頭照</div>'
+    +'<div style="padding:12px 14px;display:flex;gap:14px;flex-wrap:wrap;">'+items+'</div></div>';
+}
 function toggleDetail(id){
   const body=document.getElementById('detail-'+id);
   const arrow=document.getElementById('darrow-'+id);
@@ -611,6 +627,12 @@ function ownerLogout(){
 }
 
 // ── 渲染所有訂單手風琴 ──
+// Pet photo click delegation
+document.addEventListener('click',function(e){
+  var el=e.target.closest('.pet-thumb');
+  if(el) openLB(el.src, (el.dataset.name||'毛孩')+'照片.jpg');
+});
+
 async function renderAllOrders(books){
   const container=document.getElementById('ordersContainer');
   if(!books.length){
@@ -680,8 +702,11 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
     </div>
     <div class="order-body ${openClass}" id="body-${bk.id}">
       ${infoHTML}
-      <div class="section-sub-title">💰 費用明細 &amp; 記錄</div>
-      ${buildOwnerDetailHTML(bk)}
+      <button class="detail-toggle-btn" onclick="event.stopPropagation();toggleDetail('${bk.id}')">
+        <span>💰 費用明細 &amp; 記錄</span>
+        <span class="detail-toggle-arrow" id="darrow-${bk.id}">▼</span>
+      </button>
+      <div class="detail-body" id="detail-${bk.id}">${buildOwnerDetailHTML(bk)}</div>
       <div class="section-sub-title">🐾 保母照護回報</div>
       <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
       ${reviewSection}
@@ -1155,6 +1180,8 @@ function buildOwnerDetailHTML(bk){
   var payNoteStr=bk.payNote?('<div style="margin-top:4px;font-size:.76rem;color:var(--tl);">備註：'+bk.payNote+'</div>'):'';
 
   var sections=[
+    // 寵物照片
+    buildOwnerPetPhotos(bk),
     // 費用明細
     '<div style="margin-top:14px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
     '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">💰 費用明細</div>',

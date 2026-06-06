@@ -2789,6 +2789,7 @@ document.addEventListener('click',e=>{
   <div class="m-box" style="width:480px;">
     <h3>🐾 寵物詳細資料</h3>
     <div id="petDetailInner"></div>
+    <input type="file" id="petPhotoFileInput" accept="image/*" style="display:none;" onchange="handlePetPhotoFile(this)">
     <button class="btn btn-ghost" style="width:100%;margin-top:12px;padding:11px;border-radius:12px;" onclick="closeM('petDetailModal')">關閉</button>
   </div>
 </div>

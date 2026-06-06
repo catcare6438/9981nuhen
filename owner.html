@@ -899,7 +899,7 @@ function buildReportAccordion(reps,bookId){
     let innerHtml='';
     if(dayReps.length===1){
       // 單筆直接展開
-      innerHtml=renderReport(dayReps[0]);
+      try{innerHtml=renderReport(dayReps[0]);}catch(_e){innerHtml='<div style="color:red;padding:10px;">'+_e.message+'</div>';}
     } else {
       // 多筆：用時段 tabs 切換
       innerHtml=`<div class="slot-tabs" id="stabs-${dKey}">
@@ -908,7 +908,7 @@ function buildReportAccordion(reps,bookId){
           return `<button class="slot-tab${si===0?' on':''}" onclick="switchSlot('${dKey}',${si},this)">${slotLabel}</button>`;
         }).join('')}
       </div>
-      ${dayReps.map((r,si)=>`<div class="slot-panel${si===0?'':' hidden'}" id="sp-${dKey}-${si}">${renderReport(r)}</div>`).join('')}`;
+      ${dayReps.map((r,si)=>{try{return `<div class="slot-panel${si===0?'':' hidden'}" id="sp-${dKey}-${si}">${renderReport(r)}</div>`;}catch(_e){return '<div style="color:red;padding:10px;">'+_e.message+'</div>';}}).join('')}`;
     }
 
     return `<div class="date-accordion" id="${dKey}-wrap">
@@ -1199,9 +1199,10 @@ function renderReport(r){
     // Group by groupIdx
     const groupMap={};
     r.cleanPhotos.forEach(p=>{
-      if(!groupMap[p.groupIdx])groupMap[p.groupIdx]={label:p.label||'清潔',before:null,after:null};
-      if(p.side==='before')groupMap[p.groupIdx].before=p.dataUrl;
-      else groupMap[p.groupIdx].after=p.dataUrl;
+      var gIdx=p.groupIdx!=null?p.groupIdx:0;
+      if(!groupMap[gIdx])groupMap[gIdx]={label:p.label||'清潔',before:null,after:null};
+      if(p.side==='before')groupMap[gIdx].before=p.dataUrl;
+      else groupMap[gIdx].after=p.dataUrl;
     });
     const groupHtml=Object.entries(groupMap).map(([idx,g])=>`
       <div style="margin-bottom:12px;">

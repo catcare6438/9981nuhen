@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1780710124 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>貓窩裏 🐾 到府寵物褓姆</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -1525,8 +1529,7 @@ async function doOwnerLogin(){
   const pws=await dbGetOwnerPws();
   const found=Object.keys(pws).find(id=>String(pws[id])===pw);
   if(found){
-    sessionStorage.setItem('ownerAutoLogin',pw);
-    window.location.href='owner.html';
+    window.location.href='owner.html#pw='+encodeURIComponent(pw);
   } else {
     document.getElementById('ownerPwErr').textContent='密碼錯誤，請確認後再試 🐾';
   }

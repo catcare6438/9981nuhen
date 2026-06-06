@@ -873,7 +873,8 @@ async function loadOrderReports(bookId){
     }
     container.innerHTML=buildReportAccordion(reps,bookId);
   }catch(e){
-    container.innerHTML=`<div class="no-rep" style="padding:16px;">載入失敗，請重新整理頁面</div>`;
+    container.innerHTML='<div class="no-rep" style="padding:16px;color:red;">錯誤：'+e.message+'</div>';
+    console.error('loadReps error:',e);
   }
 }
 

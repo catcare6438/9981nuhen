@@ -2558,12 +2558,24 @@ function buildVisitPaymentHTML(bk, total){
     '<div style="font-size:.78rem;font-weight:900;color:#6D28D9;margin-bottom:10px;">📄 合約 & 費用表上傳</div>',
     '<div style="margin-bottom:10px;">',
     '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📋 服務合約書</div>',
-    (bk.contractUrl?'<div style="margin-bottom:6px;font-size:.76rem;color:#06C755;">✅ 已上傳</div>':''),
+    (bk.contractUrl?(
+    '<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">'
+    +(bk.contractUrl.startsWith('data:image')
+      ?'<img src="'+bk.contractUrl+'" style="width:60px;height:60px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid var(--pk3);" onclick="adminOpenLB(this.src,\'合約書.jpg\')"> <span style="color:#06C755;font-size:.76rem;font-weight:800;">✅ 已上傳（點擊放大）</span>'
+      :'<a href="'+bk.contractUrl+'" download="合約書.pdf" style="color:#06C755;font-weight:800;font-size:.76rem;">✅ PDF 已上傳（點擊下載）</a>')
+    +'</div>')
+  :''),
     '<input type="file" id="contract-file-'+vid+'" accept="image/*,application/pdf" style="font-size:.8rem;width:100%;">',
     '</div>',
     '<div style="margin-bottom:10px;">',
     '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💰 服務費用表</div>',
-    (bk.feeTableUrl?'<div style="margin-bottom:6px;font-size:.76rem;color:#06C755;">✅ 已上傳</div>':''),
+    (bk.feeTableUrl?(
+    '<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">'
+    +(bk.feeTableUrl.startsWith('data:image')
+      ?'<img src="'+bk.feeTableUrl+'" style="width:60px;height:60px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid var(--pk3);" onclick="adminOpenLB(this.src,\'費用表.jpg\')"> <span style="color:#06C755;font-size:.76rem;font-weight:800;">✅ 已上傳（點擊放大）</span>'
+      :'<a href="'+bk.feeTableUrl+'" download="費用表.pdf" style="color:#06C755;font-weight:800;font-size:.76rem;">✅ PDF 已上傳（點擊下載）</a>')
+    +'</div>')
+  :''),
     '<input type="file" id="feetable-file-'+vid+'" accept="image/*,application/pdf" style="font-size:.8rem;width:100%;">',
     '</div>',
     '<button onclick="uploadContractFiles('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">📤 上傳</button>',

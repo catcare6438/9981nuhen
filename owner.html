@@ -589,9 +589,10 @@ document.addEventListener('click', function(e){
   if(slide){
     var cid = slide.dataset.carouselId;
     var si = parseInt(slide.dataset.idx) || 0;
-    if(cid && _carouselPhotos[cid] && _carouselPhotos[cid].length){
-      openLB(_carouselPhotos[cid][si], '照片.jpg', _carouselPhotos[cid], si);
-    }
+    var photos = _carouselPhotos[cid];
+    if(!cid) { alert('no cid on slide'); return; }
+    if(!photos || !photos.length) { alert('no photos for cid='+cid+' keys='+Object.keys(_carouselPhotos).join(',')); return; }
+    openLB(photos[si], '照片.jpg', photos, si);
   }
 });
 

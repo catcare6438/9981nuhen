@@ -772,6 +772,7 @@ document.addEventListener('click',function(e){
 document.addEventListener('click',function(e){
   var tab=e.target.closest('.slot-tab[data-dkey]');
   if(tab){
+    e.stopPropagation();
     var dKey=tab.dataset.dkey;
     var si=parseInt(tab.dataset.si)||0;
     var tabs=document.querySelectorAll('.slot-tab[data-dkey="'+dKey+'"]');

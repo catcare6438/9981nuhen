@@ -1034,7 +1034,7 @@ function renderDateSlotsHtml(dateSlotData){
 }
 
 // ── PET DETAIL DISPLAY ──
-function renderPetDataHtml(petData){
+function renderPetDataHtml(petData, bookId){
   if(!petData||!petData.length) return '<span style="color:var(--tl);">（無寵物資料）</span>';
   return petData.map(function(p,i){
     var icon=p.type==='cat'?'🐱':'🐶';
@@ -1043,7 +1043,7 @@ function renderPetDataHtml(petData){
     var name=p.name||('寵物'+(i+1));
     var avatarHtml=photo
       ?('<img src="'+photo+'" class="admin-pet-photo" data-idx="'+i+'" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;flex-shrink:0;" title="點擊放大">')
-      :('<div class="admin-pet-upload" data-idx="'+i+'" style="width:80px;height:80px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;cursor:pointer;" title="點擊上傳照片">'+icon+'</div>');
+      :('<div class="admin-pet-upload" data-idx="'+i+'" data-bookid="'+bookId+'" style="width:80px;height:80px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;cursor:pointer;" title="點擊上傳照片">'+icon+'</div>');
     return '<div style="background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">'
       +'<div style="display:flex;gap:14px;align-items:flex-start;">'
       +avatarHtml
@@ -1569,8 +1569,9 @@ function upB(id,fn){} // deprecated
 function showPetDetail(bookId){
   const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
   if(!bk)return;
-  const petHtml=renderPetDataHtml(bk.petData);
+  const petHtml=renderPetDataHtml(bk.petData, bookId);
   const notesHtml=bk.petNotes?('<div style="margin-top:12px;background:#FFF8E1;border:1.5px solid #FFB800;border-radius:10px;padding:12px 14px;font-size:.84rem;line-height:1.7;"><strong style="color:#8B6000;">📝 注意事項</strong><br>'+bk.petNotes+'</div>'):'';
+  document.getElementById('petDetailInner').dataset.bookId=bookId;
   document.getElementById('petDetailInner').innerHTML=`
     <div style="margin-bottom:8px;font-size:.82rem;color:var(--tl);">飼主：<strong>${bk.ownerName}</strong></div>
     ${petHtml}${notesHtml}
@@ -2696,7 +2697,11 @@ document.addEventListener('click', function(e){
     adminOpenLB(photoEl.src, '寵物照片.jpg');
   } else if(uploadEl){
     var petIdx2 = parseInt(uploadEl.dataset.idx)||0;
-    var bookId2 = window._petDetailBookId || 0;
+    // Try multiple sources for bookId
+    var bookId2 = parseInt(uploadEl.dataset.bookid)
+      || window._petDetailBookId
+      || parseInt(document.getElementById('petDetailInner')?.dataset.bookId)
+      || 0;
     if(!bookId2){alert('找不到訂單，請關閉後重新點🐾寵物資料');return;}
     triggerPetPhotoUpload(bookId2, petIdx2);
   }

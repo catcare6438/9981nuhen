@@ -591,12 +591,10 @@ document.addEventListener('click', function(e){
     var cid = slide.dataset.carouselId;
     var si = parseInt(slide.dataset.idx) || 0;
     var photos = _carouselPhotos[cid];
-    console.log('[carousel click] cid='+cid+' si='+si+' photos='+(photos?photos.length:0)+' keys='+Object.keys(_carouselPhotos));
     if(photos && photos.length){
       openLB(photos[si], '照片.jpg', photos, si);
     } else {
       var img = slide.querySelector('img');
-      console.log('[carousel fallback] img.src len='+(img&&img.src?img.src.length:0));
       if(img && img.src) openLB(img.src, '照片.jpg', [img.src], 0);
     }
   }
@@ -604,22 +602,36 @@ document.addEventListener('click', function(e){
 
 function buildPhotoCarousel(id, photos){
   if(!photos||!photos.length) return '';
-  // Store photos in global map (avoids HTML attribute size limit for base64)
   _carouselPhotos[id]=photos;
+
+  // Create a unique click handler on window
+  var fnKey='_cshow_'+id.replace(/\W/g,'_');
+  window[fnKey]=function(idx){
+    var p=_carouselPhotos[id];
+    if(!p||!p.length)return;
+    _lbPhotos=p; _lbIdx=idx||0;
+    lbRender();
+    document.getElementById('lbOverlay').classList.add('show');
+  };
+
   if(photos.length===1){
     return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照</div>'
-      +'<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="0" style="border-radius:14px;overflow:hidden;margin-top:8px;cursor:pointer;">'
+      +'<div onclick="'+fnKey+'(0)" style="border-radius:14px;overflow:hidden;margin-top:8px;cursor:pointer;">'
       +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;pointer-events:none;">'
       +'</div></div>';
   }
+
   var slides=photos.map(function(src,i){
-    return '<div class="photo-carousel-slide" data-carousel-id="'+id+'" data-idx="'+i+'" style="cursor:pointer;">'
-      +'<img src="'+src+'" alt="照片'+(i+1)+'" style="width:100%;height:100%;object-fit:cover;pointer-events:none;"></div>';
+    return '<div onclick="'+fnKey+'('+i+')" style="flex:0 0 100%;height:100%;cursor:pointer;">'
+      +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;"></div>';
   }).join('');
+
   var dots=photos.map(function(_,i){
     return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
   }).join('');
-  return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);font-weight:700;">點擊放大 ‧ 左右滑動</span></div>'
+
+  return '<div class="rblock">'
+    +'<div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);">點擊放大 ‧ 左右滑動</span></div>'
     +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'">'
     +'<div class="photo-carousel-track" id="'+id+'-track">'+slides+'</div>'
     +'<div class="photo-carousel-count"><span id="'+id+'-cur">1</span>/'+photos.length+'</div>'
@@ -688,8 +700,7 @@ var _lbPhotos=[], _lbIdx=0;
 
 function openLB(src, filename, allSrcs, startIdx){
   var actualSrc=(src instanceof HTMLElement)?src.src:(typeof src==='string'?src:'');
-  console.log('[openLB] src type='+typeof src+' actualSrc len='+(actualSrc?actualSrc.length:0)+' allSrcs='+(allSrcs?allSrcs.length:0));
-  if(!actualSrc){console.warn('[openLB] empty src, aborting');return;}
+  if(!actualSrc)return;
   // If allSrcs provided, use carousel mode
   if(allSrcs&&allSrcs.length>1){
     _lbPhotos=allSrcs;

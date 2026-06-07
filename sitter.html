@@ -381,7 +381,7 @@ function dbRowToOrder(r){
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
-    petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,
     services:r.services||[],addons:r.addons||[],
@@ -1129,12 +1129,20 @@ function buildSlotCalendar(slots, holSet, slbl){
   return html;
 }
 function buildVisitHtml(b){
-  if(!b.visitDate&&!b.visitNotes&&!b.caution) return '';
+  var photos=b.visitPhotos||[];
+  if(!b.visitDate&&!b.visitNotes&&!b.caution&&!photos.length) return '';
   var html='<div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:10px 12px;font-size:.8rem;">';
   html+='<div style="font-size:.74rem;font-weight:900;color:#0369A1;margin-bottom:6px;">🏠 家訪資訊</div>';
   if(b.visitDate) html+='<div>📅 <strong>'+b.visitDate+'</strong></div>';
   if(b.visitNotes) html+='<div style="color:var(--tl);margin-top:3px;">📝 '+b.visitNotes.replace(/\n/g,'<br>')+'</div>';
   if(b.caution) html+='<div style="color:#C05000;margin-top:3px;">⚠️ '+b.caution.replace(/\n/g,'<br>')+'</div>';
+  if(photos.length){
+    html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">';
+    photos.forEach(function(p){
+      html+='<img src="'+p+'" class="sitter-visit-photo" style="width:64px;height:64px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">';
+    });
+    html+='</div>';
+  }
   html+='</div>';
   return html;
 }

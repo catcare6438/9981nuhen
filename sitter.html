@@ -961,7 +961,7 @@ async function renderCases(){
     const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
     const svcs=(b.services||[]).map(s=>SVC_NAME[s]||s).join('＋');
     return `<div class="case-card ${b.status==='已確認'||b.status==='服務中'?'active':''}">
-      <div class="case-head">
+      <div class="case-head" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;">
         <div>
           <div class="case-title">🐾 ${b.petData?.length?b.petData.map(p=>p.name).join('、'):(b.petName||'寵物')}
             <span class="badge ${sCls[b.status]||'bd'}" style="margin-left:6px;">${b.status}</span>

@@ -1026,7 +1026,7 @@ async function renderCases(){
             </div>
           </div>
         </div>
-        \${(b.visitDate||b.visitNotes||b.caution)?\`<div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:10px 12px;font-size:.8rem;margin-top:2px;min-width:130px;"><div style="font-size:.74rem;font-weight:900;color:#0369A1;margin-bottom:6px;">🏠 家訪資訊</div>\${b.visitDate?'<div>📅 <strong>'+b.visitDate+'</strong></div>':''}\${b.visitNotes?'<div style=\"color:var(--tl);margin-top:3px;">📝 '+b.visitNotes+'</div>':''}\${b.caution?'<div style=\"color:#C05000;margin-top:3px;">⚠️ '+b.caution+'</div>':''}</div>\`:''}
+        ${buildVisitHtml(b)}
       </div>
       <div class="case-btns">
         <button class="abtn" style="background:#F0FFF4;border-color:#52C48A;color:#1A7A4A;" onclick="showSitterPetDetail(${b.id})">🐾 寵物資料</button>
@@ -1037,6 +1037,17 @@ async function renderCases(){
   }).join('');
 }
 
+
+function buildVisitHtml(b){
+  if(!b.visitDate&&!b.visitNotes&&!b.caution) return '';
+  var html='<div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:10px 12px;font-size:.8rem;">';
+  html+='<div style="font-size:.74rem;font-weight:900;color:#0369A1;margin-bottom:6px;">🏠 家訪資訊</div>';
+  if(b.visitDate) html+='<div>📅 <strong>'+b.visitDate+'</strong></div>';
+  if(b.visitNotes) html+='<div style="color:var(--tl);margin-top:3px;">📝 '+b.visitNotes+'</div>';
+  if(b.caution) html+='<div style="color:#C05000;margin-top:3px;">⚠️ '+b.caution+'</div>';
+  html+='</div>';
+  return html;
+}
 async function renderSalaryView(){
   const _allB2=await getB();
   const done=_allB2.filter(b=>{

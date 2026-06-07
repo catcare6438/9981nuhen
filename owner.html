@@ -1444,8 +1444,8 @@ function buildOwnerDetailHTML(bk){
       '<div style="padding:10px 14px;background:#F0F9FF;font-size:.8rem;font-weight:900;color:#0369A1;">🏠 家訪記錄</div>',
       '<div style="padding:12px 14px;font-size:.84rem;line-height:1.8;">',
       bk.visitDate?('<div>📅 家訪日期：<strong>'+bk.visitDate+'</strong></div>'):'',
-      bk.visitNotes?('<div>📝 飼主備註：'+bk.visitNotes+'</div>'):'',
-      bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution+'</div>'):'',
+      bk.visitNotes?('<div>📝 飼主備註：'+bk.visitNotes.replace(/\n/g,'<br>')+'</div>'):'',
+      bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution.replace(/\n/g,'<br>')+'</div>'):'',
       '</div></div>'
     ].join(''):'',
   ];

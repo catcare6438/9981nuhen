@@ -1133,8 +1133,8 @@ function buildVisitHtml(b){
   var html='<div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:10px 12px;font-size:.8rem;">';
   html+='<div style="font-size:.74rem;font-weight:900;color:#0369A1;margin-bottom:6px;">🏠 家訪資訊</div>';
   if(b.visitDate) html+='<div>📅 <strong>'+b.visitDate+'</strong></div>';
-  if(b.visitNotes) html+='<div style="color:var(--tl);margin-top:3px;">📝 '+b.visitNotes+'</div>';
-  if(b.caution) html+='<div style="color:#C05000;margin-top:3px;">⚠️ '+b.caution+'</div>';
+  if(b.visitNotes) html+='<div style="color:var(--tl);margin-top:3px;">📝 '+b.visitNotes.replace(/\n/g,'<br>')+'</div>';
+  if(b.caution) html+='<div style="color:#C05000;margin-top:3px;">⚠️ '+b.caution.replace(/\n/g,'<br>')+'</div>';
   html+='</div>';
   return html;
 }

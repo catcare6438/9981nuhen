@@ -471,7 +471,7 @@ function dbRowToOrder(r){
     visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
-    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||''
+    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',visitPhotos:r.visit_photos||[]
   };
 }
 </script>
@@ -1439,13 +1439,17 @@ function buildOwnerDetailHTML(bk){
     '</div></div>',
 
     // 家訪資訊
-    (bk.visitDate||bk.visitNotes||bk.caution)?[
+    (bk.visitDate||bk.visitNotes||bk.caution||( bk.visitPhotos&&bk.visitPhotos.length))?[
       '<div style="margin-top:10px;background:#fff;border:1.5px solid #7DD3FC;border-radius:14px;overflow:hidden;">',
       '<div style="padding:10px 14px;background:#F0F9FF;font-size:.8rem;font-weight:900;color:#0369A1;">🏠 家訪記錄</div>',
       '<div style="padding:12px 14px;font-size:.84rem;line-height:1.8;">',
       bk.visitDate?('<div>📅 家訪日期：<strong>'+bk.visitDate+'</strong></div>'):'',
       bk.visitNotes?('<div>📝 飼主備註：'+bk.visitNotes.replace(/\n/g,'<br>')+'</div>'):'',
       bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution.replace(/\n/g,'<br>')+'</div>'):'',
+      (bk.visitPhotos&&bk.visitPhotos.length)?
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
+        +bk.visitPhotos.map(function(p,i){return '<img src="'+p+'" class="pet-thumb" data-name="家訪照片" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">';}).join('')
+        +'</div>':'',
       '</div></div>'
     ].join(''):'',
   ];

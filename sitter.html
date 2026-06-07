@@ -1044,17 +1044,14 @@ async function renderCases(){
 
 function buildSlotCalendar(slots, holSet, slbl){
   if(!slots||!slots.length) return '';
-  // Sort slots by date
   var sorted=slots.slice().sort(function(a,b){return a.date<b.date?-1:1;});
   var firstDate=new Date(sorted[0].date+'T00:00:00');
   var lastDate=new Date(sorted[sorted.length-1].date+'T00:00:00');
-  // Start from Monday of first week
   var startDay=new Date(firstDate);
-  startDay.setDate(startDay.getDate()-((startDay.getDay()+6)%7)); // Monday
+  startDay.setDate(startDay.getDate()-((startDay.getDay()+6)%7));
   var endDay=new Date(lastDate);
-  endDay.setDate(endDay.getDate()+(6-(endDay.getDay()+6)%7)); // Sunday
+  endDay.setDate(endDay.getDate()+(6-(endDay.getDay()+6)%7));
 
-  // Build slot map: date → [slots]
   var slotMap={};
   sorted.forEach(function(s){
     if(!slotMap[s.date]) slotMap[s.date]=[];
@@ -1063,36 +1060,53 @@ function buildSlotCalendar(slots, holSet, slbl){
 
   var today=new Date().toISOString().slice(0,10);
   var dayNames=['一','二','三','四','五','六','日'];
-  var slotColor={morning:'cal-m',noon:'cal-n',evening:'cal-e'};
-  var slotIcon={morning:'🌅',noon:'☀️',evening:'🌙'};
+  var slotLabel={morning:'早上', noon:'中午', evening:'晚上'};
+  var slotColor={morning:'cal-m', noon:'cal-n', evening:'cal-e'};
 
   var html='<div style="font-size:.74rem;font-weight:900;color:var(--pk);margin:6px 0 4px;">📅 我的服務時段</div>';
+
+  // Group weeks by month to add month headers
+  var cur=new Date(startDay);
+  var lastMonth=-1;
+  var rows=[];
+  while(cur<=endDay){
+    var weekStart=new Date(cur);
+    var weekCells=[];
+    var weekMonth=-1;
+    for(var di=0;di<7;di++){
+      var ds=cur.toISOString().slice(0,10);
+      weekCells.push({ds:ds, d:cur.getDate(), m:cur.getMonth()+1, isHol:holSet.has(ds), isToday:ds===today, slots:slotMap[ds]||null});
+      if(di===0) weekMonth=cur.getMonth()+1;
+      cur.setDate(cur.getDate()+1);
+    }
+    rows.push({weekMonth:weekMonth, year:weekStart.getFullYear(), cells:weekCells});
+  }
+
   html+='<table class="slot-cal"><thead><tr>';
   dayNames.forEach(function(d){ html+='<th>'+d+'</th>'; });
   html+='</tr></thead><tbody>';
 
-  var cur=new Date(startDay);
-  while(cur<=endDay){
+  rows.forEach(function(row){
+    // Add month header row if month changed
+    if(row.weekMonth!==lastMonth){
+      html+='<tr><td colspan="7" style="background:var(--pk4);color:var(--pk);font-weight:900;font-size:.76rem;padding:4px 6px;text-align:left;border:1px solid var(--pk3);">'+row.year+'年 '+row.weekMonth+'月</td></tr>';
+      lastMonth=row.weekMonth;
+    }
     html+='<tr>';
-    for(var di=0;di<7;di++){
-      var ds=cur.toISOString().slice(0,10);
-      var isHol=holSet.has(ds);
-      var isToday=ds===today;
-      var inRange=slotMap[ds]!==undefined;
-      var cls=(isHol?'hol':'')+(isToday?' today':'');
+    row.cells.forEach(function(cell){
+      var cls=(cell.isHol?'hol':'')+(cell.isToday?' today':'');
       html+='<td class="'+cls.trim()+'">';
-      // Date number
-      html+='<div class="cal-date">'+(isHol?'🎊':'')+cur.getDate()+'</div>';
-      if(inRange){
-        slotMap[ds].forEach(function(slot){
-          html+='<div class="cal-slot '+( slotColor[slot]||'cal-m')+'">'+( slotIcon[slot]||'')+' '+(slbl[slot]||slot)+'</div>';
+      html+='<div class="cal-date">'+cell.d+'</div>';
+      if(cell.slots){
+        cell.slots.forEach(function(slot){
+          html+='<div class="cal-slot '+(slotColor[slot]||'cal-m')+'">'+(slotLabel[slot]||slot)+'</div>';
         });
       }
       html+='</td>';
-      cur.setDate(cur.getDate()+1);
-    }
+    });
     html+='</tr>';
-  }
+  });
+
   html+='</tbody></table>';
   return html;
 }

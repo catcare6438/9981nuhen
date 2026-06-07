@@ -569,7 +569,7 @@ function dbRowToOrder(r){
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
-    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||"",
     homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
@@ -2485,12 +2485,44 @@ async function saveEditOrder(){
       }).filter(function(d){return d.slots.length>0;});
     }
 
-    // Always use the new slot selection from UI
-    // Only fall back to existing if no slots were selected at all
+    // Build final assigned_to
+    const existingAssigned=bk.assignedTo||'';
     let finalAssigned=JSON.stringify(newSlots);
-    if(!newSlots.length){
-      // No slots selected - keep existing assigned_to
-      finalAssigned=bk.assignedTo||'[]';
+
+    if(existingAssigned && newSlots.length){
+      try{
+        const ex=JSON.parse(existingAssigned);
+        if(Array.isArray(ex)&&ex.length&&ex[0].slot!==undefined){
+          // Format2: has sitter assignments - merge new slots into existing
+          // Build new date→slots map
+          const newDateSlots={};
+          newSlots.forEach(function(d){newDateSlots[d.date]=d.slots;});
+          // Get all new dates
+          const newDates=new Set(newSlots.map(function(d){return d.date;}));
+          // Keep Format2 records that match new dates (update slot if changed)
+          const kept=[];
+          newDates.forEach(function(date){
+            const newSlotsForDate=newDateSlots[date]||[];
+            const existingForDate=ex.filter(function(a){return a.date===date;});
+            if(existingForDate.length){
+              // Update slots but keep sitter info
+              newSlotsForDate.forEach(function(slot){
+                const match=existingForDate.find(function(a){return a.slot===slot;});
+                if(match) kept.push(match);
+                else kept.push({date:date,slot:slot,sitter:'',transport:0});
+              });
+            } else {
+              // New date not in existing - add without sitter
+              newSlotsForDate.forEach(function(slot){
+                kept.push({date:date,slot:slot,sitter:'',transport:0});
+              });
+            }
+          });
+          finalAssigned=JSON.stringify(kept);
+        }
+      }catch(e2){}
+    } else if(!newSlots.length){
+      finalAssigned=existingAssigned||'[]';
     }
 
     const startDate=startEl.value;
@@ -2589,6 +2621,58 @@ async function uploadContractFiles(bookId){
     if(msg)msg.textContent='';
   }
 }
+
+async function uploadVisitPhotos(bookId, input){
+  var files=Array.from(input.files);
+  if(!files.length) return;
+  var msg=document.getElementById('vi-photo-msg-'+bookId);
+  if(msg) msg.textContent='⏳ 上傳中...';
+  var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+  var existing=bk.visitPhotos||[];
+  // Compress and add each photo
+  var promises=files.map(function(file){
+    return new Promise(function(resolve){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        var img=new Image();
+        img.onload=function(){
+          var canvas=document.createElement('canvas');
+          var max=800;
+          var w=img.width,h=img.height;
+          if(w>max){h=Math.round(h*max/w);w=max;}
+          if(h>max){w=Math.round(w*max/h);h=max;}
+          canvas.width=w;canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          resolve(canvas.toDataURL('image/jpeg',0.8));
+        };
+        img.src=e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+  var newPhotos=await Promise.all(promises);
+  var allPhotos=existing.concat(newPhotos);
+  try{
+    await _supa.from('orders').update({visit_photos:allPhotos}).eq('id',parseInt(bookId));
+    bk.visitPhotos=allPhotos;
+    if(msg) msg.textContent='✅ 已上傳 '+newPhotos.length+' 張';
+    setTimeout(function(){showDetail(bookId);},400);
+  }catch(e){
+    if(msg) msg.textContent='❌ '+e.message;
+  }
+}
+
+async function removeVisitPhoto(bookId, photoIdx){
+  var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  if(!bk) return;
+  var photos=(bk.visitPhotos||[]).filter(function(_,i){return i!==photoIdx;});
+  try{
+    await _supa.from('orders').update({visit_photos:photos}).eq('id',parseInt(bookId));
+    bk.visitPhotos=photos;
+    showDetail(bookId);
+  }catch(e){alert('刪除失敗：'+e.message);}
+}
 async function saveVisitInfo(bookId){
   const visitDate=document.getElementById('vi-date-'+bookId)?.value||'';
   const visitNotes=document.getElementById('vi-notes-'+bookId)?.value||'';
@@ -2627,6 +2711,21 @@ function buildVisitPaymentHTML(bk, total){
   var vDate=bk.visitDate||'';
   var vNotes=(bk.visitNotes||'').replace(/"/g,'&quot;');
   var vCaution=(bk.caution||'').replace(/"/g,'&quot;');
+  var vPhotos=bk.visitPhotos||[];
+
+  // Build existing photos preview
+  var photosHtml='';
+  if(vPhotos.length){
+    photosHtml='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">'
+      +vPhotos.map(function(p,i){
+        return '<div style="position:relative;width:72px;height:72px;">'
+          +'<img src="'+p+'" class="visit-photo-thumb" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">'
+          +'<button onclick="removeVisitPhoto('+vid+','+i+')" style="position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#E05252;border:none;color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;">✕</button>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
   return [
     '<div style="margin-top:14px;padding:14px;background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;">',
     '<div style="font-size:.78rem;font-weight:900;color:#0369A1;margin-bottom:10px;">🏠 家訪資訊</div>',
@@ -2642,36 +2741,18 @@ function buildVisitPaymentHTML(bk, total){
     '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">注意事項</div>',
     '<textarea id="vi-caution-'+vid+'" rows="2" style="width:100%;box-sizing:border-box;padding:7px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;resize:vertical;outline:none;">'+vCaution+'</textarea>',
     '</div>',
+    // Photos section
+    '<div style="margin-bottom:10px;">',
+    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📷 家訪照片</div>',
+    photosHtml,
+    '<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:#EFF6FF;border:1.5px dashed #7DD3FC;border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:#0369A1;">',
+    '📷 上傳照片',
+    '<input type="file" id="vi-photo-'+vid+'" accept="image/*" multiple style="display:none;" onchange="uploadVisitPhotos('+vid+',this)">',
+    '</label>',
+    '<span id="vi-photo-msg-'+vid+'" style="font-size:.74rem;color:var(--tl);margin-left:8px;"></span>',
+    '</div>',
     '<button onclick="saveVisitInfo('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存家訪</button>',
     '<span id="vi-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
-    '</div>',
-    // Contract & fee table upload
-    '<div style="margin-top:12px;padding:14px;background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:12px;">',
-    '<div style="font-size:.78rem;font-weight:900;color:#6D28D9;margin-bottom:10px;">📄 合約 & 費用表上傳</div>',
-    '<div style="margin-bottom:10px;">',
-    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📋 服務合約書</div>',
-    (bk.contractUrl?(
-    '<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">'
-    +(bk.contractUrl.startsWith('data:image')
-      ?'<img src="'+bk.contractUrl+'" style="width:60px;height:60px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid var(--pk3);" onclick="adminOpenLB(this.src,\'合約書.jpg\')"> <span style="color:#06C755;font-size:.76rem;font-weight:800;">✅ 已上傳（點擊放大）</span>'
-      :'<a href="'+bk.contractUrl+'" download="合約書.pdf" style="color:#06C755;font-weight:800;font-size:.76rem;">✅ PDF 已上傳（點擊下載）</a>')
-    +'</div>')
-  :''),
-    '<input type="file" id="contract-file-'+vid+'" accept="image/*,application/pdf" style="font-size:.8rem;width:100%;">',
-    '</div>',
-    '<div style="margin-bottom:10px;">',
-    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💰 服務費用表</div>',
-    (bk.feeTableUrl?(
-    '<div style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">'
-    +(bk.feeTableUrl.startsWith('data:image')
-      ?'<img src="'+bk.feeTableUrl+'" style="width:60px;height:60px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid var(--pk3);" onclick="adminOpenLB(this.src,\'費用表.jpg\')"> <span style="color:#06C755;font-size:.76rem;font-weight:800;">✅ 已上傳（點擊放大）</span>'
-      :'<a href="'+bk.feeTableUrl+'" download="費用表.pdf" style="color:#06C755;font-weight:800;font-size:.76rem;">✅ PDF 已上傳（點擊下載）</a>')
-    +'</div>')
-  :''),
-    '<input type="file" id="feetable-file-'+vid+'" accept="image/*,application/pdf" style="font-size:.8rem;width:100%;">',
-    '</div>',
-    '<button onclick="uploadContractFiles('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">📤 上傳</button>',
-    '<span id="contract-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
     '</div>'
   ].join('');
 }

@@ -2469,19 +2469,12 @@ async function saveEditOrder(){
       }).filter(function(d){return d.slots.length>0;});
     }
 
-    // Preserve sitter assignments if dates unchanged
-    const existingAssigned=bk.assignedTo||'';
+    // Always use the new slot selection from UI
+    // Only fall back to existing if no slots were selected at all
     let finalAssigned=JSON.stringify(newSlots);
-    if(existingAssigned){
-      try{
-        const ex=JSON.parse(existingAssigned);
-        if(Array.isArray(ex)&&ex.length&&ex[0].slot!==undefined){
-          const exDates=new Set(ex.map(function(a){return a.date;}));
-          const newDates=new Set(newSlots.flatMap(function(d){return d.slots.map(function(){return d.date;});}));
-          const same=[...newDates].every(function(d){return exDates.has(d);})||([...exDates].every(function(d){return newDates.has(d);}));
-          if(same) finalAssigned=existingAssigned;
-        }
-      }catch(e2){}
+    if(!newSlots.length){
+      // No slots selected - keep existing assigned_to
+      finalAssigned=bk.assignedTo||'[]';
     }
 
     const startDate=startEl.value;

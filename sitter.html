@@ -2,6 +2,10 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- v1780710124 -->
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
 <title>貓窩裏🐾 保母專區</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -363,7 +367,7 @@ function dbRowToOrder(r){
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
-    petNotes:r.pet_notes||'',
+    petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,
     services:r.services||[],addons:r.addons||[],
@@ -1765,9 +1769,19 @@ function showSitterPetDetail(bookId){
     const notesHtml=bk.petNotes?`<div style="margin-top:10px;background:#FFF8E1;border:1.5px solid #FFB800;border-radius:10px;padding:12px;font-size:.84rem;line-height:1.7;"><strong style="color:#8B6000;">📝 注意事項</strong><br>${bk.petNotes}</div>`:'';
     const slotHtml=bk.dateSlotData?.length?`<div style="margin-top:10px;"><div style="font-size:.78rem;font-weight:800;color:var(--pk);margin-bottom:6px;font-family:'Nunito',sans-serif;">📅 服務時段</div>${renderDateSlotsHtml(bk.dateSlotData)}</div>`:'';
     window._spBk=bk;
+    const visitHtml=(bk.visitDate||bk.visitNotes||bk.caution)?`
+      <div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:12px;font-size:.84rem;line-height:1.8;">
+        <div style="font-size:.78rem;font-weight:900;color:#0369A1;margin-bottom:8px;">🏠 家訪資訊</div>
+        ${bk.visitDate?`<div>📅 <strong>${bk.visitDate}</strong></div>`:''}
+        ${bk.visitNotes?`<div>📝 ${bk.visitNotes}</div>`:''}
+        ${bk.caution?`<div style="color:#C05000;">⚠️ ${bk.caution}</div>`:''}
+      </div>`:'';
     document.getElementById('spDetailInner').innerHTML=`
       <div style="font-size:.84rem;color:var(--tl);margin-bottom:10px;">飼主：<strong style="color:var(--t);">${bk.ownerName}</strong>　📍 ${bk.ownerAddr||'—'}</div>
-      ${petHtml}${notesHtml}${slotHtml}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start;">
+        <div>${petHtml}${notesHtml}${slotHtml}</div>
+        <div>${visitHtml}</div>
+      </div>
       <button onclick="downloadPetFile(window._spBk)" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細（帶著去家訪）</button>`;
     document.getElementById('spDetailMod').classList.add('show');
   });

@@ -2,6 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<!-- build:1780801159 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -858,6 +859,7 @@ let videoDataURL=null;
 let videoName='';
 let videoDuration=0;
 let petNames=[];
+console.log('[sitter] build 1780801159 - toDS fix active');
 let _myCases=[];
 let petProfilePhotos={};  // bookId_petIndex -> base64 photo
 let activePetIdx=0;
@@ -1044,15 +1046,20 @@ async function renderCases(){
 
 function buildSlotCalendar(slots, holSet, slbl){
   if(!slots||!slots.length) return '';
+
+  // Local date string helper (avoids UTC offset bug with toISOString)
+  function toDS(d){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+
   var sorted=slots.slice().sort(function(a,b){return a.date<b.date?-1:1;});
   var firstDate=new Date(sorted[0].date+'T00:00:00');
   var lastDate=new Date(sorted[sorted.length-1].date+'T00:00:00');
 
-  // Start from Monday of first week
   var startDay=new Date(firstDate);
   startDay.setDate(startDay.getDate()-((startDay.getDay()+6)%7));
   var endDay=new Date(lastDate);
-  endDay.setDate(endDay.getDate()+(6-(endDay.getDay()+6)%7));
+  endDay.setDate(endDay.getDate()+(6-(lastDate.getDay()+6)%7));
 
   var slotMap={};
   sorted.forEach(function(s){
@@ -1060,7 +1067,7 @@ function buildSlotCalendar(slots, holSet, slbl){
     slotMap[s.date].push(s.slot);
   });
 
-  var today=new Date().toISOString().slice(0,10);
+  var todayDS=toDS(new Date());
   var dayNames=['一','二','三','四','五','六','日'];
   var slotLabel={morning:'早上', noon:'中午', evening:'晚上'};
   var slotColor={morning:'cal-m', noon:'cal-n', evening:'cal-e'};
@@ -1073,41 +1080,36 @@ function buildSlotCalendar(slots, holSet, slbl){
   var cur=new Date(startDay);
   var lastMonthKey='';
 
-  while(cur<=endDay){
-    // Build this week's 7 cells
+  while(toDS(cur)<=toDS(endDay)){
     var cells=[];
     for(var di=0;di<7;di++){
-      var ds=cur.toISOString().slice(0,10);
+      var ds=toDS(cur);
       cells.push({
         ds:ds,
         day:cur.getDate(),
         month:cur.getMonth()+1,
         year:cur.getFullYear(),
         isHol:holSet.has(ds),
-        isToday:ds===today,
+        isToday:ds===todayDS,
         slots:slotMap[ds]||null
       });
       cur.setDate(cur.getDate()+1);
     }
 
-    // Find the dominant month in this week (majority of days)
+    // Dominant month of this week
     var monthCount={};
     cells.forEach(function(cell){
       var k=cell.year+'-'+cell.month;
       monthCount[k]=(monthCount[k]||0)+1;
     });
-    var dominantKey=Object.keys(monthCount).sort(function(a,b){
-      return monthCount[b]-monthCount[a];
-    })[0];
+    var dominantKey=Object.keys(monthCount).sort(function(a,b){return monthCount[b]-monthCount[a];})[0];
 
-    // Insert month header when month changes
     if(dominantKey!==lastMonthKey){
       var parts=dominantKey.split('-');
       html+='<tr><td colspan="7" style="background:var(--pk);color:#fff;font-weight:900;font-size:.9rem;padding:6px 10px;text-align:left;border:1px solid var(--pk2);">'+parts[0]+'年 '+parseInt(parts[1])+'月</td></tr>';
       lastMonthKey=dominantKey;
     }
 
-    // Render week row
     html+='<tr>';
     cells.forEach(function(cell){
       var cls=(cell.isHol?'hol':'')+(cell.isToday?' today':'');

@@ -569,7 +569,7 @@ function dbRowToOrder(r){
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
-    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],visitPhotos:r.visit_photos||[],
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||"",
     homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
@@ -2677,11 +2677,12 @@ async function saveVisitInfo(bookId){
   const visitDate=document.getElementById('vi-date-'+bookId)?.value||'';
   const visitNotes=document.getElementById('vi-notes-'+bookId)?.value||'';
   const caution=document.getElementById('vi-caution-'+bookId)?.value||'';
-  await dbUpdateOrder(bookId,{visit_date:visitDate,visit_notes:visitNotes,caution});
   const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const visitPhotos=(bk&&bk.visitPhotos)||[];
+  await dbUpdateOrder(bookId,{visit_date:visitDate,visit_notes:visitNotes,caution,visit_photos:visitPhotos});
   if(bk){bk.visitDate=visitDate;bk.visitNotes=visitNotes;bk.caution=caution;}
   const msg=document.getElementById('vi-msg-'+bookId);
-  if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>msg.textContent='',2000);}
+  if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>{msg.textContent='';showDetail(bookId);},800);}
 }
 
 async function savePaymentInfo(bookId,total){

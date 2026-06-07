@@ -197,7 +197,20 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   border:2px solid var(--pk3);border-radius:10px;font-size:.85rem;font-weight:800;
   font-family:'Nunito',sans-serif;cursor:pointer;margin-top:8px;}
 .empty{text-align:center;padding:40px;color:var(--tl);font-size:.88rem;line-height:1.8;}
+
+.slot-cal{width:100%;border-collapse:collapse;font-size:.76rem;margin-top:4px;}
+.slot-cal th{background:var(--pk4);color:var(--pk);font-weight:900;padding:4px 2px;text-align:center;border:1px solid var(--pk3);}
+.slot-cal td{border:1px solid var(--pk3);padding:3px 2px;text-align:center;vertical-align:top;min-width:36px;background:#fff;}
+.slot-cal td.hol{background:#FFF0F0;}
+.slot-cal td.today{background:#FFF9C4;}
+.slot-cal .cal-date{font-size:.7rem;color:var(--tl);font-weight:700;}
+.slot-cal .cal-slot{display:inline-block;font-size:.64rem;padding:1px 4px;border-radius:4px;margin:1px 0;font-weight:800;white-space:nowrap;}
+.slot-cal .cal-m{background:#FFF0F5;color:var(--pk);}
+.slot-cal .cal-n{background:#FFF8E1;color:#B8860B;}
+.slot-cal .cal-e{background:#F0F0FF;color:#4040CC;}
+.slot-cal .cal-empty{color:#ddd;font-size:.68rem;}
 </style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
@@ -975,17 +988,7 @@ async function renderCases(){
               const dayNames=['日','一','二','三','四','五','六'];
               if(mySlots&&mySlots.length){
                 const TW_HOL_S=new Set(['2026-02-14','2026-02-15','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22','2026-02-27','2026-02-28','2026-03-01','2026-04-03','2026-04-04','2026-04-05','2026-04-06','2026-05-01','2026-05-02','2026-05-03','2026-06-19','2026-06-20','2026-06-21','2026-09-25','2026-09-26','2026-09-27','2026-09-28','2026-10-09','2026-10-10','2026-10-11','2026-12-25','2026-12-26','2026-12-27']);
-                const chips=mySlots.map(s=>{
-                  const d=new Date(s.date+'T00:00:00');
-                  const dow=dayNames[d.getDay()];
-                  const isHol=TW_HOL_S.has(s.date);
-                  return `<div class="slot-chip${isHol?' hol':''}">
-                    <span class="slot-chip-date">${s.date.slice(5)}</span>
-                    <span class="slot-chip-day">(${dow})${isHol?'🎊':''}</span>
-                    <span class="slot-chip-time">${SLBL[s.slot]||s.slot}</span>
-                  </div>`;
-                }).join('');
-                return `<div style="font-size:.74rem;font-weight:800;color:var(--pk);margin:4px 0 2px;">📋 我的時段</div><div class="slot-grid">${chips}</div>`;
+                return buildSlotCalendar(mySlots, TW_HOL_S, SLBL);
               }
               return '';
             })()}
@@ -1038,6 +1041,61 @@ async function renderCases(){
 }
 
 
+
+function buildSlotCalendar(slots, holSet, slbl){
+  if(!slots||!slots.length) return '';
+  // Sort slots by date
+  var sorted=slots.slice().sort(function(a,b){return a.date<b.date?-1:1;});
+  var firstDate=new Date(sorted[0].date+'T00:00:00');
+  var lastDate=new Date(sorted[sorted.length-1].date+'T00:00:00');
+  // Start from Monday of first week
+  var startDay=new Date(firstDate);
+  startDay.setDate(startDay.getDate()-((startDay.getDay()+6)%7)); // Monday
+  var endDay=new Date(lastDate);
+  endDay.setDate(endDay.getDate()+(6-(endDay.getDay()+6)%7)); // Sunday
+
+  // Build slot map: date → [slots]
+  var slotMap={};
+  sorted.forEach(function(s){
+    if(!slotMap[s.date]) slotMap[s.date]=[];
+    slotMap[s.date].push(s.slot);
+  });
+
+  var today=new Date().toISOString().slice(0,10);
+  var dayNames=['一','二','三','四','五','六','日'];
+  var slotColor={morning:'cal-m',noon:'cal-n',evening:'cal-e'};
+  var slotIcon={morning:'🌅',noon:'☀️',evening:'🌙'};
+
+  var html='<div style="font-size:.74rem;font-weight:900;color:var(--pk);margin:6px 0 4px;">📅 我的服務時段</div>';
+  html+='<table class="slot-cal"><thead><tr>';
+  dayNames.forEach(function(d){ html+='<th>'+d+'</th>'; });
+  html+='</tr></thead><tbody>';
+
+  var cur=new Date(startDay);
+  while(cur<=endDay){
+    html+='<tr>';
+    for(var di=0;di<7;di++){
+      var ds=cur.toISOString().slice(0,10);
+      var isHol=holSet.has(ds);
+      var isToday=ds===today;
+      var inRange=slotMap[ds]!==undefined;
+      var cls=(isHol?'hol':'')+(isToday?' today':'');
+      html+='<td class="'+cls.trim()+'">';
+      // Date number
+      html+='<div class="cal-date">'+(isHol?'🎊':'')+cur.getDate()+'</div>';
+      if(inRange){
+        slotMap[ds].forEach(function(slot){
+          html+='<div class="cal-slot '+( slotColor[slot]||'cal-m')+'">'+( slotIcon[slot]||'')+' '+(slbl[slot]||slot)+'</div>';
+        });
+      }
+      html+='</td>';
+      cur.setDate(cur.getDate()+1);
+    }
+    html+='</tr>';
+  }
+  html+='</tbody></table>';
+  return html;
+}
 function buildVisitHtml(b){
   if(!b.visitDate&&!b.visitNotes&&!b.caution) return '';
   var html='<div style="background:#F0F9FF;border:1.5px solid #7DD3FC;border-radius:12px;padding:10px 12px;font-size:.8rem;">';

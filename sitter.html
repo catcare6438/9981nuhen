@@ -101,6 +101,13 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .case-title{font-weight:900;font-size:.95rem;margin-bottom:4px;font-family:'Nunito',sans-serif;color:var(--t);}
 .case-meta{font-size:.76rem;color:var(--tl);line-height:1.8;}
 .case-fee-amount{font-family:'Nunito',sans-serif;font-size:1.05rem;font-weight:900;color:var(--pk);}
+.case-head{flex-wrap:wrap;}
+@media(max-width:480px){
+  .case-head{flex-direction:column;}
+  .case-head>div:last-child{align-self:flex-start;text-align:left !important;}
+  .case-fee-sub{text-align:left !important;}
+  .case-fee-amount{font-size:.95rem;}
+}
 .case-fee-sub{font-size:.68rem;color:var(--tl);}
 .badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:.68rem;font-weight:800;font-family:'Nunito',sans-serif;}
 .bw{background:#FFF8D0;color:#8B6800;border:1.5px solid var(--y);}
@@ -1001,7 +1008,7 @@ async function renderCases(){
             📝 已回報 ${rCount} 次
           </div>
         </div>
-        <div style="text-align:right;min-width:130px;">
+        <div style="text-align:right;min-width:0;flex-shrink:0;">
           <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
           <div class="case-fee-sub" style="text-align:right;line-height:1.8;">
             <div style="color:var(--pk);font-weight:800;">到府照護</div>

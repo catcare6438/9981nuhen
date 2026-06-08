@@ -1431,7 +1431,7 @@ function buildReportText(r){
 }
 
 // ── OPEN REPORT ──
-function openReport(bookId,petNameStr,bkId){
+async function openReport(bookId,petNameStr,bkId){
   currentBookId=bookId;
   videoDataURL=null;videoName='';videoDuration=0;petData={};
   document.getElementById('rModTitle').textContent=`照護回報 — ${petNameStr}`;
@@ -1441,8 +1441,6 @@ function openReport(bookId,petNameStr,bkId){
   document.querySelectorAll('#reportMod input[type=checkbox]').forEach(c=>c.checked=false);
   document.querySelectorAll('#reportMod .etag').forEach(e=>e.classList.remove('on'));
   document.getElementById('rDiary').value='';
-  // Load pet profile photos from cache or localStorage
-  const bk=(_myCases||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
   petNames=petNameStr.trim().split(/[、,，\s]+/).map(s=>s.trim()).filter(Boolean);
   if(!petNames.length)petNames=['寵物'];
   petNames.forEach(function(_,i){
@@ -1451,10 +1449,8 @@ function openReport(bookId,petNameStr,bkId){
     const saved=localStorage.getItem(key);
     if(saved) petProfilePhotos[key]=saved;
   });
-  // Load from Supabase (async, will update UI when done)
-  loadPetPhotosFromSupabase(bookId).then(function(){
-    buildPetTabs(activePetIdx);
-  });
+  // Wait for Supabase photos before showing tabs
+  await loadPetPhotosFromSupabase(bookId);
   buildPetTabs(0);
   initPhotoSections();
   document.getElementById('reportMod').classList.add('show');

@@ -1234,10 +1234,14 @@ function renderReport(r){
   }
 
   // 毛孩照片
-  if(r.petPhotos?.length){
+  if(r.petPhotos&&r.petPhotos.length){
     const carouselId='pc-'+r.ts;
-    const photos=r.petPhotos.map(function(p){return p.dataUrl||p.url||'';}).filter(Boolean);
-    html+=buildPhotoCarousel(carouselId, photos);
+    const photos=r.petPhotos.map(function(p){
+      // Support both {dataUrl} and {url} and plain string
+      if(typeof p==='string') return p;
+      return p.dataUrl||p.url||'';
+    }).filter(Boolean);
+    if(photos.length) html+=buildPhotoCarousel(carouselId, photos);
   }
 
   // 影片

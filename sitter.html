@@ -935,6 +935,14 @@ async function renderMain(){
   });
   console.log('myCases:', myCases.length);
   _myCases=myCases;
+  // Preload all pet photos from Supabase for cross-device sync
+  myCases.forEach(function(b){
+    loadPetPhotosFromSupabase(b.id).then(function(){
+      // Refresh any visible pet avatar in the current tab
+      var el=document.getElementById('pet-avatar-0');
+      if(el && currentBookId===b.id) buildPetTabs(activePetIdx);
+    });
+  });
   const done=myCases.filter(b=>b.status==='已完成');
   const reps=(await getReps()).filter(r=>r.sitter===ME.name);
   const sessions=done.reduce((s,b)=>s+(b.dateSlotData?.length?b.dateSlotData.reduce((ss,d)=>ss+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1))),0);

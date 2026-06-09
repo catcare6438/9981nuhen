@@ -366,7 +366,7 @@ async function dbDeleteOrder(id){
 }
 async function dbGetReports(bookId){
   let q=_supa.from('reports').select('*').order('ts',{ascending:false});
-  if(bookId)q=q.eq('book_id',bookId);
+  if(bookId)q=q.eq('book_id',Number(bookId)||bookId);
   const{data,error}=await q;
   if(error){console.error('getReports:',_errMsg(error));return[];}
   return(data||[]).map(r=>({
@@ -924,7 +924,11 @@ async function loadOrderReports(bookId){
   var container=document.getElementById(`reps-${bookId}`);
   if(!container)return;
   try{
-    const reps=(await getReps(bookId)).sort((a,b)=>a.ts-b.ts); // 舊→新
+    // Try both number and string forms of bookId
+    var repsRaw=await getReps(bookId);
+    if(!repsRaw.length) repsRaw=await getReps(String(bookId));
+    const reps=repsRaw.sort((a,b)=>a.ts-b.ts);
+    console.log('[loadReps] bookId='+bookId+' found='+reps.length);
     if(!reps.length){
       container.innerHTML=`<div class="no-rep" style="padding:16px;">📝 回報尚未上傳，保母服務後會立即更新 🌸</div>`;
       return;

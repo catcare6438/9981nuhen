@@ -375,7 +375,8 @@ async function dbGetReports(bookId){
     petReports:r.pet_reports||[],services:r.services||[],
     disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
     petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
-    videoDataUrl:r.video_data_url||''
+    videoDataUrl:r.video_data_url||'',
+    videos:r.videos||[]
   }));
 }
 async function dbInsertReport(r){
@@ -1248,12 +1249,15 @@ function renderReport(r){
     if(photos.length) html+=buildPhotoCarousel(carouselId, photos);
   }
 
-  // 影片
-  if(r.videoDataUrl||r.videoDataURL){
-    html+=`<div class="rblock">
-      <div class="rblock-title">🎬 今日互動影片</div>
-      <video class="video-player" src="${r.videoDataUrl||r.videoDataURL}" controls style="width:100%;border-radius:10px;max-height:220px;"></video>
-    </div>`;
+  // 影片（支援多個）
+  var allVideos=(r.videos&&r.videos.length)?r.videos:(r.videoDataUrl||r.videoDataURL?[r.videoDataUrl||r.videoDataURL]:[]);
+  if(allVideos.length){
+    var videoHtml=allVideos.map(function(src,vi){
+      return '<div style="margin-bottom:10px;">'
+        +'<video controls style="width:100%;border-radius:14px;max-height:320px;background:#000;" src="'+src+'"></video>'
+        +'</div>';
+    }).join('');
+    html+='<div class="rblock"><div class="rblock-title">🎬 今日互動影片</div>'+videoHtml+'</div>';
   }
 
   // 清潔前後對比照

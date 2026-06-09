@@ -548,17 +548,20 @@ function dbRowToOrder(r){
       <div class="sec-title">📸 毛孩照片 &amp; 影片分享</div>
       <div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">直接點擊上傳，支援手機相機拍攝</div>
       <div class="photo-row" id="petPhotoRow"></div>
-      <button type="button" onclick="addPetPhotoSlot()" style="margin-top:10px;width:100%;padding:9px;border:2px dashed var(--pk3);border-radius:10px;background:var(--pk4);color:var(--pk);font-size:.82rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;">＋ 新增照片</button>
+      <label style="display:block;margin-top:10px;width:100%;padding:9px;border:2px dashed var(--pk3);border-radius:10px;background:var(--pk4);color:var(--pk);font-size:.82rem;font-weight:800;cursor:pointer;font-family:'Nunito',sans-serif;text-align:center;box-sizing:border-box;">
+        📷 一鍵上傳多張照片
+        <input type="file" accept="image/*" multiple style="display:none;" onchange="addMultiplePetPhotos(this)">
+      </label>
       <!-- 影片上傳 -->
       <div style="margin-top:14px;">
         <div style="font-size:.76rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🎬 影片分享（選填）</div>
         <label style="display:flex;align-items:center;gap:10px;background:#fff;border:2px dashed var(--pk3);border-radius:12px;padding:14px;cursor:pointer;transition:border .2s;" onmouseenter="this.style.borderColor='var(--pk)'" onmouseleave="this.style.borderColor='var(--pk3)'">
           <span style="font-size:2rem;">🎥</span>
           <div>
-            <div style="font-size:.82rem;font-weight:700;color:var(--t);">點擊上傳影片</div>
-            <div style="font-size:.7rem;color:var(--tl);">MP4 / MOV</div>
+            <div style="font-size:.82rem;font-weight:700;color:var(--t);">一鍵上傳影片</div>
+            <div style="font-size:.7rem;color:var(--tl);">MP4 / MOV，可多選</div>
           </div>
-          <input type="file" accept="video/*" style="display:none;" onchange="loadReportVideo(this)">
+          <input type="file" accept="video/*" multiple style="display:none;" onchange="loadReportVideo(this)">
         </label>
         <div id="videoPreviewWrap" style="display:none;margin-top:8px;">
           <video id="rVideoPreview" controls style="width:100%;border-radius:10px;max-height:220px;"></video>
@@ -1297,31 +1300,51 @@ async function openEditReport(ts){
   const r = allRep.find(x=>x.ts===ts);
   if(!r){alert('找不到回報記錄');return;}
 
-  document.getElementById('editRepContent').innerHTML = [
-    '<div style="margin-bottom:10px;">',
-    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📅 日期</div>',
-    '<input type="date" id="er-date" value="'+(r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;">',
-    '</div>',
-    '<div style="display:flex;gap:10px;margin-bottom:10px;">',
-    '<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 開始時間</div>',
-    '<input type="time" id="er-start" value="'+(r.timeStart||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>',
-    '<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 結束時間</div>',
-    '<input type="time" id="er-end" value="'+(r.timeEnd||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>',
-    '</div>',
-    '<div style="margin-bottom:10px;">',
-    '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記／備註</div>',
-    '<textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(r.diary||'')+'</textarea>',
-    '</div>',
-    r.petReports&&r.petReports.length ? '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:8px;">🐾 毛孩狀況（可修改備註）</div>' +
-      r.petReports.map(function(p,i){
-        return '<div style="margin-bottom:8px;padding:10px;background:var(--pk4);border-radius:10px;">'
-          +'<div style="font-weight:800;font-size:.82rem;color:var(--pk);margin-bottom:6px;">'+(p.name||'毛孩'+(i+1))+'</div>'
-          +'<textarea id="er-pet-'+i+'" rows="2" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;resize:vertical;box-sizing:border-box;" placeholder="狀況備註...">'+(p.note||p.status||'')+'</textarea>'
-          +'</div>';
-      }).join('') : '',
-    '<div id="er-msg" style="font-size:.76rem;color:var(--g);font-weight:800;min-height:1.2em;"></div>'
-  ].join('');
+  const SVC=['清理排泄物','更換貓砂/墊子','補充飼料','確認飲水機正常','陪伴互動','餵藥完成','點藥完成','皮下點滴協助','散步外出','剪指甲','舒緩按摩','協助排便導尿'];
+  const DISINFECT=['雙手消毒清潔','穿上鞋套','配戴口罩','進門留意門縫','攜帶消毒液','工具包確認齊全'];
+  const SAFETY=['離開前確認門窗','確認飲水充足','確認飼料充足','關好房間門','確認貓/狗咪安全'];
 
+  function cbs(list,checked,name){
+    return list.map(function(v){
+      var on=(checked||[]).includes(v)?'checked':'';
+      return '<label style="display:flex;align-items:center;gap:6px;font-size:.8rem;padding:3px 0;cursor:pointer;"><input type="checkbox" name="er-'+name+'" value="'+v+'" '+on+'> '+v+'</label>';
+    }).join('');
+  }
+  function sel(id,opts,val){
+    return '<select id="'+id+'" style="width:100%;padding:6px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.82rem;outline:none;">'
+      +opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+o+'</option>';}).join('')+'</select>';
+  }
+
+  var petHtml='';
+  (r.petReports||[]).forEach(function(p,i){
+    petHtml+='<div style="background:var(--pk4);border-radius:12px;padding:12px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
+      +'<div style="font-weight:900;font-size:.84rem;color:var(--pk);margin-bottom:8px;">🐾 '+(p.name||'毛孩'+(i+1))+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">精神</div>'+sel('er-spirit-'+i,['精神良好','非常活躍','略顯疲憊','精神不振','行動遲緩'],p.spirit||'精神良好')+'</div>'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">眼鼻</div>'+sel('er-eyes-'+i,['正常清潔','輕微分泌物','有分泌物（已清潔）','紅腫/異常'],p.eyes||'正常清潔')+'</div>'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">糞便</div>'+sel('er-poop-'+i,['正常','未發現','軟便','水便','便秘跡象','帶血（已通報）'],p.poop||'正常')+'</div>'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">進食</div>'+sel('er-food-'+i,['食慾正常','食量偏少','幾乎不吃','食量偏多'],p.food||'食慾正常')+'</div>'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">飲水</div>'+sel('er-water-'+i,['飲水正常','飲水偏少','幾乎不喝','飲水偏多'],p.water||'飲水正常')+'</div>'
+      +'</div>'
+      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">備註</div>'
+      +'<textarea id="er-pet-note-'+i+'" rows="2" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;resize:vertical;box-sizing:border-box;">'+(p.note||p.status||'')+'</textarea>'
+      +'</div></div>';
+  });
+
+  var html='<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📅 日期</div>'
+    +'<input type="date" id="er-date" value="'+(r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'<div style="display:flex;gap:10px;margin-bottom:10px;">'
+    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 開始</div><input type="time" id="er-start" value="'+(r.timeStart||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 結束</div><input type="time" id="er-end" value="'+(r.timeEnd||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'</div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🧴 進門前消毒</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(DISINFECT,r.disinfect,'disinfect')+'</div></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🛎️ 服務項目</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SVC,r.services,'svc')+'</div></div>'
+    +(petHtml?'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--pk);margin-bottom:6px;">🐾 毛孩狀況</div>'+petHtml+'</div>':'')
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">✅ 離開前確認</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SAFETY,r.safety,'safety')+'</div></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記備註</div><textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(r.diary||'')+'</textarea></div>'
+    +'<div id="er-msg" style="font-size:.76rem;color:var(--g);font-weight:800;min-height:1.2em;"></div>';
+
+  document.getElementById('editRepContent').innerHTML=html;
   document.getElementById('editRepMod').style.display='block';
 }
 
@@ -1337,14 +1360,23 @@ async function saveEditReport(){
   const timeEnd = document.getElementById('er-end').value;
   const diary = document.getElementById('er-diary').value;
 
-  // Update pet notes
+  const disinfect=Array.from(document.querySelectorAll('input[name="er-disinfect"]:checked')).map(function(x){return x.value;});
+  const services=Array.from(document.querySelectorAll('input[name="er-svc"]:checked')).map(function(x){return x.value;});
+  const safety=Array.from(document.querySelectorAll('input[name="er-safety"]:checked')).map(function(x){return x.value;});
+
   const petReports = (r.petReports||[]).map(function(p,i){
-    const noteEl = document.getElementById('er-pet-'+i);
-    if(noteEl) p.note = noteEl.value;
-    return p;
+    return Object.assign({},p,{
+      spirit:document.getElementById('er-spirit-'+i)?.value||p.spirit||'',
+      eyes:document.getElementById('er-eyes-'+i)?.value||p.eyes||'',
+      poop:document.getElementById('er-poop-'+i)?.value||p.poop||'',
+      food:document.getElementById('er-food-'+i)?.value||p.food||'',
+      water:document.getElementById('er-water-'+i)?.value||p.water||'',
+      note:document.getElementById('er-pet-note-'+i)?.value||p.note||''
+    });
   });
 
-  const updates = {date, time_start:timeStart, time_end:timeEnd, diary, pet_reports:petReports};
+  const updates = {date:date, time_start:timeStart, time_end:timeEnd, diary:diary,
+    disinfect:disinfect, services:services, safety:safety, pet_reports:petReports};
 
   const btn = document.querySelector('#editRepMod button');
   if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}
@@ -1665,6 +1697,60 @@ function makePetPhotoSlot(idx){
       </div>
     </label>`;
   return wrap;
+}
+
+function addMultiplePetPhotos(input){
+  const files=Array.from(input.files);
+  if(!files.length) return;
+  files.forEach(function(file){
+    const reader=new FileReader();
+    reader.onload=function(e){
+      const img=new Image();
+      img.onload=function(){
+        const canvas=document.createElement('canvas');
+        const max=1200;
+        let w=img.width, h=img.height;
+        if(w>max){h=Math.round(h*max/w);w=max;}
+        if(h>max){w=Math.round(w*max/h);h=max;}
+        canvas.width=w; canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.82);
+        const slot=reportPhotos.length;
+        reportPhotos.push({slot:slot,dataUrl:dataUrl,type:'pet'});
+        // Add preview
+        const row=document.getElementById('petPhotoRow');
+        if(row){
+          const wrap=document.createElement('div');
+          wrap.className='photo-slot';
+          wrap.innerHTML='<img src="'+dataUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">'
+            +'<button onclick="removePetPhoto('+slot+')" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>';
+          wrap.style.position='relative';
+          row.appendChild(wrap);
+        }
+      };
+      img.src=e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value=''; // reset so same files can be re-selected
+}
+
+function removePetPhoto(slot){
+  const idx2=reportPhotos.findIndex(function(p){return p.slot===slot;});
+  if(idx2>=0) reportPhotos.splice(idx2,1);
+  // Re-render preview
+  const row=document.getElementById('petPhotoRow');
+  if(row){
+    row.innerHTML='';
+    reportPhotos.forEach(function(p){
+      const wrap=document.createElement('div');
+      wrap.className='photo-slot';
+      wrap.style.position='relative';
+      wrap.innerHTML='<img src="'+p.dataUrl+'" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">'
+        +'<button onclick="removePetPhoto('+p.slot+')" style="position:absolute;top:2px;right:2px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.6);border:none;color:#fff;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>';
+      row.appendChild(wrap);
+    });
+  }
 }
 
 function addPetPhotoSlot(){

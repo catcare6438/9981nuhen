@@ -1280,6 +1280,7 @@ async function renderHistList(reps){
         <div style="display:flex;gap:6px;">
           <button class="abtn" style="font-size:.74rem;padding:6px 12px;background:var(--pk4);border:1.5px solid var(--pk3);color:var(--pk);" onclick="openEditReport(${r.ts})">✏️ 編輯</button>
           <button class="abtn ab-g" onclick="exportSingleReport(${r.ts})" style="font-size:.74rem;padding:6px 12px;">📄 匯出明細</button>
+          <button class="abtn" onclick="deleteReport(${r.ts})" style="font-size:.74rem;padding:6px 12px;background:#FFF5F5;border-color:#FFBDBD;color:#E05252;">🗑️ 刪除</button>
         </div>
       </div>
       ${disinfectHtml}
@@ -1394,6 +1395,17 @@ async function saveEditReport(){
     alert('儲存失敗：'+e.message);
   }finally{
     if(btn){btn.textContent='💾 儲存';btn.disabled=false;}
+  }
+}
+
+async function deleteReport(ts){
+  if(!confirm('確定要刪除這筆回報紀錄嗎？\n此操作無法復原。')) return;
+  try{
+    const{error}=await _supa.from('reports').delete().eq('ts',ts);
+    if(error) throw new Error(error.message);
+    renderCases();
+  }catch(e){
+    alert('刪除失敗：'+e.message);
   }
 }
 async function exportSingleReport(ts){

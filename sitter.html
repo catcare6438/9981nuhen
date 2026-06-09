@@ -1316,6 +1316,9 @@ async function openEditReport(ts){
       +opts.map(function(o){return '<option'+(o===val?' selected':'')+'>'+o+'</option>';}).join('')+'</select>';
   }
 
+  // Store existing photos for editing
+  window._erPhotos = (r.petPhotos||[]).map(function(p){return typeof p==='string'?{dataUrl:p}:p;});
+
   var petHtml='';
   (r.petReports||[]).forEach(function(p,i){
     petHtml+='<div style="background:var(--pk4);border-radius:12px;padding:12px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
@@ -1327,10 +1330,68 @@ async function openEditReport(ts){
       +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">進食</div>'+sel('er-food-'+i,['食慾正常','食量偏少','幾乎不吃','食量偏多'],p.food||'食慾正常')+'</div>'
       +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">飲水</div>'+sel('er-water-'+i,['飲水正常','飲水偏少','幾乎不喝','飲水偏多'],p.water||'飲水正常')+'</div>'
       +'</div>'
-      +'<div><div style="font-size:.72rem;color:var(--tl);margin-bottom:3px;">備註</div>'
-      +'<textarea id="er-pet-note-'+i+'" rows="2" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;resize:vertical;box-sizing:border-box;">'+(p.note||p.status||'')+'</textarea>'
-      +'</div></div>';
+      +'<textarea id="er-pet-note-'+i+'" rows="2" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;resize:vertical;box-sizing:border-box;" placeholder="備註...">'+(p.note||p.status||'')+'</textarea>'
+      +'</div>';
   });
+
+  // Build existing photos preview
+  function buildErPhotoPreview(){
+    var row=document.getElementById('er-photo-row');
+    if(!row)return;
+    row.innerHTML='';
+    (window._erPhotos||[]).forEach(function(p,i){
+      var src=p.dataUrl||p.url||'';
+      if(!src)return;
+      var wrap=document.createElement('div');
+      wrap.style.cssText='position:relative;width:72px;height:72px;flex-shrink:0;';
+      wrap.innerHTML='<img src="'+src+'" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1.5px solid var(--pk3);">'
+        +'<button onclick="erRemovePhoto('+i+')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;background:#E05252;border:none;border-radius:50%;color:#fff;font-size:.6rem;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:900;">✕</button>';
+      row.appendChild(wrap);
+    });
+  }
+  window.erRemovePhoto=function(i){window._erPhotos.splice(i,1);buildErPhotoPreview();};
+  window.erAddPhotos=function(input){
+    var files=Array.from(input.files);
+    files.forEach(function(file){
+      var reader=new FileReader();
+      reader.onload=function(e){
+        var img=new Image();
+        img.onload=function(){
+          var canvas=document.createElement('canvas');
+          var max=1200; var w=img.width,h=img.height;
+          if(w>max){h=Math.round(h*max/w);w=max;}
+          if(h>max){w=Math.round(w*max/h);h=max;}
+          canvas.width=w;canvas.height=h;
+          canvas.getContext('2d').drawImage(img,0,0,w,h);
+          window._erPhotos.push({dataUrl:canvas.toDataURL('image/jpeg',0.82)});
+          buildErPhotoPreview();
+        };
+        img.src=e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    input.value='';
+  };
+
+  // Existing video
+  var existingVideo=r.videoDataUrl||r.videoDataURL||'';
+  window._erVideo=existingVideo;
+  window.erLoadVideo=function(input){
+    var file=input.files[0];
+    if(!file)return;
+    var url=URL.createObjectURL(file);
+    var reader=new FileReader();
+    reader.onload=function(e){window._erVideo=e.target.result;erUpdateVideoPreview();};
+    reader.readAsDataURL(file);
+    erUpdateVideoPreview(url);
+  };
+  window.erRemoveVideo=function(){window._erVideo='';erUpdateVideoPreview();};
+  window.erUpdateVideoPreview=function(blobUrl){
+    var wrap=document.getElementById('er-video-wrap');
+    var vid=document.getElementById('er-video-preview');
+    var src=blobUrl||window._erVideo||'';
+    if(wrap&&vid){wrap.style.display=src?'block':'none';if(src&&src!==blobUrl)vid.src=src;}
+  };
 
   var html='<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📅 日期</div>'
     +'<input type="date" id="er-date" value="'+(r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
@@ -1343,9 +1404,23 @@ async function openEditReport(ts){
     +(petHtml?'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--pk);margin-bottom:6px;">🐾 毛孩狀況</div>'+petHtml+'</div>':'')
     +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">✅ 離開前確認</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SAFETY,r.safety,'safety')+'</div></div>'
     +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記備註</div><textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(r.diary||'')+'</textarea></div>'
+    // Photos section
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📸 毛孩照片</div>'
+    +'<div id="er-photo-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>'
+    +'<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:var(--pk);">📷 新增照片<input type="file" accept="image/*" multiple style="display:none;" onchange="erAddPhotos(this)"></label></div>'
+    // Video section
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🎬 影片</div>'
+    +'<div id="er-video-wrap" style="display:'+(existingVideo?'block':'none')+';margin-bottom:8px;">'
+    +'<video id="er-video-preview" controls style="width:100%;border-radius:10px;max-height:180px;"'+(existingVideo?' src="'+existingVideo+'"':'')+'></video>'
+    +'<button onclick="erRemoveVideo()" style="font-size:.74rem;color:var(--r);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:4px;">✕ 移除影片</button></div>'
+    +'<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:var(--pk);">🎥 上傳影片<input type="file" accept="video/*" style="display:none;" onchange="erLoadVideo(this)"></label></div>'
     +'<div id="er-msg" style="font-size:.76rem;color:var(--g);font-weight:800;min-height:1.2em;"></div>';
 
   document.getElementById('editRepContent').innerHTML=html;
+  // Init photo preview after DOM ready
+  setTimeout(buildErPhotoPreview, 50);
+  // Init video preview
+  setTimeout(function(){erUpdateVideoPreview();}, 50);
   document.getElementById('editRepMod').style.display='block';
 }
 
@@ -1376,8 +1451,11 @@ async function saveEditReport(){
     });
   });
 
+  const petPhotos=(window._erPhotos||[]).filter(function(p){return p.dataUrl||p.url;});
+  const videoDataUrl=window._erVideo||'';
   const updates = {date:date, time_start:timeStart, time_end:timeEnd, diary:diary,
-    disinfect:disinfect, services:services, safety:safety, pet_reports:petReports};
+    disinfect:disinfect, services:services, safety:safety, pet_reports:petReports,
+    pet_photos:petPhotos, video_data_url:videoDataUrl};
 
   const btn = document.querySelector('#editRepMod button');
   if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}

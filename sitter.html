@@ -274,8 +274,8 @@ async function dbGetReports(bookId){
   }));
 }
 async function dbUpdateReport(ts, fields){
-  const{error}=await _supa.from('reports').update(fields).eq('ts',ts);
-  if(error)console.error('updateReport:',error.message);
+  const{error}=await _supa.from('reports').update(fields).eq('ts',Number(ts)||ts);
+  if(error){console.error('updateReport:',error.message);throw new Error(error.message);}
 }
 async function dbInsertReport(r){
   const row={
@@ -293,7 +293,8 @@ async function dbInsertReport(r){
     diary:  String(r.diary||''),
     pet_photos:   Array.isArray(r.petPhotos)?r.petPhotos:[],
     clean_photos: Array.isArray(r.cleanPhotos)?r.cleanPhotos:[],
-    video_data_url: String(r.videoDataUrl||'')
+    video_data_url: String(r.videoDataUrl||''),
+    videos: Array.isArray(r.videos)?r.videos:(r.videoDataUrl?[r.videoDataUrl]:[])
   };
   const{error}=await _supa.from('reports').insert([row]);
   if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
@@ -866,6 +867,7 @@ let ME=null;
 let currentBookId=null;
 let petData={};
 let videoDataURL=null;
+let reportVideos=[];
 let videoName='';
 let videoDuration=0;
 let petNames=[];
@@ -1463,7 +1465,10 @@ async function saveEditReport(){
   try{
     await dbUpdateReport(ts, updates);
     // Update local cache
-    Object.assign(r, {date, timeStart, timeEnd, diary, petReports});
+    Object.assign(r, {date:date, timeStart:timeStart, timeEnd:timeEnd,
+      diary:diary, petReports:petReports,
+      petPhotos:(window._erPhotos||[]),
+      videoDataUrl:window._erVideo||''});
     document.getElementById('er-msg').textContent='✅ 已儲存';
     setTimeout(function(){
       document.getElementById('editRepMod').style.display='none';
@@ -1555,7 +1560,7 @@ function buildReportText(r){
 // ── OPEN REPORT ──
 async function openReport(bookId,petNameStr,bkId){
   currentBookId=bookId;
-  videoDataURL=null;videoName='';videoDuration=0;petData={};
+  videoDataURL=null;videoName='';videoDuration=0;petData={};reportVideos=[];
   document.getElementById('rModTitle').textContent=`照護回報 — ${petNameStr}`;
   document.getElementById('rDate').value=new Date().toISOString().split('T')[0];
   document.getElementById('rTimeStart').value='';
@@ -1756,7 +1761,7 @@ let reportVideoDataUrl='';
 let cleanGroupCount=0;
 
 function initPhotoSections(){
-  reportPhotos=[];reportCleanPhotos=[];reportVideoDataUrl='';cleanGroupCount=0;
+  reportPhotos=[];reportCleanPhotos=[];reportVideoDataUrl='';reportVideos=[];cleanGroupCount=0;
   // 初始3個寵物照片格
   const row=document.getElementById('petPhotoRow');
   row.innerHTML='';
@@ -1880,22 +1885,37 @@ function loadPetPhoto(input,idx){
 }
 
 function loadReportVideo(input){
-  const file=input.files[0];if(!file)return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    reportVideoDataUrl=e.target.result;
-    const vid=document.getElementById('rVideoPreview');
-    vid.src=reportVideoDataUrl;
-    document.getElementById('videoPreviewWrap').style.display='block';
-    document.getElementById('rVideoInfo').textContent='✅ '+file.name+' ('+Math.round(file.size/1024)+'KB)';
-  };
-  reader.readAsDataURL(file);
+  const files=Array.from(input.files);
+  if(!files.length)return;
+  files.forEach(function(file){
+    const reader=new FileReader();
+    reader.onload=function(e){
+      reportVideos.push({dataUrl:e.target.result,name:file.name,size:file.size});
+      renderVideoPreviewList();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value='';
 }
 
-function removeReportVideo(){
-  reportVideoDataUrl='';
-  document.getElementById('rVideoPreview').src='';
-  document.getElementById('videoPreviewWrap').style.display='none';
+function renderVideoPreviewList(){
+  const wrap=document.getElementById('videoPreviewWrap');
+  if(!wrap)return;
+  if(!reportVideos.length){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  wrap.innerHTML=reportVideos.map(function(v,i){
+    return '<div style="margin-bottom:8px;background:#fff;border:1.5px solid var(--pk3);border-radius:10px;padding:8px;">'
+      +'<video controls style="width:100%;border-radius:8px;max-height:160px;" src="'+v.dataUrl+'"></video>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;font-size:.74rem;">'
+      +'<span style="color:var(--tl);">'+v.name+' ('+Math.round(v.size/1024)+'KB)</span>'
+      +'<button onclick="removeReportVideo('+i+')" style="color:var(--r);background:none;border:none;cursor:pointer;font-size:.74rem;text-decoration:underline;">✕ 移除</button>'
+      +'</div></div>';
+  }).join('');
+}
+
+function removeReportVideo(idx){
+  if(idx===undefined){reportVideos=[];}else{reportVideos.splice(idx,1);}
+  renderVideoPreviewList();
 }
 
 function addCleanGroup(){
@@ -1991,7 +2011,7 @@ async function submitReport(){
     diary:document.getElementById('rDiary').value,
     petPhotos:reportPhotos.map(p=>({slot:p.slot,dataUrl:p.dataUrl})),
     cleanPhotos:reportCleanPhotos.map(p=>({groupIdx:p.groupIdx,side:p.side,dataUrl:p.dataUrl,label:p.label||''})),
-    videoDataUrl:reportVideoDataUrl||'',
+    videoDataUrl:reportVideos.length?reportVideos[0].dataUrl:(reportVideoDataUrl||''),videos:reportVideos.map(function(v){return v.dataUrl;}),
   };
   try{
     await dbInsertReport(r);

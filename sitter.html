@@ -1162,6 +1162,38 @@ function openSitterPhoto(src){
   lb.onclick=function(e){if(e.target===lb)lb.remove();};
   document.body.appendChild(lb);
 }
+
+function buildTodoSection(bk){
+  if(!bk) return '';
+  // Collect todo items from visitNotes and caution
+  var items=[];
+  if(bk.visitNotes){
+    bk.visitNotes.split('\n').forEach(function(line){
+      var t=line.trim();
+      if(t) items.push({text:t,source:'note'});
+    });
+  }
+  if(bk.caution){
+    bk.caution.split('\n').forEach(function(line){
+      var t=line.trim();
+      if(t) items.push({text:t,source:'caution'});
+    });
+  }
+  if(!items.length) return '';
+  var checks=items.map(function(item,i){
+    var color=item.source==='caution'?'color:#C05000;':'';
+    return '<label style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;cursor:pointer;border-bottom:1px solid var(--pk3);font-size:.84rem;'+color+'">'
+      +'<input type="checkbox" id="todo-'+i+'" style="margin-top:2px;flex-shrink:0;width:16px;height:16px;accent-color:var(--pk);">'
+      +(item.source==='caution'?'⚠️ ':'📌 ')
+      +'<span onclick="this.previousElementSibling&&(this.previousElementSibling.checked=!this.previousElementSibling.checked)">'+item.text+'</span>'
+      +'</label>';
+  }).join('');
+  return '<div class="sec" style="border:2px solid var(--pk3);border-radius:14px;padding:14px;margin-bottom:12px;background:#FFFBF0;">'
+    +'<div class="sec-title" style="color:var(--pk);margin-bottom:8px;">📋 本次待辦事項</div>'
+    +'<div style="font-size:.72rem;color:var(--tl);margin-bottom:8px;">✅ 完成後打勾（僅提醒用，不影響回報）</div>'
+    +checks
+    +'</div>';
+}
 function buildVisitHtml(b){
   var photos=b.visitPhotos||[];
   if(!b.visitDate&&!b.visitNotes&&!b.caution&&!photos.length) return '';
@@ -1376,18 +1408,47 @@ async function openEditReport(ts){
   };
 
   // Existing video
-  var existingVideo=r.videoDataUrl||r.videoDataURL||'';
-  window._erVideo=existingVideo;
+  var existingVideos=r.videos&&r.videos.length?r.videos:(r.videoDataUrl||r.videoDataURL?[r.videoDataUrl||r.videoDataURL]:[]);
+  window._erVideos=existingVideos.map(function(url,i){return {dataUrl:url,name:'影片'+(i+1),size:0};});
+  window._erVideo=existingVideos[0]||'';
   window.erLoadVideo=function(input){
-    var file=input.files[0];
-    if(!file)return;
-    var url=URL.createObjectURL(file);
-    var reader=new FileReader();
-    reader.onload=function(e){window._erVideo=e.target.result;erUpdateVideoPreview();};
-    reader.readAsDataURL(file);
-    erUpdateVideoPreview(url);
+    var files=Array.from(input.files);
+    if(!files.length)return;
+    var skipped=[];
+    files.forEach(function(file){
+      var mb=file.size/1024/1024;
+      if(mb>8){skipped.push(file.name+'（'+mb.toFixed(1)+'MB）');return;}
+      var reader=new FileReader();
+      reader.onload=function(e){
+        window._erVideos=window._erVideos||[];
+        window._erVideos.push({dataUrl:e.target.result,name:file.name,size:file.size});
+        erRenderVideos();
+      };
+      reader.readAsDataURL(file);
+    });
+    if(skipped.length) alert('以下影片超過8MB：\n'+skipped.join('\n'));
+    input.value='';
   };
-  window.erRemoveVideo=function(){window._erVideo='';erUpdateVideoPreview();};
+  window.erRemoveVideoItem=function(i){
+    if(window._erVideos) window._erVideos.splice(i,1);
+    erRenderVideos();
+  };
+  window.erRenderVideos=function(){
+    var wrap=document.getElementById('er-video-wrap');
+    if(!wrap)return;
+    var list=window._erVideos||[];
+    if(!list.length){wrap.style.display='none';return;}
+    wrap.style.display='block';
+    wrap.innerHTML=list.map(function(v,i){
+      return '<div style="margin-bottom:8px;background:#f9f9f9;border:1.5px solid var(--pk3);border-radius:10px;padding:8px;">'
+        +'<video controls style="width:100%;border-radius:8px;max-height:150px;" src="'+v.dataUrl+'"></video>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">'
+        +'<span style="font-size:.72rem;color:var(--tl);">'+v.name+' ('+Math.round(v.size/1024)+'KB)</span>'
+        +'<button onclick="erRemoveVideoItem('+i+')" style="color:#E05252;background:none;border:none;cursor:pointer;font-size:.74rem;text-decoration:underline;">✕ 移除</button>'
+        +'</div></div>';
+    }).join('');
+  };
+  window.erRemoveVideo=function(){window._erVideos=[];window._erVideo='';erRenderVideos&&erRenderVideos();};
   window.erUpdateVideoPreview=function(blobUrl){
     var wrap=document.getElementById('er-video-wrap');
     var vid=document.getElementById('er-video-preview');
@@ -1412,17 +1473,15 @@ async function openEditReport(ts){
     +'<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:var(--pk);">📷 新增照片<input type="file" accept="image/*" multiple style="display:none;" onchange="erAddPhotos(this)"></label></div>'
     // Video section
     +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🎬 影片</div>'
-    +'<div id="er-video-wrap" style="display:'+(existingVideo?'block':'none')+';margin-bottom:8px;">'
-    +'<video id="er-video-preview" controls style="width:100%;border-radius:10px;max-height:180px;"'+(existingVideo?' src="'+existingVideo+'"':'')+'></video>'
-    +'<button onclick="erRemoveVideo()" style="font-size:.74rem;color:var(--r);background:none;border:none;cursor:pointer;text-decoration:underline;margin-top:4px;">✕ 移除影片</button></div>'
-    +'<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:var(--pk);">🎥 上傳影片<input type="file" accept="video/*" style="display:none;" onchange="erLoadVideo(this)"></label></div>'
+    +'<div id="er-video-wrap" style="display:'+(existingVideos.length?'block':'none')+';margin-bottom:8px;"></div>'
+    +'<label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:800;color:var(--pk);">🎥 上傳影片（可多選）<input type="file" accept="video/*" multiple style="display:none;" onchange="erLoadVideo(this)"></label></div>'
     +'<div id="er-msg" style="font-size:.76rem;color:var(--g);font-weight:800;min-height:1.2em;"></div>';
 
   document.getElementById('editRepContent').innerHTML=html;
   // Init photo preview after DOM ready
   setTimeout(buildErPhotoPreview, 50);
   // Init video preview
-  setTimeout(function(){erUpdateVideoPreview();}, 50);
+  setTimeout(function(){if(typeof erRenderVideos==='function')erRenderVideos();}, 50);
   document.getElementById('editRepMod').style.display='block';
 }
 
@@ -1454,10 +1513,11 @@ async function saveEditReport(){
   });
 
   const petPhotos=(window._erPhotos||[]).filter(function(p){return p.dataUrl||p.url;});
-  const videoDataUrl=window._erVideo||'';
+  const erVideoList=(window._erVideos||[]).map(function(v){return v.dataUrl;});
+  const videoDataUrl=erVideoList[0]||'';
   const updates = {date:date, time_start:timeStart, time_end:timeEnd, diary:diary,
     disinfect:disinfect, services:services, safety:safety, pet_reports:petReports,
-    pet_photos:petPhotos, video_data_url:videoDataUrl};
+    pet_photos:petPhotos, video_data_url:videoDataUrl, videos:erVideoList};
 
   const btn = document.querySelector('#editRepMod button');
   if(btn){btn.textContent='⏳ 儲存中...';btn.disabled=true;}
@@ -1468,7 +1528,7 @@ async function saveEditReport(){
     Object.assign(r, {date:date, timeStart:timeStart, timeEnd:timeEnd,
       diary:diary, petReports:petReports,
       petPhotos:(window._erPhotos||[]),
-      videoDataUrl:window._erVideo||''});
+      videoDataUrl:erVideoList[0]||'', videos:erVideoList});
     document.getElementById('er-msg').textContent='✅ 已儲存';
     setTimeout(function(){
       document.getElementById('editRepMod').style.display='none';
@@ -1580,6 +1640,10 @@ async function openReport(bookId,petNameStr,bkId){
   await loadPetPhotosFromSupabase(bookId);
   buildPetTabs(0);
   initPhotoSections();
+  // Inject todo section
+  var bk2=(_myCases||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  var todoEl=document.getElementById('reportTodo');
+  if(todoEl) todoEl.innerHTML=buildTodoSection(bk2);
   document.getElementById('reportMod').classList.add('show');
 }
 
@@ -1884,10 +1948,17 @@ function loadPetPhoto(input,idx){
   });
 }
 
+var MAX_VIDEO_MB=8;
 function loadReportVideo(input){
   const files=Array.from(input.files);
   if(!files.length)return;
+  var skipped=[];
   files.forEach(function(file){
+    var mb=file.size/1024/1024;
+    if(mb>MAX_VIDEO_MB){
+      skipped.push(file.name+'（'+mb.toFixed(1)+'MB）');
+      return;
+    }
     const reader=new FileReader();
     reader.onload=function(e){
       reportVideos.push({dataUrl:e.target.result,name:file.name,size:file.size});
@@ -1895,6 +1966,7 @@ function loadReportVideo(input){
     };
     reader.readAsDataURL(file);
   });
+  if(skipped.length) alert('以下影片超過'+MAX_VIDEO_MB+'MB 無法上傳（建議先壓縮）：\n'+skipped.join('\n'));
   input.value='';
 }
 
@@ -2011,7 +2083,14 @@ async function submitReport(){
     diary:document.getElementById('rDiary').value,
     petPhotos:reportPhotos.map(p=>({slot:p.slot,dataUrl:p.dataUrl})),
     cleanPhotos:reportCleanPhotos.map(p=>({groupIdx:p.groupIdx,side:p.side,dataUrl:p.dataUrl,label:p.label||''})),
-    videoDataUrl:reportVideos.length?reportVideos[0].dataUrl:(reportVideoDataUrl||''),videos:reportVideos.map(function(v){return v.dataUrl;}),
+    videoDataUrl:reportVideos.length?reportVideos[0].dataUrl:(reportVideoDataUrl||''),
+    videos:(function(){
+      var total=0;
+      return reportVideos.filter(function(v){
+        total+=v.dataUrl.length;
+        return total<15*1024*1024; // max 15MB total base64
+      }).map(function(v){return v.dataUrl;});
+    })(),
   };
   try{
     await dbInsertReport(r);

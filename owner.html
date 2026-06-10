@@ -364,20 +364,50 @@ async function dbDeleteOrder(id){
   const{error}=await _supa.from('orders').delete().eq('id',id);
   if(error)console.error('deleteOrder:',_errMsg(error));
 }
+var _allReportsCache=null, _allReportsCacheTime=0;
+async function dbGetAllReports(){
+  var now=Date.now();
+  if(_allReportsCache&&(now-_allReportsCacheTime)<30000) return _allReportsCache;
+  const{data,error}=await _supa.from('reports').select('*').order('ts',{ascending:false});
+  if(error){console.error('getAllReports:',error.message);return _allReportsCache||[];}
+  _allReportsCache=data||[]; _allReportsCacheTime=now;
+  return _allReportsCache;
+}
+
+function mapReport(r){
+  return {
+    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
+    videoDataUrl:r.video_data_url||'',videos:r.videos||[]
+  };
+}
 async function dbGetReports(bookId){
+  if(bookId){
+    // Use cached all-reports and filter
+    var all=await dbGetAllReports();
+    var filtered=all.filter(function(r){return r.book_id==bookId;});
+    if(filtered.length||_allReportsCacheTime>0){
+      return filtered.map(mapReport);
+    }
+  }
   let q=_supa.from('reports').select('*').order('ts',{ascending:false});
   if(bookId)q=q.eq('book_id',Number(bookId)||bookId);
   const{data,error}=await q;
   if(error){console.error('getReports:',_errMsg(error));return[];}
-  return(data||[]).map(r=>({
-    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+  return(data||[]).map(mapReport);
+}
+
+function _unused_r(r){return {ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
     date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
     petReports:r.pet_reports||[],services:r.services||[],
     disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
     petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
     videoDataUrl:r.video_data_url||'',
     videos:r.videos||[]
-  }));
+  };
 }
 async function dbInsertReport(r){
   const{error}=await _supa.from('reports').insert([{
@@ -401,16 +431,22 @@ async function dbMarkCouponUsed(code){
   const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
   if(error)console.error('markCouponUsed:',_errMsg(error));
 }
+var _reviewsCache=null, _reviewsCacheTime=0;
 async function dbGetReviews(){
+  var now=Date.now();
+  if(_reviewsCache&&(now-_reviewsCacheTime)<60000) return _reviewsCache;
   const{data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
-  if(error){console.error('getReviews:',_errMsg(error));return[];}
-  return data||[];
+  if(error){console.error('getReviews:',_errMsg(error));return _reviewsCache||[];}
+  _reviewsCache=data||[]; _reviewsCacheTime=now;
+  return _reviewsCache;
 }
 async function dbInsertReview(rv){
   const{error}=await _supa.from('reviews').insert([rv]);
   if(error)console.error('insertReview:',_errMsg(error));
 }
+var _pwsCache=null;
 async function dbGetOwnerPws(){
+  if(_pwsCache) return _pwsCache;
   const{data,error}=await _supa.from('owner_passwords').select('*');
   if(error){console.error('getOwnerPws:',_errMsg(error));return{};}
   const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
@@ -526,7 +562,15 @@ let currentOwnerPhone=null; // 用電話號碼識別同一飼主的所有訂單
 var SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 var SLOT_NAME={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
 
-async function getB(){return await dbGetOrders();}
+var _ordersCache=null,_ordersCacheTime=0;
+async function getB(){
+  var now=Date.now();
+  if(_ordersCache&&(now-_ordersCacheTime)<30000)return _ordersCache;
+  var data=await dbGetOrders();
+  _ordersCache=data;_ordersCacheTime=now;
+  return data;
+}
+function clearOrdersCache(){_ordersCache=null;_ordersCacheTime=0;}
 async function getReps(bookId){return await dbGetReports(bookId);}
 
 // ── 解析 assigned_to 欄位，取出保母名稱列表 ──

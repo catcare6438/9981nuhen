@@ -1579,12 +1579,12 @@ document.head.appendChild(_shakeStyle);
 // openLB/closeLB defined above
 // ── AUTO LOGIN FROM INDEX.HTML ──
 (async function autoLoginCheck(){
-  // Try URL hash first (#pw=xxx), then sessionStorage
   var pw='';
   var hash=window.location.hash;
   if(hash && hash.startsWith('#pw=')){
     pw=decodeURIComponent(hash.slice(4));
-    window.location.hash=''; // clear from URL
+    // Use replaceState to clear hash without triggering reload or hashchange
+    try{history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){}
   } else {
     pw=sessionStorage.getItem('ownerAutoLogin')||'';
     if(pw) sessionStorage.removeItem('ownerAutoLogin');

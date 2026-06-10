@@ -1358,9 +1358,30 @@ let _editingRepTs = null;
 
 async function openEditReport(ts){
   _editingRepTs = ts;
+  // getReps with no bookId fetches all; use == to handle number/string mismatch
   const allRep = await getReps();
-  const r = allRep.find(x=>x.ts===ts);
-  if(!r){alert('找不到回報記錄');return;}
+  const r = allRep.find(function(x){return String(x.ts)===String(ts);});
+  if(!r){
+    // Try direct DB fetch as fallback
+    try{
+      const{data}=await _supa.from('reports').select('*').eq('ts',Number(ts)||ts).limit(1);
+      if(!data||!data.length){alert('找不到回報記錄');return;}
+      var rr=data[0];
+      var mapped={
+        ts:rr.ts,date:rr.date,timeStart:rr.time_start,timeEnd:rr.time_end,
+        diary:rr.diary||'',services:rr.services||[],disinfect:rr.disinfect||[],
+        safety:rr.safety||[],petReports:rr.pet_reports||[],
+        petPhotos:rr.pet_photos||[],videos:rr.videos||[],
+        videoDataUrl:rr.video_data_url||''
+      };
+      // Re-call with the fetched record
+      window._editRepDirect=mapped;
+    }catch(e){alert('找不到回報記錄');return;}
+  }
+  const rep=r||(window._editRepDirect);
+  if(!rep){alert('找不到回報記錄');return;}
+  // Use rep instead of r below
+  const _r=rep;
 
   const SVC=['清理排泄物','更換貓砂/墊子','補充飼料','確認飲水機正常','陪伴互動','餵藥完成','點藥完成','皮下點滴協助','散步外出','剪指甲','舒緩按摩','協助排便導尿'];
   const DISINFECT=['雙手消毒清潔','穿上鞋套','配戴口罩','進門留意門縫','攜帶消毒液','工具包確認齊全'];
@@ -1378,10 +1399,10 @@ async function openEditReport(ts){
   }
 
   // Store existing photos for editing
-  window._erPhotos = (r.petPhotos||[]).map(function(p){return typeof p==='string'?{dataUrl:p}:p;});
+  window._erPhotos = (_r.petPhotos||[]).map(function(p){return typeof p==='string'?{dataUrl:p}:p;});
 
   var petHtml='';
-  (r.petReports||[]).forEach(function(p,i){
+  (_r.petReports||[]).forEach(function(p,i){
     petHtml+='<div style="background:var(--pk4);border-radius:12px;padding:12px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
       +'<div style="font-weight:900;font-size:.84rem;color:var(--pk);margin-bottom:8px;">🐾 '+(p.name||'毛孩'+(i+1))+'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
@@ -1435,7 +1456,7 @@ async function openEditReport(ts){
   };
 
   // Existing video
-  var existingVideos=r.videos&&r.videos.length?r.videos:(r.videoDataUrl||r.videoDataURL?[r.videoDataUrl||r.videoDataURL]:[]);
+  var existingVideos=_r.videos&&_r.videos.length?_r.videos:(_r.videoDataUrl||_r.videoDataURL?[_r.videoDataUrl||_r.videoDataURL]:[]);
   window._erVideos=existingVideos.map(function(url,i){return {dataUrl:url,name:'影片'+(i+1),size:0};});
   window._erVideo=existingVideos[0]||'';
   window.erLoadVideo=function(input){
@@ -1484,16 +1505,16 @@ async function openEditReport(ts){
   };
 
   var html='<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">📅 日期</div>'
-    +'<input type="date" id="er-date" value="'+(r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'<input type="date" id="er-date" value="'+(_r.date||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
     +'<div style="display:flex;gap:10px;margin-bottom:10px;">'
-    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 開始</div><input type="time" id="er-start" value="'+(r.timeStart||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
-    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 結束</div><input type="time" id="er-end" value="'+(r.timeEnd||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 開始</div><input type="time" id="er-start" value="'+(_r.timeStart||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
+    +'<div style="flex:1;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">⏰ 結束</div><input type="time" id="er-end" value="'+(_r.timeEnd||'')+'" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;box-sizing:border-box;"></div>'
     +'</div>'
-    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🧴 進門前消毒</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(DISINFECT,r.disinfect,'disinfect')+'</div></div>'
-    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🛎️ 服務項目</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SVC,r.services,'svc')+'</div></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🧴 進門前消毒</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(DISINFECT,_r.disinfect,'disinfect')+'</div></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">🛎️ 服務項目</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SVC,_r.services,'svc')+'</div></div>'
     +(petHtml?'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--pk);margin-bottom:6px;">🐾 毛孩狀況</div>'+petHtml+'</div>':'')
-    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">✅ 離開前確認</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SAFETY,r.safety,'safety')+'</div></div>'
-    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記備註</div><textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(r.diary||'')+'</textarea></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">✅ 離開前確認</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;">'+cbs(SAFETY,_r.safety,'safety')+'</div></div>'
+    +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">💌 日記備註</div><textarea id="er-diary" rows="4" style="width:100%;padding:8px 12px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.84rem;outline:none;resize:vertical;box-sizing:border-box;">'+(_r.diary||'')+'</textarea></div>'
     // Photos section
     +'<div style="margin-bottom:10px;"><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📸 毛孩照片</div>'
     +'<div id="er-photo-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>'

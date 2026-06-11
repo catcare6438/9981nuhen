@@ -1546,9 +1546,18 @@ async function openEditReport(ts){
 async function saveEditReport(){
   const ts = _editingRepTs;
   if(!ts)return;
-  const allRep = await getReps();
-  const r = allRep.find(x=>x.ts===ts);
-  if(!r)return;
+  // Direct DB fetch to avoid cache/type mismatch issues
+  var rep=null;
+  try{
+    const{data}=await _supa.from('reports').select('*').eq('ts',Number(ts)||ts).limit(1);
+    if(data&&data.length) rep=data[0];
+  }catch(e){}
+  if(!rep){
+    const allRep=await getReps();
+    rep=allRep.find(function(x){return String(x.ts)===String(ts);});
+  }
+  if(!rep){alert('找不到回報記錄，請重新整理後再試');return;}
+  const r=rep;
 
   const date = document.getElementById('er-date').value;
   const timeStart = document.getElementById('er-start').value;
@@ -1559,7 +1568,7 @@ async function saveEditReport(){
   const services=Array.from(document.querySelectorAll('input[name="er-svc"]:checked')).map(function(x){return x.value;});
   const safety=Array.from(document.querySelectorAll('input[name="er-safety"]:checked')).map(function(x){return x.value;});
 
-  const petReports = (r.petReports||[]).map(function(p,i){
+  const petReports = (r.petReports||r.pet_reports||[]).map(function(p,i){
     return Object.assign({},p,{
       spirit:document.getElementById('er-spirit-'+i)?.value||p.spirit||'',
       eyes:document.getElementById('er-eyes-'+i)?.value||p.eyes||'',
@@ -1570,7 +1579,7 @@ async function saveEditReport(){
     });
   });
 
-  const petPhotos=(window._erPhotos||[]).filter(function(p){return p.dataUrl||p.url;});
+  const petPhotos=(window._erPhotos||[]).map(function(p){return p.dataUrl||p.url||'';}).filter(Boolean);
   const erVideoList=(window._erVideos||[]).map(function(v){return v.dataUrl;});
   const videoDataUrl=erVideoList[0]||'';
   const updates = {date:date, time_start:timeStart, time_end:timeEnd, diary:diary,
@@ -1583,10 +1592,9 @@ async function saveEditReport(){
   try{
     await dbUpdateReport(ts, updates);
     // Update local cache
-    Object.assign(r, {date:date, timeStart:timeStart, timeEnd:timeEnd,
-      diary:diary, petReports:petReports,
-      petPhotos:(window._erPhotos||[]),
-      videoDataUrl:erVideoList[0]||'', videos:erVideoList});
+    // Invalidate cache so next load gets fresh data
+    if(typeof clearOrdersCache==='function') clearOrdersCache();
+    _allReportsCache=null; _allReportsCacheTime=0;
     document.getElementById('er-msg').textContent='✅ 已儲存';
     setTimeout(function(){
       document.getElementById('editRepMod').style.display='none';

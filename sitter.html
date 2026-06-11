@@ -1459,23 +1459,33 @@ async function openEditReport(ts){
   var existingVideos=_r.videos&&_r.videos.length?_r.videos:(_r.videoDataUrl||_r.videoDataURL?[_r.videoDataUrl||_r.videoDataURL]:[]);
   window._erVideos=existingVideos.map(function(url,i){return {dataUrl:url,name:'影片'+(i+1),size:0};});
   window._erVideo=existingVideos[0]||'';
-  window.erLoadVideo=function(input){
+  window.erLoadVideo=async function(input){
     var files=Array.from(input.files);
-    if(!files.length)return;
-    var skipped=[];
-    files.forEach(function(file){
-      var mb=file.size/1024/1024;
-      if(mb>8){skipped.push(file.name+'（'+mb.toFixed(1)+'MB）');return;}
-      var reader=new FileReader();
-      reader.onload=function(e){
-        window._erVideos=window._erVideos||[];
-        window._erVideos.push({dataUrl:e.target.result,name:file.name,size:file.size});
-        erRenderVideos();
-      };
-      reader.readAsDataURL(file);
-    });
-    if(skipped.length) alert('以下影片超過8MB：\n'+skipped.join('\n'));
+    if(!files.length) return;
     input.value='';
+    window._erVideos=window._erVideos||[];
+    var wrap=document.getElementById('er-video-wrap');
+    for(var fi=0;fi<files.length;fi++){
+      var file=files[fi];
+      var mb=file.size/1024/1024;
+      var pid='erv-'+Date.now()+'-'+fi;
+      if(wrap){
+        wrap.style.display='block';
+        wrap.insertAdjacentHTML('beforeend',
+          '<div id="'+pid+'" style="padding:8px;background:var(--pk4);border-radius:8px;margin-bottom:6px;font-size:.8rem;">⏳ 上傳中：'+file.name+' ('+mb.toFixed(1)+'MB)...</div>'
+        );
+      }
+      try{
+        var url=await uploadVideoToR2(file, null);
+        window._erVideos.push({dataUrl:url,name:file.name,size:file.size});
+        var el=document.getElementById(pid);
+        if(el) el.remove();
+        erRenderVideos();
+      }catch(e){
+        var el2=document.getElementById(pid);
+        if(el2) el2.innerHTML='<span style="color:#E05252;">❌ '+file.name+'：'+e.message+'</span>';
+      }
+    }
   };
   window.erRemoveVideoItem=function(i){
     if(window._erVideos) window._erVideos.splice(i,1);
@@ -1996,26 +2006,75 @@ function loadPetPhoto(input,idx){
   });
 }
 
-var MAX_VIDEO_MB=8;
-function loadReportVideo(input){
-  const files=Array.from(input.files);
-  if(!files.length)return;
-  var skipped=[];
-  files.forEach(function(file){
-    var mb=file.size/1024/1024;
-    if(mb>MAX_VIDEO_MB){
-      skipped.push(file.name+'（'+mb.toFixed(1)+'MB）');
-      return;
-    }
-    const reader=new FileReader();
-    reader.onload=function(e){
-      reportVideos.push({dataUrl:e.target.result,name:file.name,size:file.size});
-      renderVideoPreviewList();
-    };
-    reader.readAsDataURL(file);
+
+// ── Cloudflare R2 影片上傳 ──
+var EDGE_FN_URL = 'https://cswejuvithewfyhmisfc.supabase.co/functions/v1/get-upload-url';
+
+async function uploadVideoToR2(file, onProgress){
+  // Step1: 向 Edge Function 取得 Presigned URL
+  var res = await fetch(EDGE_FN_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + SUPA_KEY
+    },
+    body: JSON.stringify({filename: file.name, contentType: file.type||'video/mp4'})
   });
-  if(skipped.length) alert('以下影片超過'+MAX_VIDEO_MB+'MB 無法上傳（建議先壓縮）：\n'+skipped.join('\n'));
+  if(!res.ok) throw new Error('取得上傳網址失敗：' + await res.text());
+  var _json = await res.json();
+  var uploadUrl = _json.uploadUrl;
+  var publicUrl = _json.publicUrl;
+
+  // Step2: 直接 PUT 影片到 R2（原始 binary，不轉 base64）
+  var xhr = new XMLHttpRequest();
+  await new Promise(function(resolve, reject){
+    xhr.open('PUT', uploadUrl);
+    xhr.setRequestHeader('Content-Type', file.type||'video/mp4');
+    if(onProgress) xhr.upload.onprogress = function(e){
+      if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100));
+    };
+    xhr.onload = function(){ xhr.status<300?resolve():reject(new Error('R2 上傳失敗：'+xhr.status)); };
+    xhr.onerror = function(){ reject(new Error('網路錯誤')); };
+    xhr.send(file);
+  });
+
+  return publicUrl;
+}
+async function loadReportVideo(input){
+  var files=Array.from(input.files);
+  if(!files.length) return;
   input.value='';
+  for(var fi=0;fi<files.length;fi++){
+    var file=files[fi];
+    var mb=file.size/1024/1024;
+    // Create placeholder
+    var pid='vp-'+Date.now()+'-'+fi;
+    var wrap=document.getElementById('videoPreviewWrap');
+    wrap.style.display='block';
+    wrap.insertAdjacentHTML('beforeend',
+      '<div id="'+pid+'" style="padding:10px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;margin-bottom:8px;">'
+      +'<div style="font-size:.8rem;font-weight:800;color:var(--pk);">⏳ 上傳中：'+file.name+' ('+mb.toFixed(1)+'MB)</div>'
+      +'<div id="'+pid+'-bar" style="height:6px;background:var(--pk3);border-radius:3px;margin-top:6px;"><div id="'+pid+'-prog" style="height:100%;width:0%;background:var(--pk);border-radius:3px;transition:width .3s;"></div></div>'
+      +'</div>'
+    );
+    try{
+      var publicUrl=await uploadVideoToR2(file, function(pct){
+        var el=document.getElementById(pid+'-prog');
+        if(el) el.style.width=pct+'%';
+      });
+      // Replace placeholder with video preview
+      var el2=document.getElementById(pid);
+      if(el2) el2.outerHTML=
+        '<div style="margin-bottom:8px;background:#f9f9f9;border:1.5px solid var(--pk3);border-radius:10px;padding:8px;">'
+        +'<video controls style="width:100%;border-radius:8px;max-height:200px;" src="'+publicUrl+'"></video>'
+        +'<div style="font-size:.72rem;color:var(--tl);margin-top:4px;">✅ '+file.name+'</div>'
+        +'</div>';
+      reportVideos.push({dataUrl:publicUrl, name:file.name, size:file.size});
+    }catch(e){
+      var el3=document.getElementById(pid);
+      if(el3) el3.innerHTML='<div style="color:#E05252;font-size:.8rem;">❌ '+file.name+' 上傳失敗：'+e.message+'</div>';
+    }
+  }
 }
 
 function renderVideoPreviewList(){
@@ -2132,13 +2191,7 @@ async function submitReport(){
     petPhotos:reportPhotos.map(p=>({slot:p.slot,dataUrl:p.dataUrl})),
     cleanPhotos:reportCleanPhotos.map(p=>({groupIdx:p.groupIdx,side:p.side,dataUrl:p.dataUrl,label:p.label||''})),
     videoDataUrl:reportVideos.length?reportVideos[0].dataUrl:(reportVideoDataUrl||''),
-    videos:(function(){
-      var total=0;
-      return reportVideos.filter(function(v){
-        total+=v.dataUrl.length;
-        return total<15*1024*1024; // max 15MB total base64
-      }).map(function(v){return v.dataUrl;});
-    })(),
+    videos:reportVideos.map(function(v){return v.dataUrl;}),
   };
   try{
     await dbInsertReport(r);

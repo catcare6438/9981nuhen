@@ -512,6 +512,7 @@ function dbRowToOrder(r){
   };
 }
 </script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -1364,7 +1365,7 @@ function renderReport(r){
   if(r.diary){
     html+=`<div class="rblock" style="background:linear-gradient(135deg,#FFF0F5,#FFFAF0);">
       <div class="rblock-title">💌 保母心情日記</div>
-      <div class="rblock-content" style="font-style:italic;line-height:1.8;">${r.diary}</div>
+      <div class="rblock-content" style="font-family:'Noto Serif TC','BiauKai','標楷體',serif;font-style:normal;line-height:2;letter-spacing:.04em;">${r.diary.replace(/\n/g,'<br>')}</div>
     </div>`;
   }
 

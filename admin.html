@@ -713,6 +713,13 @@ function dbRowToOrder(r){
               <div style="font-size:.82rem;font-weight:800;color:var(--pk);margin-bottom:10px;font-family:'Nunito',sans-serif;">👩 保母密碼總覽（管理員專用）</div>
               <div id="sitterPwStatus" style="display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;"></div>
             </div>
+            <div style="background:var(--pk4);border:2px solid var(--pk3);border-radius:14px;padding:14px;margin-bottom:18px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                <div style="font-size:.82rem;font-weight:900;color:var(--pk);font-family:'Nunito',sans-serif;">⚙️ 保母資料管理</div>
+                <button onclick="addNewSitter()" style="padding:6px 14px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">＋ 新增保母</button>
+              </div>
+              <div id="sitterMgmtList" style="display:flex;flex-direction:column;gap:10px;"></div>
+            </div>
             <div style="background:var(--b2);border:2px dashed var(--b);border-radius:14px;padding:14px;margin-bottom:18px;">
               <div style="font-size:.82rem;font-weight:800;color:var(--b);margin-bottom:10px;font-family:'Nunito',sans-serif;">🏠 飼主會員密碼總覽</div>
               <div id="ownerPwSummary" style="display:flex;flex-wrap:wrap;gap:10px;font-size:.8rem;"></div>
@@ -2672,6 +2679,72 @@ async function removeVisitPhoto(bookId, photoIdx){
     bk.visitPhotos=photos;
     showDetail(bookId);
   }catch(e){alert('刪除失敗：'+e.message);}
+}
+
+// ── 保母資料管理 ──
+async function loadSitterMgmt(){
+  var el=document.getElementById('sitterMgmtList');
+  if(!el)return;
+  var{data,error}=await _supa.from('sitter_passwords').select('*').order('name');
+  if(error){el.innerHTML='<div style="color:red;font-size:.8rem;">載入失敗：'+error.message+'</div>';return;}
+  var rows=data||[];
+  if(!rows.length){el.innerHTML='<div style="font-size:.8rem;color:var(--tl);">尚無保母資料</div>';return;}
+  el.innerHTML=rows.map(function(s){
+    return '<div id="smrow-'+s.name+'" style="background:#fff;border:1.5px solid var(--pk3);border-radius:12px;padding:12px;">'
+      +'<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">'
+      +'<div style="font-size:.74rem;font-weight:800;color:var(--tl);min-width:52px;">帳號名稱</div>'
+      +'<code style="background:var(--pk4);padding:2px 8px;border-radius:6px;font-size:.8rem;">'+s.name+'</code>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">'
+      +'<div><div style="font-size:.72rem;font-weight:800;color:var(--tl);margin-bottom:3px;">顯示名稱</div>'
+      +'<input id="sm-dname-'+s.name+'" value="'+(s.display_name||s.name)+'" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'<div><div style="font-size:.72rem;font-weight:800;color:var(--tl);margin-bottom:3px;">登入密碼</div>'
+      +'<input id="sm-pw-'+s.name+'" value="'+(s.password||'')+'" type="text" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'</div>'
+      +'<div style="margin-bottom:8px;"><div style="font-size:.72rem;font-weight:800;color:var(--tl);margin-bottom:3px;">前台簡介</div>'
+      +'<textarea id="sm-bio-'+s.name+'" rows="3" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;resize:vertical;box-sizing:border-box;" placeholder="保母的自我介紹，會顯示在前台...">'+(s.bio||'')+'</textarea>'
+      +'</div>'
+      +'<div style="display:flex;gap:8px;">'
+      +'<button data-smname="'+s.name+'" onclick="saveSitterMgmt(this.dataset.smname)" style="padding:6px 16px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">💾 儲存</button>'
+      +'<span id="sm-msg-'+s.name+'" style="font-size:.74rem;font-weight:800;color:var(--g);align-self:center;"></span>'
+      +'</div>'
+      +'</div>';
+  }).join('');
+}
+
+async function saveSitterMgmt(name){
+  var dname=document.getElementById('sm-dname-'+name)?.value.trim()||name;
+  var pw=document.getElementById('sm-pw-'+name)?.value.trim()||'';
+  var bio=document.getElementById('sm-bio-'+name)?.value||'';
+  var msg=document.getElementById('sm-msg-'+name);
+  if(!pw){if(msg)msg.textContent='❌ 密碼不能為空';return;}
+  try{
+    var{error}=await _supa.from('sitter_passwords').update({
+      display_name:dname, password:pw, bio:bio, updated_at:new Date().toISOString()
+    }).eq('name',name);
+    if(error)throw new Error(error.message);
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){
+    if(msg)msg.textContent='❌ '+e.message;
+  }
+}
+
+async function addNewSitter(){
+  var name=prompt('輸入新保母的帳號名稱（登入用）：');
+  if(!name||!name.trim())return;
+  name=name.trim();
+  var pw=prompt('設定初始密碼：');
+  if(!pw||!pw.trim())return;
+  try{
+    var{error}=await _supa.from('sitter_passwords').insert([{
+      name:name, password:pw.trim(), display_name:name, bio:''
+    }]);
+    if(error)throw new Error(error.message);
+    alert('✅ 保母「'+name+'」已新增！');
+    loadSitterMgmt();
+  }catch(e){
+    alert('新增失敗：'+e.message);
+  }
 }
 async function saveVisitInfo(bookId){
   const visitDate=document.getElementById('vi-date-'+bookId)?.value||'';

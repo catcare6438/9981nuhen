@@ -508,7 +508,7 @@ function dbRowToOrder(r){
     visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
-    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',visitPhotos:r.visit_photos||[]
+    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',visitPhotos:r.visit_photos||[],ownerLineId:r.owner_line_id||''
   };
 }
 </script>
@@ -559,6 +559,10 @@ function dbRowToOrder(r){
 
 
 <script>
+
+// ── LINE Login 設定 ──
+var LINE_LOGIN_CHANNEL_ID = '你的LINE_Login_Channel_ID'; // ← 填入你的 Channel ID
+var LINE_REDIRECT_URI = 'https://catcare6438.github.io/9981nuhen/owner.html';
 let currentOwnerPhone=null; // 用電話號碼識別同一飼主的所有訂單
 var SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 var SLOT_NAME={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
@@ -1628,7 +1632,6 @@ document.head.appendChild(_shakeStyle);
   var hash=window.location.hash;
   if(hash && hash.startsWith('#pw=')){
     pw=decodeURIComponent(hash.slice(4));
-    // Use replaceState to clear hash without triggering reload or hashchange
     try{history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){}
   } else {
     pw=sessionStorage.getItem('ownerAutoLogin')||'';
@@ -1639,6 +1642,52 @@ document.head.appendChild(_shakeStyle);
   if(inp)inp.value=pw;
   await ownerLogin();
 })();
+
+// ── LINE Login 回調處理 ──
+(async function lineCallbackCheck(){
+  var params=new URLSearchParams(window.location.search);
+  var code=params.get('code');
+  var state=params.get('state'); // state 帶 bookId
+  if(!code||!state) return;
+  // 清除 URL 參數
+  try{history.replaceState(null,'',window.location.pathname);}catch(e){}
+  // 呼叫 Edge Function 換取 LINE User ID
+  try{
+    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/line-callback',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify({code:code, bookId:state})
+    });
+    var data=await res.json();
+    if(data.success){
+      showLineBindResult('✅ LINE 綁定成功！日後保母回報會即時通知您。');
+    } else {
+      showLineBindResult('❌ 綁定失敗：'+(data.error||'未知錯誤'));
+    }
+  }catch(e){
+    showLineBindResult('❌ 綁定失敗：'+e.message);
+  }
+})();
+
+
+function doLineLogin(bookId){
+  var channelId=LINE_LOGIN_CHANNEL_ID;
+  var redirectUri=encodeURIComponent(LINE_REDIRECT_URI);
+  var state=String(bookId);
+  var scope=encodeURIComponent('profile openid');
+  var url='https://access.line.me/oauth2/v2.1/authorize'
+    +'?response_type=code'
+    +'&client_id='+channelId
+    +'&redirect_uri='+redirectUri
+    +'&state='+state
+    +'&scope='+scope;
+  window.location.href=url;
+}
+function showLineBindResult(msg){
+  var el=document.getElementById('lineBindResult');
+  if(el){el.textContent=msg;el.style.display='block';}
+  else{alert(msg);}
+}
 
 </script>
 

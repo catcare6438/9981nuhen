@@ -431,12 +431,7 @@ function dbRowToOrder(r){
     <div class="l-title">保母專區</div>
     <div class="l-sub">貓窩裏 到府寵物褓姆</div>
     <select class="l-sel" id="sitterSel">
-      <option value="">— 選擇您的名字 —</option>
-      <option value="小語">🐱 小語</option>
-      <option value="小汶">🌟 小汶</option>
-      <option value="菓菓">🍎 菓菓</option>
-      <option value="小茹">🐕 小茹</option>
-      <option value="阿瑛">🌺 阿瑛</option>
+      <option value="">⏳ 載入中...</option>
     </select>
     <input class="l-in" type="password" id="sitterPw" placeholder="個人密碼" onkeydown="if(event.key==='Enter')login()">
     <button class="l-btn" onclick="login()">登入保母專區 →</button>
@@ -898,6 +893,25 @@ let activePetIdx=0;
 
 
 // ── LOGIN ──
+
+async function loadSitterSelect(){
+  var sel=document.getElementById('sitterSel');
+  if(!sel)return;
+  try{
+    var{data,error}=await _supa.from('sitter_passwords').select('name,display_name').order('name');
+    if(error||!data||!data.length){
+      sel.innerHTML='<option value="">— 選擇您的名字 —</option>';
+      return;
+    }
+    sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
+      +data.map(function(r){
+        var label=r.display_name||r.name;
+        return '<option value="'+r.name+'">'+label+'</option>';
+      }).join('');
+  }catch(e){
+    sel.innerHTML='<option value="">— 選擇您的名字 —</option>';
+  }
+}
 async function login(){
   const sel=document.getElementById('sitterSel');
   const idx=sel.selectedIndex-1; // -1 because first option is placeholder

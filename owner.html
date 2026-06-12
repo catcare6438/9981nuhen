@@ -1673,14 +1673,18 @@ document.head.appendChild(_shakeStyle);
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
       body:JSON.stringify({code:code, bookId:state})
     });
-    var data=await res.json();
+    var rawText=await res.text();
+    console.log('[line-callback] status='+res.status+' body='+rawText);
+    var data={};
+    try{data=JSON.parse(rawText);}catch(pe){data={error:rawText};}
     if(data.success){
-      showLineBindResult('✅ LINE 綁定成功！日後保母回報會即時通知您。');
+      showLineBindResult('✅ LINE 綁定成功！日後保母回報會即時通知您。','#06C755');
     } else {
-      showLineBindResult('❌ 綁定失敗：'+(data.error||'未知錯誤'));
+      showLineBindResult('❌ 綁定失敗：'+(data.error||'status='+res.status),'#E05252');
     }
   }catch(e){
-    showLineBindResult('❌ 綁定失敗：'+e.message);
+    console.error('[line-callback] fetch error:',e);
+    showLineBindResult('❌ 網路錯誤：'+e.message,'#E05252');
   }
 })();
 
@@ -1698,10 +1702,15 @@ function doLineLogin(bookId){
     +'&scope='+scope;
   window.location.href=url;
 }
-function showLineBindResult(msg){
+function showLineBindResult(msg, color){
+  // Find all lineBindResult elements
+  document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(el){
+    el.textContent=msg;
+    el.style.display='block';
+    el.style.color=color||'#333';
+  });
   var el=document.getElementById('lineBindResult');
-  if(el){el.textContent=msg;el.style.display='block';}
-  else{alert(msg);}
+  if(el){el.textContent=msg;el.style.display='block';el.style.color=color||'#333';}
 }
 
 </script>

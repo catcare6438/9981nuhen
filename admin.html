@@ -1011,8 +1011,13 @@ function login(){
     const now=new Date();
     document.getElementById('salMonth').value=''+(now.getFullYear())+'-'+(String(now.getMonth()+1).padStart(2,'0'))+'';
     // Test Supabase connection first
-    testSupabaseConnection().then(ok=>{
-      if(ok) refreshAll();
+    testSupabaseConnection().then(async ok=>{
+      if(ok){
+        await loadSittersList(); // 先載入保母名單，再 render
+        refreshAll();
+        loadSitterPws();
+        loadSitterMgmt();
+      }
     });
   } else {
     document.getElementById('loginErr').style.display='block';
@@ -2965,7 +2970,7 @@ async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
   if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
   showPetDetail(bookId);
 }
-async function refreshAll(){await renderStats();renderOrders();}
+async function refreshAll(){await loadSittersList();await renderStats();renderOrders();}
 
 function showExp(title,txt){
   document.getElementById('exportTitle').textContent=title;

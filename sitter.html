@@ -896,20 +896,41 @@ let activePetIdx=0;
 
 async function loadSitterSelect(){
   var sel=document.getElementById('sitterSel');
-  if(!sel)return;
+  if(!sel){ console.error('[sitter] sitterSel not found'); return; }
   try{
-    var{data,error}=await _supa.from('sitter_passwords').select('name,display_name').order('name');
-    if(error||!data||!data.length){
-      sel.innerHTML='<option value="">— 選擇您的名字 —</option>';
+    var res;
+    try{
+      res=await _supa.from('sitter_passwords').select('name,display_name').order('name');
+      if(res.error&&res.error.message&&res.error.message.includes('display_name')){
+        res=await _supa.from('sitter_passwords').select('name').order('name');
+      }
+    }catch(e){
+      res=await _supa.from('sitter_passwords').select('name').order('name');
+    }
+    var data=res.data, error=res.error;
+    console.log('[sitter] loadSitterSelect data=',data,' error=',error);
+    if(error){
+      sel.innerHTML='<option value="">❌ 載入失敗</option>';
+      console.error('[sitter] DB error:',error);
+      return;
+    }
+    if(!data||!data.length){
+      sel.innerHTML='<option value="">（無保母資料）</option>';
       return;
     }
     sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
       +data.map(function(r){
-        var label=r.display_name||r.name;
+        var label=(r.display_name&&r.display_name.trim())||r.name;
         return '<option value="'+r.name+'">'+label+'</option>';
       }).join('');
+    console.log('[sitter] select loaded',data.length,'sitters');
   }catch(e){
-    sel.innerHTML='<option value="">— 選擇您的名字 —</option>';
+    console.error('[sitter] loadSitterSelect exception:',e);
+    // Fallback: hardcoded list
+    sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
+      +['Ying','小語','小汶','菓菓','小茹','阿瑛'].map(function(n){
+        return '<option value="'+n+'">'+n+'</option>';
+      }).join('');
   }
 }
 async function login(){
@@ -2313,6 +2334,15 @@ function showSitterPetDetail(bookId){
 function closeM(id){document.getElementById(id).classList.remove('show');}
 
 
+
+// 動態載入保母名稱
+if(typeof loadSitterSelect === 'function'){
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', function(){ loadSitterSelect(); });
+  } else {
+    loadSitterSelect();
+  }
+}
 </script>
 
 <!-- CHANGE SITTER PASSWORD MODAL -->

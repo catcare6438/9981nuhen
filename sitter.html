@@ -2262,6 +2262,31 @@ async function submitReport(){
     console.error('submitReport failed:', e?.message||e);
     return;
   }
+
+  // ── 自動推播 LINE 通知給飼主 ──
+  (async function(){
+    try{
+      var notifyRes=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/send-report-notify',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+        body:JSON.stringify({
+          bookId:   Number(currentBookId),
+          sitter:   ME.name,
+          date:     document.getElementById('rDate').value,
+          services: Array.from(document.querySelectorAll('#svcChecks input:checked')).map(function(x){return x.value;}),
+          diary:    document.getElementById('rDiary').value,
+          videos:   reportVideos.map(function(v){return v.dataUrl;}),
+          petPhotos:reportPhotos.map(function(p){return p.dataUrl||'';}).filter(Boolean)
+        })
+      });
+      var notifyData=await notifyRes.json();
+      if(notifyData.success) console.log('[LINE] 通知已發送 ✅');
+      else console.warn('[LINE] 通知失敗：',notifyData.error||notifyData);
+    }catch(ne){
+      console.warn('[LINE] 推播錯誤（不影響回報儲存）：',ne.message);
+    }
+  })();
+
   closeM('reportMod');
   renderMain();
   alert('✅ 回報已送出！飼主可立即在毛孩爸媽系統查看。');

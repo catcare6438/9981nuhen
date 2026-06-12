@@ -561,7 +561,7 @@ function dbRowToOrder(r){
 <script>
 
 // ── LINE Login 設定 ──
-var LINE_LOGIN_CHANNEL_ID = '你的LINE_Login_Channel_ID'; // ← 填入你的 Channel ID
+var LINE_LOGIN_CHANNEL_ID = '2010383087'; // ← 填入你的 Channel ID
 var LINE_REDIRECT_URI = 'https://catcare6438.github.io/9981nuhen/owner.html';
 let currentOwnerPhone=null; // 用電話號碼識別同一飼主的所有訂單
 var SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
@@ -1513,6 +1513,21 @@ function buildOwnerDetailHTML(bk){
         +'</div>':'',
       '</div></div>'
     ].join(''):'',
+
+    // ── LINE 即時通知綁定區塊 ──
+    '<div style="margin-top:10px;background:#fff;border:1.5px solid #B7F0C0;border-radius:14px;overflow:hidden;">'
+    +'<div style="padding:10px 14px;background:#F0FFF4;font-size:.8rem;font-weight:900;color:#065F46;">💬 LINE 即時通知</div>'
+    +'<div style="padding:12px 14px;">'
+    +'<div id="lineBindResult-'+bk.id+'" style="display:none;font-size:.82rem;font-weight:800;margin-bottom:8px;"></div>'
+    +(bk.ownerLineId
+      ?'<div style="font-size:.82rem;color:#06C755;font-weight:800;">✅ 已綁定 LINE，保母回報將即時推播通知您 🐾</div>'
+      :'<div style="font-size:.82rem;color:var(--tl);margin-bottom:8px;">綁定 LINE 後，保母每次回報都會立即推播通知您 📩</div>'
+       +'<button onclick="doLineLogin('+bk.id+')" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#06C755;color:#fff;border:none;border-radius:10px;font-weight:900;font-size:.88rem;cursor:pointer;font-family:inherit;">'
+       +'<svg width="18" height="18" viewBox="0 0 48 48" fill="white"><path d="M24 4C12.95 4 4 11.82 4 21.4c0 6.1 3.86 11.47 9.7 14.8-.43 1.6-1.56 5.8-1.79 6.7-.28 1.1.4 1.08 1 .75.48-.27 7.64-5.05 10.73-7.1.77.1 1.56.16 2.36.16 11.05 0 20-7.82 20-17.4S35.05 4 24 4z"/></svg>'
+       +'綁定 LINE 帳號</button>'
+    )
+    +'</div></div>',
+
   ];
 
   // Contract & Fee table section

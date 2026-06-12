@@ -2354,14 +2354,40 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
 
 
 
-// 動態載入保母名稱
-if(typeof loadSitterSelect === 'function'){
-  if(document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', function(){ loadSitterSelect(); });
-  } else {
-    loadSitterSelect();
+// 動態載入保母名稱 + 自動還原登入
+(async function initSitter(){
+  await loadSitterSelect();
+  // Try to restore session
+  var savedName=sessionStorage.getItem('sitterName');
+  var savedPw=sessionStorage.getItem('sitterPw');
+  if(savedName && savedPw){
+    try{
+      var{data}=await _supa.from('sitter_passwords')
+        .select('name,password,display_name')
+        .eq('name',savedName).limit(1);
+      if(data&&data.length&&data[0].password===savedPw){
+        var row=data[0];
+        ME={name:row.name,displayName:row.display_name||row.name,info:{role:'到府褓姆',av:'🐾'}};
+        // Set select value
+        var sel=document.getElementById('sitterSel');
+        if(sel) sel.value=row.name;
+        // Show main screen
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('mainScreen').style.display='block';
+        var topNm=document.getElementById('topNm');
+        var topAv=document.getElementById('topAv');
+        var topRole=document.getElementById('topRole');
+        if(topNm) topNm.textContent=ME.displayName;
+        if(topAv) topAv.textContent='🐾';
+        if(topRole) topRole.textContent='到府褓姆';
+        renderMain();
+        return;
+      }
+    }catch(e){console.warn('auto-login failed:',e);}
   }
-}
+  sessionStorage.removeItem('sitterName');
+  sessionStorage.removeItem('sitterPw');
+})();
 </script>
 
 <!-- CHANGE SITTER PASSWORD MODAL -->

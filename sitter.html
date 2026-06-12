@@ -934,32 +934,51 @@ async function loadSitterSelect(){
   }
 }
 async function login(){
-  const sel=document.getElementById('sitterSel');
-  const idx=sel.selectedIndex-1; // -1 because first option is placeholder
-  const pw=document.getElementById('sitterPw').value.trim();
-  if(idx<0){alert('請先選擇您的名字 🐾');return;}
+  var sel=document.getElementById('sitterSel');
+  var name=sel.value.trim();
+  var pw=document.getElementById('sitterPw').value.trim();
+  if(!name){alert('請先選擇您的名字 🐾');return;}
   if(!pw){alert('請輸入密碼');return;}
-  // Index-based — immune to all Unicode/encoding issues
-  const NAMES=['小語','小汶','菓菓','小茹','阿瑛'];
-  const PWS  =['666', 'cc',  '333', 'aa',  '111'];
-  const AVS  =['🐱',  '🌟',  '🍎',  '🐕',  '🌺'];
-  const ROLES=['資深貓咪照護','老年寵物照護','中途志工','中途志工','中途志工'];
-  const correct=PWS[idx];
-  if(pw!==correct){
-    const el=document.getElementById('loginErr');
-    el.style.display='block';
-    el.textContent='密碼錯誤，請確認後再試';
-    document.getElementById('sitterPw').value='';
-    return;
+
+  var btn=document.querySelector('.l-btn');
+  if(btn){btn.textContent='⏳ 驗證中...';btn.disabled=true;}
+
+  try{
+    // 直接從 Supabase 驗證密碼
+    var{data,error}=await _supa.from('sitter_passwords')
+      .select('name,password,display_name,bio')
+      .eq('name',name).limit(1);
+    if(error) throw new Error(error.message);
+    if(!data||!data.length){
+      showLoginErr('找不到此保母帳號');return;
+    }
+    var row=data[0];
+    if(pw!==row.password){
+      showLoginErr('密碼錯誤，請確認後再試');
+      document.getElementById('sitterPw').value='';
+      return;
+    }
+    // 登入成功
+    var displayName=row.display_name||row.name;
+    ME={name:row.name, displayName:displayName, info:{role:'到府褓姆',av:'🐾'}};
+    sessionStorage.setItem('sitterName',row.name);
+    sessionStorage.setItem('sitterPw',pw);
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainScreen').style.display='block';
+    document.getElementById('topAv').textContent='🐾';
+    document.getElementById('topNm').textContent=displayName;
+    document.getElementById('topRole').textContent='到府褓姆';
+    renderMain();
+  }catch(e){
+    showLoginErr('登入失敗：'+e.message);
+  }finally{
+    if(btn){btn.textContent='登入保母專區 →';btn.disabled=false;}
   }
-  const name=NAMES[idx];
-  ME={name,info:{role:ROLES[idx],av:AVS[idx]}};
-  document.getElementById('loginScreen').style.display='none';
-  document.getElementById('mainScreen').style.display='block';
-  document.getElementById('topAv').textContent=AVS[idx];
-  document.getElementById('topNm').textContent=name;
-  document.getElementById('topRole').textContent=ROLES[idx];
-  renderMain();
+}
+
+function showLoginErr(msg){
+  var el=document.getElementById('loginErr');
+  if(el){el.style.display='block';el.textContent=msg;}
 }
 function logout(){
   ME=null;

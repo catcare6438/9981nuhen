@@ -2927,17 +2927,10 @@ async function uploadContractFiles(bookId){
   const msg=document.getElementById('contract-msg-'+bookId);
   if(msg)msg.textContent='⏳ 上傳中...';
 
-  async function toDataUrl(file){
-    return new Promise(function(resolve){
-      const r=new FileReader();
-      r.onload=function(e){resolve(e.target.result);};
-      r.readAsDataURL(file);
-    });
-  }
-
+  // Upload to R2 instead of base64
   const fields={};
-  if(contractFile) fields.contract_url=await toDataUrl(contractFile);
-  if(feeFile) fields.fee_table_url=await toDataUrl(feeFile);
+  if(contractFile) fields.contract_url=await uploadFileToR2(contractFile);
+  if(feeFile) fields.fee_table_url=await uploadFileToR2(feeFile);
 
   try{
     // Direct update to Supabase with correct field names
@@ -2965,6 +2958,37 @@ async function uploadContractFiles(bookId){
   }
 }
 
+
+var EDGE_FN_URL='https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action';
+
+async function uploadImageToR2(file){
+  // Get presigned URL from Edge Function
+  var res=await fetch(EDGE_FN_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({action:'get-upload-url',filename:file.name||('img-'+Date.now()+'.jpg'),contentType:file.type||'image/jpeg'})
+  });
+  if(!res.ok) throw new Error('取得上傳網址失敗');
+  var json=await res.json();
+  // PUT to R2
+  var r2=await fetch(json.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type||'image/jpeg'},body:file});
+  if(!r2.ok) throw new Error('R2上傳失敗：'+r2.status);
+  return json.publicUrl;
+}
+
+async function uploadFileToR2(file){
+  var res=await fetch(EDGE_FN_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({action:'get-upload-url',filename:file.name||('file-'+Date.now()),contentType:file.type||'application/octet-stream'})
+  });
+  if(!res.ok) throw new Error('取得上傳網址失敗');
+  var json=await res.json();
+  var r2=await fetch(json.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type||'application/octet-stream'},body:file});
+  if(!r2.ok) throw new Error('R2上傳失敗');
+  return json.publicUrl;
+}
+
 async function uploadVisitPhotos(bookId, input){
   var files=Array.from(input.files);
   if(!files.length) return;
@@ -2973,28 +2997,14 @@ async function uploadVisitPhotos(bookId, input){
   var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
   if(!bk){alert('找不到訂單');return;}
   var existing=bk.visitPhotos||[];
-  // Compress and add each photo
-  var promises=files.map(function(file){
-    return new Promise(function(resolve){
-      var reader=new FileReader();
-      reader.onload=function(e){
-        var img=new Image();
-        img.onload=function(){
-          var canvas=document.createElement('canvas');
-          var max=800;
-          var w=img.width,h=img.height;
-          if(w>max){h=Math.round(h*max/w);w=max;}
-          if(h>max){w=Math.round(w*max/h);h=max;}
-          canvas.width=w;canvas.height=h;
-          canvas.getContext('2d').drawImage(img,0,0,w,h);
-          resolve(canvas.toDataURL('image/jpeg',0.8));
-        };
-        img.src=e.target.result;
-      };
-      reader.readAsDataURL(file);
-    });
-  });
-  var newPhotos=await Promise.all(promises);
+  var newPhotos=[];
+  for(var fi=0;fi<files.length;fi++){
+    try{
+      var url=await uploadImageToR2(files[fi]);
+      newPhotos.push(url);
+      if(msg) msg.textContent='⏳ 上傳中 '+(fi+1)+'/'+files.length+'...';
+    }catch(e){ console.error('照片上傳失敗:',e); }
+  }
   var allPhotos=existing.concat(newPhotos);
   try{
     await _supa.from('orders').update({visit_photos:allPhotos}).eq('id',parseInt(bookId));

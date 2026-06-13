@@ -1421,9 +1421,38 @@ function buildOrderCard(bk, sCls, ownerPws){
   const addonRow=bk.addons&&bk.addons.length?'<div class="order-row"><span class="order-label">加購：</span><span class="order-val">'+bk.addons.join('、')+'</span></div>':'';
   const noteRow=bk.petNotes?'<div class="order-row"><span class="order-label">備註：</span><span class="order-val">'+bk.petNotes+'</span></div>':'';
   const hvRow=bk.homeVisitDate?('<div class="order-row"><span class="order-label">🏠 家訪：</span><span class="order-val">'+bk.homeVisitDate+'</span></div>'):'';
+  const statusOpts=['待確認','已確認','接案中','已完成','已取消'].map(function(s){
+    return '<option value="'+s+'"'+(bk.status===s?' selected':'')+'>'+s+'</option>';
+  }).join('');
+  return '<div class="order-card" id="oc-'+bk.id+'">'
+    +'<div class="order-header">'
+    +'<div>'
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+    +'<span class="badge '+badgeCls+'">'+statusLabel+'</span>'
+    +holBadge+urgBadge
+    +'</div>'
+    +'<div class="order-name">'+bk.ownerName+'</div>'
+    +'<div class="order-meta">📞 '+bk.ownerPhone+' ｜ 📅 '+dateStr+' '+sessStr+'</div>'
+    +'</div>'
+    +'<select class="status-sel" style="padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;" onchange="changeStatus('+bk.id+',this.value)">'
+    +statusOpts
+    +'</select>'
+    +'</div>'
+    +'<div class="order-row">'+distRow+addonRow+'</div>'
+    +'<div class="order-row">'+noteRow+hvRow+'</div>'
+    +'<div style="font-size:.8rem;font-weight:800;color:var(--pk);margin:6px 0 2px;">'+petSummary+' '+extraPetBadge+'</div>'
+    +'<div style="font-size:.84rem;color:var(--t);margin-bottom:8px;">'+svcNames+' ｜ 💰 NT$'+total.toLocaleString()+'</div>'
+    +'<div style="margin-bottom:10px;">'+slotSection+'</div>'
+    +'<div class="order-actions">'
+    +'<button class="oa-btn" onclick="showDetail('+bk.id+')">📋 詳細</button>'
+    +'<button class="oa-btn" onclick="openEditOrder('+bk.id+')">✏️ 編輯</button>'
+    +(hasPw?'<button class="oa-btn" onclick="showPetDetail('+bk.id+')">🐾 寵物</button>':'')
+    +'</div>'
+    +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;"></div>'
+    +'</div>';
+}
 
 // settings page above
-}
 
 function renderSettingsPage(){
   var svcP=_siteSettings.svc_prices||[];

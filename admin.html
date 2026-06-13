@@ -575,7 +575,7 @@ function dbRowToOrder(r){
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
     payMethod:r.pay_method||'',payNote:r.pay_note||'',
     contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',
-    homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
+    homeVisitDate:r.visit_date||r.home_visit_date||'',homeVisitNote:r.visit_notes||r.home_visit_note||'',
     ownerLineId:r.owner_line_id||''
   };
 }
@@ -1522,7 +1522,9 @@ function buildOrderCard(bk, sCls, ownerPws){
     +holBadge+urgBadge
     +'</div>'
     +'<div class="order-name">'+bk.ownerName+'</div>'
-    +'<div class="order-meta">📞 '+bk.ownerPhone+' ｜ '+petSummary+' ｜ 📅 '+dateStr+' '+sessStr+'</div>'
+    +'<div class="order-meta">📞 '+bk.ownerPhone+(bk.ownerAddr?' ｜ 📍 '+bk.ownerAddr:'')+'</div>'
+    +'<div class="order-meta">'+(bk.ownerLineId?'<span style="color:#06C755;font-weight:800;font-size:.75rem;">✅ LINE已綁定</span>':'<span style="color:#bbb;font-size:.75rem;">💬 未綁定</span>')+' ｜ 🐾 '+petSummary+' ｜ 📅 '+dateStr+' '+sessStr+'</div>'
+    +(bk.homeVisitDate?'<div class="order-meta" style="color:#0369A1;font-weight:800;">🏠 家訪：'+bk.homeVisitDate+'</div>':'')
     +'<div class="order-meta">'+svcNames+' ｜ 💰 NT$'+total.toLocaleString()+'</div>'
     +'</div>'
     +'<span class="order-toggle open" id="toggle-'+bk.id+'">▼</span>'

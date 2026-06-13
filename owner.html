@@ -500,7 +500,7 @@ function orderToDbRow(b){
 }
 function dbRowToOrder(r){
   return{
-    id:r.id,ts:r.ts,
+    id:String(r.id),ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
@@ -846,18 +846,18 @@ async function ownerLogin(){
   var matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
   console.log('[login] pw='+pw+' matchedId='+matchedId+' keys='+JSON.stringify(Object.keys(pws).slice(0,3)));
   if(!matchedId){
-    alert('[debug] 密碼不符\n輸入：'+pw+'\n資料庫有 '+Object.keys(pws).length+' 筆密碼\n前3筆key：'+Object.keys(pws).slice(0,3).join(','));
+
     document.getElementById('ownerErr').style.display='block';return;
   }
 
   let allBooks=[];
   try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}
 
-  var firstBook=allBooks.find(function(x){return x.id===parseInt(matchedId);});
-  if(!firstBook){alert('找不到訂單 id='+matchedId);document.getElementById('ownerErr').style.display='block';return;}
+  var firstBook=allBooks.find(function(x){return String(x.id)===String(matchedId);});
+  if(!firstBook){alert('找不到訂單 id='+matchedId+'\n現有ids:'+allBooks.slice(0,3).map(function(b){return b.id;}).join(','));document.getElementById('ownerErr').style.display='block';return;}
 
   currentOwnerPhone=firstBook.ownerPhone;
-  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return a.id-b.id;});
+  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return String(a.id)>String(b.id)?1:-1;});
 
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';

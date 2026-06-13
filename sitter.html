@@ -1304,19 +1304,14 @@ async function pressArrive(bookId){
   renderCases();
   // 發送 LINE 通知
   try{
-    await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+    var res2=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({
-        action:'send-checkin-notify',
-        bookId:Number(bookId),
-        sitter:ME.name,
-        type:'arrive',
-        time:timeStr
-      })
+      body:JSON.stringify({action:'send-checkin-notify',bookId:Number(bookId),sitter:ME.name,type:'arrive',time:timeStr})
     });
-    console.log('[打卡] 抵達通知已發送');
-  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
+    var txt2=await res2.text();
+    alert('[debug] bookId='+bookId+'\nstatus='+res2.status+'\n'+txt2.substring(0,400));
+  }catch(e){alert('error:'+e.message);}
 }
 
 async function pressLeave(bookId){

@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1780801159 -->
+<!-- build:1781316809 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -2231,6 +2231,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 // ── SUBMIT ──
 async function submitReport(){
+  console.log('[sitter v1781316809] submitReport called');
   savePetData(activePetIdx);
   const services=Array.from(document.querySelectorAll('#svcChecks input:checked')).map(c=>c.value);
   const disinfect=Array.from(document.querySelectorAll('#disinfectChecks input:checked')).map(c=>c.value);
@@ -2264,6 +2265,7 @@ async function submitReport(){
   }
 
   // ── 自動推播 LINE 通知給飼主 ──
+  console.log('[LINE] 開始推播通知 bookId='+currentBookId);
   (async function(){
     try{
       var notifyRes=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/send-report-notify',{

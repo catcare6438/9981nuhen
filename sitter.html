@@ -217,6 +217,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .slot-cal .cal-n{background:#FFF8E1;color:#B8860B;}
 .slot-cal .cal-e{background:#F0F0FF;color:#4040CC;}
 .slot-cal .cal-empty{color:#ddd;font-size:.68rem;}
+.checkin-row{display:flex;gap:8px;margin:8px 0 4px;justify-content:center;}
+.btn-arrive{flex:1;padding:10px 6px;background:linear-gradient(135deg,#2196F3,#1565C0);color:#fff;border:none;border-radius:12px;font-weight:900;font-size:.84rem;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-leave{flex:1;padding:10px 6px;background:linear-gradient(135deg,#F44336,#B71C1C);color:#fff;border:none;border-radius:12px;font-weight:900;font-size:.84rem;cursor:pointer;font-family:'Nunito',sans-serif;}
+.btn-arrive:disabled,.btn-leave:disabled{background:#ccc;cursor:not-allowed;opacity:.5;}
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -408,7 +412,7 @@ function dbRowToOrder(r){
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
-    petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],
+    petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,
     services:r.services||[],addons:r.addons||[],
@@ -1100,6 +1104,7 @@ async function renderCases(){
               return team.length?`<div style="font-size:.72rem;color:var(--tl);margin:2px 0;">👥 同行：${team.join('、')}</div>`:'';
             })()}
             📝 已回報 ${rCount} 次
+            ${b.ownerAddr?'<div style="font-size:.76rem;color:var(--tl);margin-top:2px;">📍 '+b.ownerAddr+'</div>':''}
           </div>
         </div>
         <div style="text-align:right;min-width:0;flex-shrink:0;">
@@ -1131,8 +1136,34 @@ async function renderCases(){
               💰 總計 $${calcSitterSalary(b).total.toLocaleString()}
             </div>
           </div>
+          ${(b.sitterExtraFees&&b.sitterExtraFees.length)?'<div style="margin-top:6px;padding:8px 10px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:10px;font-size:.78rem;"><strong style="color:#8B6000;">💸 附加費用：</strong>'
+            +b.sitterExtraFees.map(function(f){return (f.name||'')+'  $'+f.unitPrice+'×'+f.times+'=$'+(f.unitPrice*f.times);}).join('　')+'</div>':''}
         </div>
         ${buildVisitHtml(b)}
+      </div>
+      <div class="checkin-row">
+        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
+          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
+        </button>
+        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${!_checkinState[b.id]||_checkinState[b.id]==='left'?'disabled':''}>
+          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
+        </button>
+      </div>
+      <div class="checkin-row">
+        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
+          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
+        </button>
+        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${(!_checkinState[b.id]||_checkinState[b.id]==='left')?'disabled':''}>
+          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
+        </button>
+      </div>
+      <div class="checkin-row">
+        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
+          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
+        </button>
+        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${(!_checkinState[b.id]||_checkinState[b.id]==='left')?'disabled':''}>
+          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
+        </button>
       </div>
       <div class="case-btns">
         <button class="abtn" style="background:#F0FFF4;border-color:#52C48A;color:#1A7A4A;" onclick="showSitterPetDetail(${b.id})">🐾 寵物資料</button>
@@ -1274,6 +1305,53 @@ function buildTodoSection(bk){
     +'<div style="font-size:.72rem;color:var(--tl);margin-bottom:8px;">✅ 完成後打勾（僅提醒用，不影響回報）</div>'
     +checks
     +'</div>';
+}
+
+// ── 打卡狀態 ──
+var _checkinState = {}; // {bookId: 'arrived'|'left'}
+
+async function pressArrive(bookId){
+  var bk=(_myCases||[]).find(function(x){return String(x.id)===String(bookId);});
+  var now=new Date();
+  var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  _checkinState[bookId]='arrived';
+  renderCases();
+  // 發送 LINE 通知
+  try{
+    await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify({
+        action:'send-checkin-notify',
+        bookId:Number(bookId),
+        sitter:ME.name,
+        type:'arrive',
+        time:timeStr
+      })
+    });
+    console.log('[打卡] 抵達通知已發送');
+  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
+}
+
+async function pressLeave(bookId){
+  var now=new Date();
+  var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  _checkinState[bookId]='left';
+  renderCases();
+  try{
+    await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify({
+        action:'send-checkin-notify',
+        bookId:Number(bookId),
+        sitter:ME.name,
+        type:'leave',
+        time:timeStr
+      })
+    });
+    console.log('[打卡] 離開通知已發送');
+  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
 }
 function buildVisitHtml(b){
   var photos=b.visitPhotos||[];

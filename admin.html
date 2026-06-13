@@ -2253,13 +2253,60 @@ async function loadSiteSettings(){
   try{
     var res=await _supa.from('site_settings').select('*');
     if(res.error){
-      console.warn('loadSiteSettings error (table may not exist):', res.error.message);
+      console.warn('loadSiteSettings error:', res.error.message);
       return;
     }
     (res.data||[]).forEach(function(row){
       if(_siteSettings) _siteSettings[row.key]=row.value;
     });
+    // If table is empty, insert defaults
+    if(!res.data||!res.data.length){
+      await initDefaultSiteSettings();
+    }
   }catch(e){console.error('loadSiteSettings:',e.message);}
+}
+
+async function initDefaultSiteSettings(){
+  var defaults=[
+    {key:'svc_prices',value:[
+      {label:'平日',companion:300,walk:200,both:500},
+      {label:'連假',companion:450,walk:350,both:750},
+      {label:'春節',companion:600,walk:500,both:1000}
+    ]},
+    {key:'addon_prices',value:[
+      {emoji:'💊',key:'餵藥',price:50,per:'隻',hasQty:true},
+      {emoji:'💧',key:'點藥',price:50,per:'隻',hasQty:true},
+      {emoji:'💆',key:'舒緩按摩',price:100,per:'次',hasQty:false},
+      {emoji:'✂️',key:'剪指甲',price:50,per:'次',hasQty:false},
+      {emoji:'🩺',key:'協助排便導尿',price:80,per:'次',hasQty:false},
+      {emoji:'📮',key:'收信',price:30,per:'次',hasQty:false},
+      {emoji:'🪴',key:'澆花',price:30,per:'次',hasQty:false},
+      {emoji:'🗑️',key:'倒垃圾',price:50,per:'次',hasQty:false}
+    ]},
+    {key:'transport_rates',value:[
+      {km_min:0,km_max:5,price:0},
+      {km_min:5,km_max:10,price:60},
+      {km_min:10,km_max:20,price:100},
+      {km_min:20,km_max:999,price:150}
+    ]},
+    {key:'landmarks',value:[
+      {emoji:'🏥',name:'小港醫院'},
+      {emoji:'🪷',name:'左營蓮池潭'},
+      {emoji:'🌳',name:'橋頭甲園公園'},
+      {emoji:'⚖️',name:'楠梓少年法院'},
+      {emoji:'⛩',name:'大社青雲宮'}
+    ]},
+    {key:'service_items',value:[
+      {emoji:'🐾',title:'到府陪伴',desc:'專業保母到府，陪伴您的毛孩玩耍、給予關愛與安全感',duration:'45分鐘'},
+      {emoji:'🦮',title:'散步服務',desc:'帶毛孩出門散步，運動放風，回家好眠',duration:'30分鐘'},
+      {emoji:'🐕',title:'陪伴+散步',desc:'到府陪伴後帶出門散步，最完整的照護',duration:'75分鐘'}
+    ]}
+  ];
+  for(var d of defaults){
+    await _supa.from('site_settings').upsert([{key:d.key,value:d.value}],{onConflict:'key'});
+    _siteSettings[d.key]=d.value;
+  }
+  console.log('[settings] defaults initialized');
 }
 async function saveSiteSetting(key,value){
   var res=await _supa.from('site_settings').upsert([{key:key,value:value,updated_at:new Date().toISOString()}],{onConflict:'key'});
@@ -3095,7 +3142,7 @@ function buildVisitPaymentHTML(bk, total){
     '<div style="font-size:.78rem;font-weight:900;color:#0369A1;margin-bottom:10px;">🏠 家訪資訊</div>',
     '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">',
     '<span style="font-size:.74rem;font-weight:800;color:var(--tl);min-width:56px;">家訪日期</span>',
-    '<input type="date" id="vi-date-'+vid+'" value="'+vDate+'" style="padding:6px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;outline:none;">',
+    '<input type="datetime-local" id="vi-date-'+vid+'" value="'+(vDate&&vDate.length===10?vDate+'T00:00':vDate)+'" style="padding:6px 10px;border:1.5px solid #7DD3FC;border-radius:8px;font-family:inherit;font-size:.82rem;outline:none;">',
     '</div>',
     '<div style="margin-bottom:8px;">',
     '<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:4px;">飼主備註</div>',

@@ -1571,7 +1571,7 @@ function renderSettingsPage(){
 
   // ── 服務價格（完全自由編輯）──
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💰 主要服務價格</div>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:8px;">'
+  html+='<div style="overflow-x:auto;"><table style="width:100%;min-width:360px;border-collapse:collapse;font-size:.82rem;margin-bottom:8px;">'
     +'<thead><tr style="background:var(--pk4);">'
     +'<th style="padding:7px 10px;text-align:left;border:1px solid var(--pk3);">方案名稱</th>'
     +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">到府陪伴</th>'
@@ -1589,14 +1589,14 @@ function renderSettingsPage(){
       +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;"><button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;">刪除</button></td>'
       +'</tr>';
   });
-  html+='</tbody></table>';
+  html+='</tbody></table></div>';
   html+='<button onclick="addSvcPriceRow()" style="padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;margin-right:6px;">＋ 新增方案</button>'
     +'<button onclick="savePrices()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存價格</button>'
     +'<span id="sp-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
 
   // 附加服務
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">➕ 附加服務項目與價格</div>';
-  html+='<div id="addon-list">';
+  html+='<div id="addon-list" style="overflow-x:auto;">';
   addonP.forEach(function(a,i){
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
       +'<input type="text" value="'+a.emoji+'" id="ae-'+i+'" style="width:36px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
@@ -3119,22 +3119,70 @@ function toggleDepositInput(bookId){
 // ── 保母附加費 ──
 function buildExtraFeeHTML(bk){
   var fees=(bk.sitterExtraFees||[]);
-  var rows=fees.map(function(f,i){
-    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
-      +'<input type="text" id="ef-name-'+i+'" value="'+(f.name||'')+'" style="flex:1;padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" placeholder="項目名稱（如車馬費）">'
-      +'<span>$</span><input type="number" id="ef-price-'+i+'" value="'+(f.unitPrice||0)+'" style="width:70px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;">'
-      +'<span>×</span><input type="number" id="ef-times-'+i+'" value="'+(f.times||1)+'" style="width:55px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;">'
-      +'<span>= $<strong id="ef-sub-'+i+'">'+(( f.unitPrice||0)*(f.times||1))+'</strong></span>'
-      +'<button onclick="removeExtraFee('+i+')" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:.74rem;">✕</button>'
-      +'</div>';
-  }).join('');
-  return '<div style="margin-top:12px;padding:14px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:12px;">'
-    +'<div style="font-size:.78rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💸 保母附加費用（顯示於保母端）</div>'
-    +'<div id="extra-fee-list">'+rows+'</div>'
-    +'<button onclick="addExtraFeeRow()" style="padding:6px 14px;background:#FFF8E1;border:1.5px dashed #FFD54F;color:#8B6000;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;margin-top:4px;">＋ 新增項目</button>'
-    +'&nbsp;<button onclick="saveExtraFees('+bk.id+')" style="padding:7px 18px;background:linear-gradient(135deg,#FFB300,#F57F17);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存</button>'
+  // Group by sitter
+  var sitters=SITTERS_LIST.length?SITTERS_LIST:['Ying','小語','小汶','菓菓','小茹','阿瑛'];
+  var assigns=parseAssignments(bk.assignedTo);
+  var activeSitters=[...new Set(assigns.map(function(a){return a.sitter;}).filter(Boolean))];
+  if(!activeSitters.length) activeSitters=['（未指派）'];
+
+  var html='<div style="margin-top:12px;padding:14px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:12px;">'
+    +'<div style="font-size:.78rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💸 保母附加費用（顯示於保母端）</div>';
+
+  activeSitters.forEach(function(sitter){
+    var sitterFees=fees.filter(function(f){return (f.sitter||'')===sitter;});
+    html+='<div style="background:#fffde7;border:1.5px solid #ffe082;border-radius:10px;padding:10px;margin-bottom:10px;">';
+    html+='<div style="font-size:.78rem;font-weight:900;color:#e65100;margin-bottom:8px;">👤 '+sitter+'</div>';
+    html+='<div id="ef-list-'+bk.id+'-'+encodeURIComponent(sitter)+'">';
+    sitterFees.forEach(function(f,i){
+      var uid=bk.id+'-'+encodeURIComponent(sitter)+'-'+i;
+      html+='<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">'
+        +'<input type="text" id="ef-n-'+uid+'" value="'+(f.name||'')+'" style="flex:1;min-width:80px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
+        +'<span>$</span><input type="number" id="ef-p-'+uid+'" value="'+(f.unitPrice||0)+'" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:65px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+        +'<span>×</span><input type="number" id="ef-t-'+uid+'" value="'+(f.times||1)+'" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+        +'<span>=$<b id="ef-s-'+uid+'">'+(+(f.unitPrice||0)*(f.times||1))+'</b></span>'
+        +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.72rem;">✕</button>'
+        +'</div>';
+    });
+    html+='</div>';
+    html+='<button onclick="addExtraFeeRowFromBtn(this)" data-bid="'+bk.id+'" data-sitter="'+encodeURIComponent(sitter)+'" style="padding:4px 12px;background:#FFF8E1;border:1.5px dashed #FFD54F;color:#8B6000;border-radius:7px;font-size:.78rem;cursor:pointer;font-weight:800;">＋ 新增</button>';
+    html+='</div>';
+  });
+
+  html+='<button onclick="saveExtraFees('+bk.id+')" style="margin-top:4px;padding:7px 18px;background:linear-gradient(135deg,#FFB300,#F57F17);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存所有費用</button>'
     +'<span id="ef-msg-'+bk.id+'" style="margin-left:8px;font-size:.76rem;color:var(--g);font-weight:800;"></span>'
     +'</div>';
+  return html;
+}
+
+function efCalc(el){
+  var uid=el?el.dataset.uid:null;
+  if(!uid) return;
+  var p=parseFloat(document.getElementById('ef-p-'+uid)?.value)||0;
+  var t=parseFloat(document.getElementById('ef-t-'+uid)?.value)||1;
+  var s=document.getElementById('ef-s-'+uid);
+  if(s) s.textContent=Math.round(p*t);
+}
+
+
+function addExtraFeeRowFromBtn(btn){
+  var bid=btn.dataset.bid;
+  var sitter=decodeURIComponent(btn.dataset.sitter||'');
+  addExtraFeeRow(bid, sitter);
+}
+function addExtraFeeRow(bookId, sitter){
+  var listId='ef-list-'+bookId+'-'+encodeURIComponent(sitter);
+  var list=document.getElementById(listId);
+  if(!list) return;
+  var i=list.children.length;
+  var uid=bookId+'-'+encodeURIComponent(sitter)+'-'+i;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
+  d.innerHTML='<input type="text" id="ef-n-'+uid+'" style="flex:1;min-width:80px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
+    +'<span>$</span><input type="number" id="ef-p-'+uid+'" value="0" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:65px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+    +'<span>×</span><input type="number" id="ef-t-'+uid+'" value="1" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+    +'<span>=$<b id="ef-s-'+uid+'">0</b></span>'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.72rem;">✕</button>';
+  list.appendChild(d);
 }
 
 function addExtraFeeRow(){
@@ -3163,13 +3211,18 @@ function removeExtraFee(i){
 }
 
 async function saveExtraFees(bookId){
-  var rows=document.querySelectorAll('#extra-fee-list > div');
   var fees=[];
-  rows.forEach(function(row,i){
-    var n=row.querySelector('[id^="ef-name-"]');
-    var p=row.querySelector('[id^="ef-price-"]');
-    var t=row.querySelector('[id^="ef-times-"]');
-    if(n&&n.value.trim()) fees.push({name:n.value.trim(),unitPrice:parseInt(p?p.value:0)||0,times:parseInt(t?t.value:1)||1});
+  // Collect all sitter sections
+  document.querySelectorAll('[id^="ef-list-'+bookId+'-"]').forEach(function(list){
+    var sitterEnc=list.id.replace('ef-list-'+bookId+'-','');
+    var sitter=decodeURIComponent(sitterEnc);
+    list.querySelectorAll('div').forEach(function(row,i){
+      var uid=bookId+'-'+sitterEnc+'-'+i;
+      var n=document.getElementById('ef-n-'+uid);
+      var p=document.getElementById('ef-p-'+uid);
+      var t=document.getElementById('ef-t-'+uid);
+      if(n&&n.value.trim()) fees.push({sitter:sitter,name:n.value.trim(),unitPrice:parseInt(p?p.value:0)||0,times:parseInt(t?t.value:1)||1});
+    });
   });
   try{
     await dbUpdateOrder(bookId,{sitter_extra_fees:fees});

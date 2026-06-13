@@ -1489,6 +1489,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" onclick="showDetail('+bk.id+')">📋 詳細</button>'
     +'<button class="oa-btn" onclick="openEditOrder('+bk.id+')">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail('+bk.id+')">🐾 寵物</button>':'')
+    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw('+bk.id+')">🔑 '+(ownerPws&&ownerPws[bk.id]?'查看':'指派')+'密碼</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;"></div>'
     +'</div>';
@@ -2240,7 +2241,15 @@ function goPage(page,el){
   if(page==='passwords')renderPasswords();
   if(page==='coupons')renderCoupons();
   if(page==='reviews')renderReviewsAdmin();
-  if(page==='settings')loadSiteSettings().then(renderSettingsPage);
+  if(page==='settings'){
+    document.getElementById('settingsContent').innerHTML='<div style="padding:20px;color:var(--tl);">⏳ 載入設定中...</div>';
+    loadSiteSettings().then(function(){
+      console.log('[settings] _siteSettings=',JSON.stringify(_siteSettings).substring(0,100));
+      renderSettingsPage();
+    }).catch(function(e){
+      document.getElementById('settingsContent').innerHTML='<div style="color:red;padding:20px;">設定載入失敗：'+e.message+'</div>';
+    });
+  }
 }
 
 

@@ -1495,9 +1495,11 @@ function buildOrderCard(bk, sCls, ownerPws){
 }
 
 // settings page above
+var _siteSettings={};
 
 function renderSettingsPage(){
-  var svcP=_siteSettings.svc_prices||[];
+  if(!_siteSettings) _siteSettings={};
+  var svcP=(_siteSettings&&_siteSettings.svc_prices)||[];
   // Support both old object format and new array format
   if(!Array.isArray(svcP)){
     var arr=[];
@@ -2246,12 +2248,17 @@ function goPage(page,el){
 // ══════════════════════════════════════════════
 // 網站設定
 // ══════════════════════════════════════════════
-var _siteSettings={};
 async function loadSiteSettings(){
+  if(!_siteSettings) _siteSettings={};
   try{
     var res=await _supa.from('site_settings').select('*');
-    if(res.error)throw res.error;
-    (res.data||[]).forEach(function(row){_siteSettings[row.key]=row.value;});
+    if(res.error){
+      console.warn('loadSiteSettings error (table may not exist):', res.error.message);
+      return;
+    }
+    (res.data||[]).forEach(function(row){
+      if(_siteSettings) _siteSettings[row.key]=row.value;
+    });
   }catch(e){console.error('loadSiteSettings:',e.message);}
 }
 async function saveSiteSetting(key,value){

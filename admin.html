@@ -3197,25 +3197,9 @@ function addExtraFeeRow(bookId, sitter){
   list.appendChild(d);
 }
 
-function addExtraFeeRow(){
-  var list=document.getElementById('extra-fee-list');
-  var i=list.children.length;
-  var d=document.createElement('div');
-  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:6px;';
-  d.innerHTML='<input type="text" id="ef-name-'+i+'" style="flex:1;padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" placeholder="項目名稱">'
-    +'<span>$</span><input type="number" id="ef-price-'+i+'" value="0" style="width:70px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" oninput="updateEfSub('+i+')">'
-    +'<span>×</span><input type="number" id="ef-times-'+i+'" value="1" style="width:55px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" oninput="updateEfSub('+i+')">'
-    +'<span>= $<strong id="ef-sub-'+i+'">0</strong></span>'
-    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:.74rem;">✕</button>';
-  list.appendChild(d);
-}
+// (old addExtraFeeRow removed)
 
-function updateEfSub(i){
-  var p=parseInt(document.getElementById('ef-price-'+i)?.value)||0;
-  var t=parseInt(document.getElementById('ef-times-'+i)?.value)||0;
-  var s=document.getElementById('ef-sub-'+i);
-  if(s) s.textContent=p*t;
-}
+// (old updateEfSub removed)
 
 function removeExtraFee(i){
   var rows=document.querySelectorAll('#extra-fee-list > div');

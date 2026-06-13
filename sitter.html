@@ -2268,10 +2268,11 @@ async function submitReport(){
   console.log('[LINE] 開始推播通知 bookId='+currentBookId);
   (async function(){
     try{
-      var notifyRes=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/send-report-notify',{
+      var notifyRes=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
         body:JSON.stringify({
+          action:   'send-report-notify',
           bookId:   Number(currentBookId),
           sitter:   ME.name,
           date:     document.getElementById('rDate').value,

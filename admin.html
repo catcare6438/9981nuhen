@@ -1352,9 +1352,9 @@ function toggleOrderCard(id){
   const body=document.getElementById('body-'+id);
   const toggle=document.getElementById('toggle-'+id);
   if(!body)return;
-  const willOpen=body.classList.contains('collapsed');
-  body.classList.toggle('collapsed',!willOpen);
-  if(toggle)toggle.classList.toggle('open',willOpen);
+  const isCollapsed=body.classList.contains('collapsed');
+  body.classList.toggle('collapsed',!isCollapsed);
+  if(toggle)toggle.classList.toggle('open',isCollapsed);
 }
 async function renderOrders(){
   let b=await getB();
@@ -1374,6 +1374,13 @@ async function renderOrders(){
 }
 
 
+
+function assignSlotFromSelect(sel){
+  var bid=parseInt(sel.dataset.bid);
+  var date=sel.dataset.date;
+  var slot=sel.dataset.slot;
+  assignSlot(bid,date,slot,sel.value);
+}
 function buildSlotList(bk){
   const SLOT_LABELS={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
   const slots=[];
@@ -1411,29 +1418,19 @@ function buildOrderCard(bk, sCls, ownerPws){
   const st=parseSlotStats(bk);
   const statusLabel={待確認:'⏳ 待處理',已確認:'✅ 已確認',接案中:'🐾 接案中',已完成:'🎉 已完成',已取消:'✖ 已取消'}[bk.status]||bk.status;
   const badgeCls=sCls[bk.status]||'b-wait';
-
-  // Header summary
   const s=bk.startDate||'', e=bk.endDate||'';
   const dateStr=s+(e&&e!==s?' ～ '+e:'');
   const sessStr=st.totalSessions>0?'共'+st.totalSessions+'次':'';
   const holBadge=st.cnySessions>0?'<span style="color:#B00010;font-size:.7rem;font-weight:800;">🧧春節</span>':
                  st.holSessions>0?'<span style="color:#C05000;font-size:.7rem;font-weight:800;">🎊連假</span>':'';
   const urgBadge=bk.urgent>0?'<span style="color:#FF6B00;font-size:.7rem;font-weight:800;">⚡急件</span>':'';
-
-  // Pet summary
   let petSummary='';
   if(bk.petData&&bk.petData.length){
-    petSummary=bk.petData.map(p=>(p.type==='cat'?'🐱':'🐶')+p.name+'('+( p.gender||'')+( p.age||'')+')').join('、');
+    petSummary=bk.petData.map(p=>(p.type==='cat'?'🐱':'🐶')+p.name+'('+(p.gender||'')+(p.age||'')+')').join('、');
   } else {
     petSummary='貓'+(bk.catCount||0)+'隻 狗'+(bk.dogCount||0)+'隻';
   }
   const extraPetBadge=(bk.catCount||0)+(bk.dogCount||0)>3?'<span style="color:var(--r);font-size:.76rem;font-weight:800;">⚡第4隻起+$50/次</span>':'';
-
-  // Slot assignment section
-  // DEBUG: show raw assignedTo value
-  if(bk.assignedTo&&bk.assignedTo.length>2){
-    console.log('Order #'+bk.id+' assignedTo raw:', bk.assignedTo.substring(0,120));
-  }
   const assigns=parseAssignments(bk.assignedTo);
   const slots=buildSlotList(bk);
   let slotSection='';
@@ -1452,20 +1449,19 @@ function buildOrderCard(bk, sCls, ownerPws){
         const opts=SITTERS_LIST.map(function(s){return '<option value="'+s+'"'+(cur===s?' selected':'')+'>'+s+'</option>';}).join('');
         return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap;">'
           +'<span style="font-size:.75rem;font-weight:700;min-width:64px;">'+sl.label+'</span>'
-          +'<select style="padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.78rem;color:var(--t);background:#fff;outline:none;"'
-          +' data-slot-id="'+bk.id+'-'+date+'-'+sl.slot+'"'           +' onchange="assignSlot('+bk.id+',\''+date+'\',\''+sl.slot+'\',this.value)">'
+          +'<select class="assign-sel" data-bid="'+bk.id+'" data-date="'+date+'" data-slot="'+sl.slot+'"'
+          +' data-slot-id="'+bk.id+'-'+date+'-'+sl.slot+'"'
+          +' onchange="assignSlotFromSelect(this)">'
           +'<option value="">— 選擇 —</option>'+opts+'</select>'
           +(cur?'<span style="font-size:.72rem;font-weight:800;color:var(--pk);">'+cur+'</span>':'')
           +'</div>';
       }).join('');
       return '<div style="border:1.5px solid '+(isHol?'#FFB347':'var(--pk3)')+';border-radius:10px;padding:10px 12px;margin-bottom:8px;background:'+(isHol?'#FFFAF0':'#fff')+'">'
-        +'<div style="font-size:.78rem;font-weight:900;color:'+(isHol?'#C05000':'var(--pk)')+';margin-bottom:8px;font-family:"Nunito",sans-serif;">'
+        +'<div style="font-size:.78rem;font-weight:900;color:'+(isHol?'#C05000':'var(--pk)')+';margin-bottom:8px;">'
         +'📅 '+date.slice(5)+'('+dow+')'+(isHol?' <span style="background:#FFE0A0;padding:1px 6px;border-radius:5px;font-size:.68rem;">連假</span>':'')
         +'</div>'+slotRows+'</div>';
     }).join('');
   }
-
-  // Distance row
   const distRow=bk.distance>0?'<div class="order-row"><span class="order-label">距離：</span><span class="order-val">'+bk.distance+' 公里（車馬費 NT$'+(bk.transport||0)+'/次）</span></div>':'';
   const addonRow=bk.addons&&bk.addons.length?'<div class="order-row"><span class="order-label">加購：</span><span class="order-val">'+bk.addons.join('、')+'</span></div>':'';
   const noteRow=bk.petNotes?'<div class="order-row"><span class="order-label">備註：</span><span class="order-val">'+bk.petNotes+'</span></div>':'';
@@ -1473,32 +1469,39 @@ function buildOrderCard(bk, sCls, ownerPws){
   const statusOpts=['待確認','已確認','接案中','已完成','已取消'].map(function(s){
     return '<option value="'+s+'"'+(bk.status===s?' selected':'')+'>'+s+'</option>';
   }).join('');
+
   return '<div class="order-card" id="oc-'+bk.id+'">'
-    +'<div class="order-header">'
-    +'<div>'
-    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+    // ── Header（點擊折疊）──
+    +'<div class="order-header" onclick="toggleOrderCard('+bk.id+')" style="cursor:pointer;">'
+    +'<div style="flex:1;min-width:0;">'
+    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">'
     +'<span class="badge '+badgeCls+'">'+statusLabel+'</span>'
     +holBadge+urgBadge
     +'</div>'
     +'<div class="order-name">'+bk.ownerName+'</div>'
-    +'<div class="order-meta">📞 '+bk.ownerPhone+' ｜ 📅 '+dateStr+' '+sessStr+'</div>'
+    +'<div class="order-meta">📞 '+bk.ownerPhone+' ｜ '+petSummary+' ｜ 📅 '+dateStr+' '+sessStr+'</div>'
+    +'<div class="order-meta">'+svcNames+' ｜ 💰 NT$'+total.toLocaleString()+'</div>'
     +'</div>'
-    +'<select class="status-sel" style="padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-family:inherit;font-size:.8rem;outline:none;" onchange="changeStatus('+bk.id+',this.value)">'
-    +statusOpts
-    +'</select>'
+    +'<span class="order-toggle open" id="toggle-'+bk.id+'">▼</span>'
     +'</div>'
-    +'<div class="order-row">'+distRow+addonRow+'</div>'
-    +'<div class="order-row">'+noteRow+hvRow+'</div>'
-    +'<div style="font-size:.8rem;font-weight:800;color:var(--pk);margin:6px 0 2px;">'+petSummary+' '+extraPetBadge+'</div>'
-    +'<div style="font-size:.84rem;color:var(--t);margin-bottom:8px;">'+svcNames+' ｜ 💰 NT$'+total.toLocaleString()+'</div>'
-    +'<div style="margin-bottom:10px;">'+slotSection+'</div>'
-    +'<div class="order-actions">'
+    // ── Body（可收折）──
+    +'<div class="order-body" id="body-'+bk.id+'">'
+    // 狀態下拉
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;" onclick="event.stopPropagation()">'
+    +'<span style="font-size:.78rem;color:var(--tl);font-weight:800;">案件狀態：</span>'
+    +'<select class="status-sel" onchange="changeStatus('+bk.id+',this.value)">'+statusOpts+'</select>'
+    +'</div>'
+    +'<div>'+distRow+addonRow+noteRow+hvRow+'</div>'
+    +(extraPetBadge?'<div style="margin:4px 0;">'+extraPetBadge+'</div>':'')
+    +'<div style="margin:8px 0;" onclick="event.stopPropagation()">'+slotSection+'</div>'
+    +'<div class="order-actions" onclick="event.stopPropagation()">'
     +'<button class="oa-btn" onclick="showDetail('+bk.id+')">📋 詳細</button>'
     +'<button class="oa-btn" onclick="openEditOrder('+bk.id+')">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail('+bk.id+')">🐾 寵物</button>':'')
-    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw('+bk.id+')">🔑 '+(ownerPws&&ownerPws[bk.id]?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw('+bk.id+')">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
     +'</div>'
-    +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;"></div>'
+    +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
+    +'</div>'
     +'</div>';
 }
 

@@ -343,8 +343,20 @@ function _errMsg(e){
 }
 
 // ── Supabase helpers ──
+var _ownerOrdersCache=null,_ownerOrdersCacheTime=0;
 async function dbGetOrders(){
-  const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
+  // Select only fields needed by owner view (exclude nothing - orders are small)
+  // But filter by owner password after login
+  const{data,error}=await _supa.from('orders').select(
+    'id,ts,owner_name,owner_phone,owner_addr,owner_line,owner_line_id,'+
+    'pet_data,cat_count,dog_count,pet_notes,'+
+    'start_date,end_date,days,tpd,services,addons,urgent,distance,transport,transport_total,'+
+    'is_holiday,coupon_used,ref_code,discounts,total,'+
+    'status,assigned_to,manual_adj,manual_adjs,'+
+    'visit_date,visit_notes,caution,visit_photos,'+
+    'deposit_date,deposit_amount,deposit_paid,full_paid,pay_method,pay_note,'+
+    'contract_url,fee_table_url,home_visit_date,home_visit_note,owner_line_id,sitter_extra_fees'
+  ).order('id',{ascending:false});
   if(error){console.error('getOrders:',_errMsg(error));return[];}
   return(data||[]).map(dbRowToOrder);
 }
@@ -368,7 +380,7 @@ var _allReportsCache=null, _allReportsCacheTime=0;
 async function dbGetAllReports(){
   var now=Date.now();
   if(_allReportsCache&&(now-_allReportsCacheTime)<30000) return _allReportsCache;
-  const{data,error}=await _supa.from('reports').select('*').order('ts',{ascending:false});
+  const{data,error}=await _supa.from('reports').select('ts,book_id,book_name,sitter,date,time_start,time_end,pet_reports,services,disinfect,safety,diary,pet_photos,clean_photos,videos,video_data_url').order('ts',{ascending:false});
   if(error){console.error('getAllReports:',error.message);return _allReportsCache||[];}
   _allReportsCache=data||[]; _allReportsCacheTime=now;
   return _allReportsCache;
@@ -384,20 +396,18 @@ function mapReport(r){
     videoDataUrl:r.video_data_url||'',videos:r.videos||[]
   };
 }
+var _repsCache={}, _repsCacheTime={};
 async function dbGetReports(bookId){
-  if(bookId){
-    // Use cached all-reports and filter
-    var all=await dbGetAllReports();
-    var filtered=all.filter(function(r){return r.book_id==bookId;});
-    if(filtered.length||_allReportsCacheTime>0){
-      return filtered.map(mapReport);
-    }
-  }
-  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
-  if(bookId)q=q.eq('book_id',Number(bookId)||bookId);
+  var now=Date.now();
+  var key=String(bookId||'all');
+  if(_repsCache[key]&&(now-(_repsCacheTime[key]||0))<60000) return _repsCache[key];
+  let q=_supa.from('reports').select('ts,book_id,book_name,sitter,date,time_start,time_end,pet_reports,services,disinfect,safety,diary,pet_photos,clean_photos,videos,video_data_url').order('ts',{ascending:false});
+  if(bookId) q=q.eq('book_id',parseInt(bookId));
   const{data,error}=await q;
-  if(error){console.error('getReports:',_errMsg(error));return[];}
-  return(data||[]).map(mapReport);
+  if(error){console.error('getReports:',error.message);return[];}
+  var result=(data||[]).map(dbRowToReport);
+  _repsCache[key]=result; _repsCacheTime[key]=now;
+  return result;
 }
 
 function _unused_r(r){return {ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,

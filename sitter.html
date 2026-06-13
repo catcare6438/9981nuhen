@@ -901,6 +901,10 @@ let activePetIdx=0;
 async function loadSitterSelect(){
   var sel=document.getElementById('sitterSel');
   if(!sel){ console.error('[sitter] sitterSel not found'); return; }
+  // Show hardcoded list immediately so user can try logging in
+  var FALLBACK_NAMES=['Ying','小語','小汶','菓菓','小茹','阿瑛'];
+  sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
+    +FALLBACK_NAMES.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
   try{
     var res;
     try{

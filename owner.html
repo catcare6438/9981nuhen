@@ -396,6 +396,28 @@ function mapReport(r){
     videoDataUrl:r.video_data_url||'',videos:r.videos||[]
   };
 }
+
+function dbRowToReport(r){
+  return {
+    ts:       r.ts,
+    bookId:   r.book_id,
+    bookName: r.book_name||'',
+    sitter:   r.sitter||'',
+    date:     r.date||'',
+    timeStart:r.time_start||'',
+    timeEnd:  r.time_end||'',
+    petReports: r.pet_reports||[],
+    services:   r.services||[],
+    disinfect:  r.disinfect||[],
+    safety:     r.safety||[],
+    diary:      r.diary||'',
+    petPhotos:  r.pet_photos||[],
+    cleanPhotos:r.clean_photos||[],
+    videos:     r.videos||[],
+    videoDataUrl:r.video_data_url||''
+  };
+}
+
 var _repsCache={}, _repsCacheTime={};
 async function dbGetReports(bookId){
   var now=Date.now();

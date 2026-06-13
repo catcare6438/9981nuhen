@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781330952 -->
+<!-- build:1781362245 -->
 
 
 
@@ -569,12 +569,14 @@ function dbRowToOrder(r){
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
-    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],visitPhotos:r.visit_photos||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
-    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||"",
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
+    payMethod:r.pay_method||'',payNote:r.pay_note||'',
+    contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',
     homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
-    depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
-    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||""
+    ownerLineId:r.owner_line_id||''
   };
 }
 </script>
@@ -3411,7 +3413,20 @@ async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
   if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
   showPetDetail(bookId);
 }
-async function refreshAll(){await loadSittersList();await renderStats();renderOrders();}
+async function refreshAll(){
+  console.log('[refreshAll] start');
+  try{
+    await loadSittersList();
+    console.log('[refreshAll] sitters loaded');
+    await renderStats();
+    console.log('[refreshAll] stats done');
+    await renderOrders();
+    console.log('[refreshAll] orders done');
+  }catch(e){
+    console.error('[refreshAll] error:',e.message,e.stack);
+    alert('[debug] refreshAll 失敗：'+e.message);
+  }
+}
 
 function showExp(title,txt){
   document.getElementById('exportTitle').textContent=title;

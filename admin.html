@@ -1614,7 +1614,39 @@ async function quickAssign(id,sitter){
 async function confirmO(id){await dbUpdateOrder(id,{status:'已確認'});refreshAll();}
 async function doneO(id){await dbUpdateOrder(id,{status:'已完成'});refreshAll();}
 async function cancelO(id){if(!confirm('確定取消此訂單？'))return;await dbUpdateOrder(id,{status:'已取消'});refreshAll();}
-async function changeStatus(id,status){await dbUpdateOrder(id,{status});refreshAll();}
+async function changeStatus(id,status){
+  await dbUpdateOrder(id,{status});
+  // 狀態改為「已確認」時，自動發送家訪確認+催繳通知
+  if(status==='已確認'){
+    sendConfirmNotify(id).catch(function(e){console.warn('LINE通知失敗:',e.message);});
+  }
+  refreshAll();
+}
+
+async function sendConfirmNotify(bookId){
+  // 取得完整訂單資料
+  var allB=await getB();
+  var bk=allB.find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  if(!bk){console.warn('sendConfirmNotify: 找不到訂單');return;}
+  var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({
+      action:'send-confirm-notify',
+      bookId: Number(bookId),
+      ownerName: bk.ownerName||'飼主',
+      visitDate: bk.visitDate||'（待確認）',
+      visitNotes: bk.visitNotes||'',
+      total: bk.total||0,
+      services: bk.services||[],
+      addons: bk.addons||[],
+      discounts: bk.discounts||0,
+      depositAmount: bk.depositAmount||100
+    })
+  });
+  var data=await res.json();
+  console.log('[LINE確認通知]',data);
+}
 async function delO(id){if(!confirm('確定刪除？'))return;await dbDeleteOrder(id);refreshAll();}
 function upB(id,fn){} // deprecated
 

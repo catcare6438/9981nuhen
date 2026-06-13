@@ -1375,6 +1375,48 @@ async function renderOrders(){
 
 
 
+
+
+async function deleteOrder(orderId){
+  if(!confirm('確定要刪除這筆訂單嗎？\n此操作無法復原。')) return;
+  try{
+    await _supa.from('reports').delete().eq('book_id',parseInt(orderId));
+    await _supa.from('owner_passwords').delete().eq('book_id',parseInt(orderId));
+    await _supa.from('orders').delete().eq('id',parseInt(orderId));
+    clearOrdersCache();
+    refreshAll();
+  }catch(e){ alert('刪除失敗：'+e.message); }
+}
+
+async function assignSlot(orderId, date, slot, sitter){
+  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
+  if(!bk){alert('找不到訂單');return;}
+  clearOrdersCache();
+  const assigns=parseAssignments(bk.assignedTo);
+  // Find existing entry for this date+slot
+  const idx=assigns.findIndex(a=>a.date===date&&a.slot===slot);
+  if(idx>=0){
+    assigns[idx].sitter=sitter;
+  } else {
+    assigns.push({date,slot,sitter,transport:bk.transport||0});
+  }
+  const newJson=JSON.stringify(assigns);
+  try{
+    await dbUpdateOrder(orderId,{assigned_to:newJson});
+    bk.assignedTo=newJson;
+    // Update the select UI without full re-render
+    const sel=document.querySelector('[data-slot-id="'+orderId+'-'+date+'-'+slot+'"]');
+    if(sel){
+      sel.value=sitter;
+      // Show sitter name badge
+      const badge=sel.nextElementSibling;
+      if(badge&&badge.tagName==='SPAN') badge.textContent=sitter||'';
+    }
+  }catch(e){
+    alert('指派失敗：'+e.message);
+  }
+}
+
 function assignSlotFromSelect(sel){
   var bid=parseInt(sel.dataset.bid);
   var date=sel.dataset.date;
@@ -1499,6 +1541,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" onclick="openEditOrder('+bk.id+')">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail('+bk.id+')">🐾 寵物</button>':'')
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw('+bk.id+')">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder('+bk.id+')">🗑️ 刪除</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
     +'</div>'

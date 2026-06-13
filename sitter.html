@@ -1149,22 +1149,8 @@ async function renderCases(){
           ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
         </button>
       </div>
-      <div class="checkin-row">
-        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
-          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
-        </button>
-        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${(!_checkinState[b.id]||_checkinState[b.id]==='left')?'disabled':''}>
-          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
-        </button>
-      </div>
-      <div class="checkin-row">
-        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
-          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
-        </button>
-        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${(!_checkinState[b.id]||_checkinState[b.id]==='left')?'disabled':''}>
-          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
-        </button>
-      </div>
+
+
       <div class="case-btns">
         <button class="abtn" style="background:#F0FFF4;border-color:#52C48A;color:#1A7A4A;" onclick="showSitterPetDetail(${b.id})">🐾 寵物資料</button>
         <button class="abtn ab-g" onclick="openReport(${b.id},this.dataset.pet)" data-pet="${(b.petData&&b.petData.length?b.petData.map(p=>p.name||'寵物').join('、'):(b.petName||'寵物')).replace(/"/g,'&quot;')}">📝 新增回報</button>

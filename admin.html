@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781372384 -->
+<!-- build:1781374956 -->
 
 
 
@@ -1851,7 +1851,23 @@ function showDetail(bookId){
   else if(bk.depositPaid){paidStatus='🟡 已收訂金 $'+(bk.depositAmount||0)+'，剩餘 $'+Math.max(0,total-(bk.depositAmount||0));paidColor='#FF9500';}
   else{paidStatus='🔴 未收款';paidColor='#E05252';}
 
-  var html='<div style="margin-bottom:10px;font-size:.82rem;color:var(--tl);">'
+  // ── 飼主完整資訊區塊 ──
+  const _lineTag2=bk.ownerLineId
+    ?'<span style="color:#06C755;font-size:.72rem;font-weight:800;background:#F0FFF4;padding:2px 8px;border-radius:20px;">✅ LINE已綁定</span>'
+    :'<span style="color:#bbb;font-size:.72rem;background:#f5f5f5;padding:2px 8px;border-radius:20px;">💬 LINE未綁定</span>';
+  const _petNames2=(bk.petData&&bk.petData.length)
+    ?bk.petData.map(function(p){return p.name||'';}).filter(Boolean).join('、')
+    :(bk.petName||'');
+  var html='<div style="background:linear-gradient(135deg,#FFF5F8,#fff);border:2px solid var(--pk3);border-radius:14px;padding:14px 16px;margin-bottom:14px;">'
+    +'<div style="font-size:1rem;font-weight:900;color:var(--t);margin-bottom:6px;">🐾 '+bk.ownerName+'</div>'
+    +'<div style="margin-bottom:8px;">'+_lineTag2+'</div>'
+    +(_petNames2?'<div style="font-size:.8rem;color:var(--tl);margin-bottom:4px;">🐾 毛孩：'+_petNames2+'</div>':'')
+    +'<div style="font-size:.85rem;margin-bottom:3px;">📞 '+bk.ownerPhone+'</div>'
+    +(bk.ownerAddr?'<div style="font-size:.82rem;margin-bottom:3px;">📍 '+bk.ownerAddr+'</div>':'')
+    +(bk.homeVisitDate?'<div style="font-size:.82rem;color:#0369A1;font-weight:800;margin-bottom:3px;">🏠 家訪：'+bk.homeVisitDate+'</div>':'')
+    +'<div style="font-size:.76rem;color:var(--tl);">📅 服務：'+bk.startDate+'～'+bk.endDate+'</div>'
+    +'</div>'
+    +'<div style="margin-bottom:10px;font-size:.82rem;color:var(--tl);">'
     +'服務期間：<strong>'+dateRange+'</strong>'+holNote+'</div>'
     +'<div style="overflow-x:auto;">'
     +'<table style="width:100%;border-collapse:collapse;font-size:.82rem;">'
@@ -2030,9 +2046,10 @@ async function renderSitterPwStatus(){
 }
 async function renderOwners(){
   const _allO2=await getB();
-  const b=_allO2.filter(x=>x.status==='已確認'||x.status==='已完成'||x.status==='接案中');
+  const b=_allO2.filter(function(x){return x.status==='已確認'||x.status==='已完成'||x.status==='接案中';});
   const pws=await getOwnerPws();
   const grid=document.getElementById('ownerGrid');
+  if(!grid) return;
   if(!b.length){grid.innerHTML='<div class="empty-msg">尚無已確認訂單 🐾</div>';return;}
   grid.innerHTML=b.map(function(bk){
     const pw=pws[bk.id]||pws[String(bk.id)]||pws[parseInt(bk.id)];
@@ -2040,23 +2057,23 @@ async function renderOwners(){
       ?bk.petData.map(function(p){return p.name||'';}).filter(Boolean).join('、')
       :(bk.petName||'');
     const lineTag=bk.ownerLineId
-      ?'<span style="color:#06C755;font-size:.72rem;font-weight:800;background:#F0FFF4;padding:2px 7px;border-radius:6px;">✅ LINE已綁定</span>'
-      :'<span style="color:#aaa;font-size:.72rem;background:#f5f5f5;padding:2px 7px;border-radius:6px;">💬 未綁定</span>';
-    return '<div class="owner-card">'
-      +'<div class="owner-name" style="font-size:1rem;font-weight:900;">'+bk.ownerName+'</div>'
-      +'<div style="margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">'+lineTag+'</div>'
-      +(petNames?'<div class="owner-row" style="font-size:.78rem;color:var(--tl);">🐾 '+petNames+'</div>':'')
-      +'<div class="owner-row">📞 '+bk.ownerPhone+'</div>'
-      +(bk.ownerAddr?'<div class="owner-row">📍 '+bk.ownerAddr+'</div>':'')
-      +(bk.homeVisitDate?'<div class="owner-row" style="color:#0369A1;font-weight:800;">🏠 家訪：'+bk.homeVisitDate+'</div>':'')
-      +'<div class="owner-row" style="font-size:.74rem;color:var(--tl);">📅 '+bk.startDate+'～'+bk.endDate+'</div>'
+      ?'<span style="color:#06C755;font-size:.72rem;font-weight:800;background:#F0FFF4;padding:2px 8px;border-radius:20px;display:inline-block;">✅ LINE已綁定</span>'
+      :'<span style="color:#aaa;font-size:.72rem;background:#f5f5f5;padding:2px 8px;border-radius:20px;display:inline-block;">💬 未綁定</span>';
+    return '<div class="owner-card" style="border:2px solid var(--pk3);border-radius:16px;padding:16px;background:#fff;box-shadow:0 2px 12px rgba(255,150,180,.1);">'
+      +'<div style="font-size:1.05rem;font-weight:900;color:var(--t);margin-bottom:6px;">🐾 '+bk.ownerName+'</div>'
+      +'<div style="margin-bottom:8px;">'+lineTag+'</div>'
+      +(petNames?'<div style="font-size:.8rem;color:var(--tl);margin-bottom:4px;">🐾 毛孩：'+petNames+'</div>':'')
+      +'<div style="font-size:.85rem;margin-bottom:4px;">📞 '+bk.ownerPhone+'</div>'
+      +(bk.ownerAddr?'<div style="font-size:.82rem;color:var(--t);margin-bottom:4px;">📍 '+bk.ownerAddr+'</div>':'')
+      +(bk.homeVisitDate?'<div style="font-size:.82rem;color:#0369A1;font-weight:800;margin-bottom:4px;">🏠 家訪：'+bk.homeVisitDate+'</div>':'')
+      +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">📅 '+bk.startDate+'～'+bk.endDate+'</div>'
       +(pw
-        ?'<div style="margin-top:8px;"><div style="font-size:.72rem;color:var(--tl);margin-bottom:4px;">會員密碼</div>'
-          +'<div class="owner-pw" style="font-size:1.2rem;letter-spacing:4px;">'+pw+'</div></div>'
-        :'<div style="font-size:.8rem;color:var(--tl);margin-top:8px;">尚未設定密碼</div>')
-      +'<div style="margin-top:10px;">'
+        ?'<div style="background:var(--pk4);border-radius:10px;padding:8px 12px;margin-bottom:10px;">'
+          +'<div style="font-size:.7rem;color:var(--tl);margin-bottom:2px;">會員密碼</div>'
+          +'<div style="font-size:1.3rem;letter-spacing:5px;font-weight:900;color:var(--pk);">'+pw+'</div>'
+          +'</div>'
+        :'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">尚未設定密碼</div>')
       +'<button class="gen-pw-btn" onclick="openGenPw('+bk.id+')">🔑 '+(pw?'查看/更換':'指派')+'密碼</button>'
-      +'</div>'
       +'</div>';
   }).join('');
 }

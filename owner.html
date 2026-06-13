@@ -355,7 +355,7 @@ async function dbGetOrders(){
     'status,assigned_to,manual_adj,manual_adjs,'+
     'visit_date,visit_notes,caution,visit_photos,'+
     'deposit_date,deposit_amount,deposit_paid,full_paid,pay_method,pay_note,'+
-    'contract_url,fee_table_url,home_visit_date,home_visit_note,owner_line_id,sitter_extra_fees'
+    'contract_url,fee_table_url,owner_line_id,sitter_extra_fees'
   ).order('id',{ascending:false});
   if(error){console.error('getOrders:',_errMsg(error));return[];}
   return(data||[]).map(dbRowToOrder);
@@ -853,7 +853,14 @@ async function ownerLogin(){
   let allBooks=[];
   try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}
 
+  // matchedId from owner_passwords table (book_id field)
   var firstBook=allBooks.find(function(x){return String(x.id)===String(matchedId);});
+  // If not found by id, try finding any order with same phone via any matched book
+  if(!firstBook){
+    console.warn('[login] direct match failed, matchedId='+matchedId+', trying all books...');
+    // The book might have a different id format - try numeric
+    firstBook=allBooks.find(function(x){return Number(x.id)===Number(matchedId);});
+  }
   if(!firstBook){alert('找不到訂單 id='+matchedId+'\n現有ids:'+allBooks.slice(0,3).map(function(b){return b.id;}).join(','));document.getElementById('ownerErr').style.display='block';return;}
 
   currentOwnerPhone=firstBook.ownerPhone;

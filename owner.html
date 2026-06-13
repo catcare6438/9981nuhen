@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1780737620 -->
+<!-- build:1781370857 -->
 
 
 
@@ -833,7 +833,10 @@ async function ownerLogin(){
   if(loginBtn){loginBtn.textContent='⏳ 驗證中...';loginBtn.disabled=true;}
 
   let pws={};
-  try{pws=await dbGetOwnerPws();}catch(e){
+  try{
+    pws=await dbGetOwnerPws();
+    console.log('[login] pws count='+Object.keys(pws).length);
+  }catch(e){
     alert('讀取密碼失敗：'+e.message);
     if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
     return;
@@ -841,7 +844,11 @@ async function ownerLogin(){
   if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
 
   var matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
-  if(!matchedId){document.getElementById('ownerErr').style.display='block';return;}
+  console.log('[login] pw='+pw+' matchedId='+matchedId+' keys='+JSON.stringify(Object.keys(pws).slice(0,3)));
+  if(!matchedId){
+    alert('[debug] 密碼不符\n輸入：'+pw+'\n資料庫有 '+Object.keys(pws).length+' 筆密碼\n前3筆key：'+Object.keys(pws).slice(0,3).join(','));
+    document.getElementById('ownerErr').style.display='block';return;
+  }
 
   let allBooks=[];
   try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}

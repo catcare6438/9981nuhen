@@ -1699,7 +1699,16 @@ async function saveEditReport(){
     });
   });
 
-  const petPhotos=(window._erPhotos||[]).map(function(p){return p.dataUrl||p.url||'';}).filter(Boolean);
+  // Upload all photos to R2 (replace base64 with URLs)
+  var _petPhotosSrc=(window._erPhotos||[]).map(function(p){return p.dataUrl||p.url||'';}).filter(Boolean);
+  var petPhotos=[];
+  for(var _pi=0;_pi<_petPhotosSrc.length;_pi++){
+    var _src=_petPhotosSrc[_pi];
+    if(_src.startsWith('data:')){
+      try{ var _url=await uploadImageToR2(_src,'pet-'+Date.now()+'-'+_pi+'.jpg'); petPhotos.push(_url); }
+      catch(e){ console.warn('照片上傳失敗，改存URL:',e); petPhotos.push(_src); }
+    } else { petPhotos.push(_src); }
+  }
   const erVideoList=(window._erVideos||[]).map(function(v){return v.dataUrl;});
   const videoDataUrl=erVideoList[0]||'';
   const updates = {date:date, time_start:timeStart, time_end:timeEnd, diary:diary,
@@ -2138,6 +2147,39 @@ function loadPetPhoto(input,idx){
 // ── Cloudflare R2 影片上傳 ──
 var EDGE_FN_URL = 'https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action';
 
+
+async function uploadImageToR2(dataUrl, filename){
+  // Convert base64 dataUrl to Blob
+  var parts = dataUrl.split(',');
+  var mime = parts[0].match(/:(.*?);/)[1];
+  var ext = mime.split('/')[1]||'jpg';
+  var fname = filename||(Date.now()+'.'+ext);
+  var byteStr = atob(parts[1]);
+  var ab = new ArrayBuffer(byteStr.length);
+  var ia = new Uint8Array(ab);
+  for(var i=0;i<byteStr.length;i++) ia[i]=byteStr.charCodeAt(i);
+  var blob = new Blob([ab],{type:mime});
+  var file = new File([blob], fname, {type:mime});
+
+  // Get presigned URL
+  var res = await fetch(EDGE_FN_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+    body:JSON.stringify({action:'get-upload-url', filename:fname, contentType:mime})
+  });
+  if(!res.ok) throw new Error('取得上傳網址失敗');
+  var json = await res.json();
+
+  // PUT to R2
+  var r2res = await fetch(json.uploadUrl,{
+    method:'PUT',
+    headers:{'Content-Type':mime},
+    body:blob
+  });
+  if(!r2res.ok) throw new Error('R2上傳失敗：'+r2res.status);
+  return json.publicUrl;
+}
+
 async function uploadVideoToR2(file, onProgress){
   // Step1: 向 Edge Function 取得 Presigned URL
   var res = await fetch(EDGE_FN_URL, {
@@ -2146,7 +2188,7 @@ async function uploadVideoToR2(file, onProgress){
       'Content-Type':  'application/json',
       'Authorization': 'Bearer ' + SUPA_KEY
     },
-    body: JSON.stringify({filename: file.name, contentType: file.type||'video/mp4'})
+    body: JSON.stringify({action:'get-upload-url', filename: file.name, contentType: file.type||'video/mp4'})
   });
   if(!res.ok) throw new Error('取得上傳網址失敗：' + await res.text());
   var _json = await res.json();

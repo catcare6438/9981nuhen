@@ -517,6 +517,7 @@ function dbRowToOrder(r){
 <body>
 
 <!-- LOGIN -->
+<div id="lineBindStatus" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#fff;padding:12px 24px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);font-weight:800;font-size:.9rem;z-index:9999;white-space:nowrap;"></div>
 <div id="loginScreen">
   <div class="lbox">
     <div class="l-ico">🏠</div>
@@ -1658,6 +1659,46 @@ document.head.appendChild(_shakeStyle);
   await ownerLogin();
 })();
 
+// LINE Login callback handler (also handles iOS Safari)
+(async function lineCallbackCheck(){
+  var params=new URLSearchParams(window.location.search);
+  var code=params.get('code');
+  var state=params.get('state');
+  if(!code||!state) return;
+  // Clear URL params - use replaceState for iOS compatibility
+  try{
+    var cleanUrl=window.location.protocol+'//'+window.location.host+window.location.pathname;
+    window.history.replaceState({},'',cleanUrl);
+  }catch(e){}
+  var statusEl=document.getElementById('lineBindStatus');
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ LINE 綁定中...';}
+  try{
+    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+      body:JSON.stringify({action:'line-callback',code:code,bookId:state})
+    });
+    var rawText=await res.text();
+    var data={};
+    try{data=JSON.parse(rawText);}catch(e){data={error:rawText};}
+    if(data.success){
+      if(statusEl){statusEl.textContent='✅ LINE 綁定成功！保母回報將即時通知您。';statusEl.style.color='#06C755';}
+      else alert('✅ LINE 綁定成功！');
+      document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(el){
+        el.textContent='✅ LINE 綁定成功！';el.style.display='block';el.style.color='#06C755';
+      });
+    } else {
+      var msg='❌ 綁定失敗：'+(data.error||'未知錯誤');
+      if(statusEl){statusEl.textContent=msg;statusEl.style.color='#E05252';}
+      else alert(msg);
+    }
+  }catch(e){
+    var msg2='❌ 網路錯誤：'+e.message;
+    if(statusEl){statusEl.textContent=msg2;statusEl.style.color='#E05252';}
+    else alert(msg2);
+  }
+})();
+
 // ── LINE Login 回調處理 ──
 (async function lineCallbackCheck(){
   var params=new URLSearchParams(window.location.search);
@@ -1691,7 +1732,9 @@ document.head.appendChild(_shakeStyle);
 
 function doLineLogin(bookId){
   var channelId=LINE_LOGIN_CHANNEL_ID;
-  var redirectUri=encodeURIComponent(LINE_REDIRECT_URI);
+  // Use clean URL without hash for iOS Safari compatibility
+  var cleanBase=window.location.protocol+'//'+window.location.host+window.location.pathname;
+  var redirectUri=encodeURIComponent(cleanBase);
   var state=String(bookId);
   var scope=encodeURIComponent('profile openid');
   var url='https://access.line.me/oauth2/v2.1/authorize'
@@ -1699,7 +1742,8 @@ function doLineLogin(bookId){
     +'&client_id='+channelId
     +'&redirect_uri='+redirectUri
     +'&state='+state
-    +'&scope='+scope;
+    +'&scope='+scope
+    +'&bot_prompt=normal';
   window.location.href=url;
 }
 function showLineBindResult(msg, color){

@@ -569,7 +569,7 @@ function dbRowToOrder(r){
     couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
     discounts:r.discounts||0,total:r.total||0,
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
-    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],visitPhotos:r.visit_photos||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],visitPhotos:r.visit_photos||[],
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,payMethod:r.pay_method||"",payNote:r.pay_note||"",
     homeVisitDate:r.home_visit_date||'',homeVisitNote:r.home_visit_note||'',
@@ -625,6 +625,9 @@ function dbRowToOrder(r){
       </div>
       <div class="nav-item" onclick="goPage('passwords',this)">
         <span class="nav-ico">🔐</span> 密碼總覽
+      </div>
+      <div class="nav-item" onclick="goPage('settings',this)">
+        <span class="nav-ico">⚙️</span> 網站設定
       </div>
       <div class="nav-item" onclick="window.open('index.html')">
         <span class="nav-ico">🌐</span> 前台
@@ -1417,183 +1420,122 @@ function buildOrderCard(bk, sCls, ownerPws){
   const distRow=bk.distance>0?'<div class="order-row"><span class="order-label">距離：</span><span class="order-val">'+bk.distance+' 公里（車馬費 NT$'+(bk.transport||0)+'/次）</span></div>':'';
   const addonRow=bk.addons&&bk.addons.length?'<div class="order-row"><span class="order-label">加購：</span><span class="order-val">'+bk.addons.join('、')+'</span></div>':'';
   const noteRow=bk.petNotes?'<div class="order-row"><span class="order-label">備註：</span><span class="order-val">'+bk.petNotes+'</span></div>':'';
-  const hvRow=bk.homeVisitDate?'<div class="order-row"><span class="order-label">🏠 家訪：</span><span class="order-val">'+bk.homeVisitDate+(bk.homeVisitNote?' ｜ '+bk.homeVisitNote:'')+'</span></div>':'';
-  const payRow=(()=>{
-    if(bk.fullPaid) return '<div class="order-row"><span class="order-label">💰 收款：</span><span class="order-val" style="color:#06C755;font-weight:900;">✅ 款項全收</span></div>';
-    if(bk.depositPaid) return '<div class="order-row"><span class="order-label">💰 收款：</span><span class="order-val" style="color:#FF9500;font-weight:800;">已收訂金 $'+bk.depositAmount+'（'+bk.depositDate+'）</span></div>';
-    return '';
-  })();
+  const hvRow=bk.homeVisitDate?('<div class="order-row"><span class="order-label">🏠 家訪：</span><span class="order-val">'+bk.homeVisitDate+'</span></div>'):'';
 
-  // Date display
-  let dateDisplay=s||'—';
-  if(s&&e){
-    const sd=new Date(s+'T00:00:00'),ed=new Date(e+'T00:00:00');
-    const days=Math.max(1,Math.round((ed-sd)/86400000)+1);
-    dateDisplay=s+' ～ '+e+'（共'+days+'天，'+st.totalSessions+'次）';
-  }
-
-  // Service display
-  let svcDisplay=svcNames+'，共'+st.totalSessions+'次';
-  if((st.cnySessions||0)>0) svcDisplay+=' <span style="color:#B00010;font-size:.76rem;font-weight:800;">🧧春節'+(st.cnySessions||0)+'次</span>';
-  if(st.holSessions>0) svcDisplay+=' <span style="color:#C05000;font-size:.76rem;font-weight:800;">🎊連假'+st.holSessions+'次</span>';
-  if(bk.urgent>0) svcDisplay+=' ⚡急件';
-
-  return '<div class="order-card" id="card-'+bk.id+'">'
-    +'<div class="order-header" onclick="toggleOrderCard('+bk.id+')">'
-    +'<div class="order-summary"><div>'
-    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">'
-    +'<span class="order-summary-name">'+bk.ownerName+'</span>'
-    +'<span class="badge '+badgeCls+'" style="font-size:.65rem;">'+statusLabel+'</span>'
-    +'</div>'
-    +'<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
-    +'<span class="order-summary-dates">📅 '+dateStr+'</span>'
-    +(svcNames?'<span class="order-summary-svc">'+svcNames+'</span>':'')
-    +(sessStr?'<span style="font-size:.72rem;color:var(--tl);">'+sessStr+'</span>':'')
-    +holBadge+urgBadge
-    +'</div>'
-    +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">📞 '+bk.ownerPhone+' &nbsp; #'+bk.id+'</div>'
-    +'</div></div>'
-    +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
-    +'<span class="order-toggle" id="toggle-'+bk.id+'">▼</span>'
-    +'</div></div>'
-
-    +'<div class="order-body collapsed" id="body-'+bk.id+'">'
-    +'<div style="padding-top:14px;">'
-    +'<div class="order-row"><span class="order-label">地址：</span><span class="order-val">'+(bk.ownerAddr||'—')+'</span></div>'
-    +'<div class="order-row"><span class="order-label">日期：</span><span class="order-val">'+dateDisplay+'</span></div>'
-    +'<div class="order-row"><span class="order-label">服務：</span><span class="order-val">'+svcDisplay+'</span></div>'
-
-    +distRow+addonRow+noteRow+hvRow+payRow
-
-    +'<div style="margin-top:12px;">'
-    +'<div style="font-size:.75rem;font-weight:800;color:var(--pk);margin-bottom:8px;font-family:"Nunito",sans-serif;">👩 時段指派</div>'
-    +slotSection
-    +'</div>'
-
-    +'<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:12px 0 8px;">'    +'<div style="font-size:.78rem;color:var(--tl);font-weight:700;">🐾 寵物：'+petSummary+' '+extraPetBadge+'</div>'    +'<div style="font-family:\'Nunito\',sans-serif;font-weight:900;font-size:1.15rem;color:var(--pk);background:linear-gradient(135deg,#FFF0F5,#FFE0EC);border:2px solid var(--pk3);border-radius:12px;padding:6px 18px;">'    +'💕 NT$ '+(total>0?total.toLocaleString():'—')+'</div>'    +'</div>'    +'<div class="order-actions">'
-    +'<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px;">'
-    +'<span style="font-size:.72rem;font-weight:800;color:var(--tl);">📋 狀態：</span>'
-    +'<select style="padding:6px 12px;border:2px solid var(--pk3);border-radius:10px;font-family:"Nunito",sans-serif;font-size:.82rem;font-weight:800;color:var(--t);background:#fff;outline:none;cursor:pointer;"'
-    +' onclick="event.stopPropagation()" onchange="changeStatus('+bk.id+',this.value)">'
-    +'<option value="待確認"'+(bk.status==='待確認'?' selected':'')+'>⏳ 待處理</option>'
-    +'<option value="已確認"'+(bk.status==='已確認'?' selected':'')+'>✅ 已確認</option>'
-    +'<option value="接案中"'+(bk.status==='接案中'?' selected':'')+'>🐾 接案中</option>'
-    +'<option value="已完成"'+(bk.status==='已完成'?' selected':'')+'>🎉 已完成</option>'
-    +'<option value="已取消"'+(bk.status==='已取消'?' selected':'')+'>✖ 已取消</option>'
-    +'</select></div>'
-    +'<button class="oa-btn" style="background:#EEF0FF;color:#5558B8;border-color:var(--b);" onclick="event.stopPropagation();showDetail('+bk.id+')">📊 明細</button>'
-    +'<button class="oa-btn" style="background:#F5F5FF;color:#555;border-color:#ccc;" onclick="event.stopPropagation();checkAssigned('+bk.id+')">🔍 查指派</button>'
-    +'<button class="oa-btn" style="background:#F0F9FF;color:#0369A1;border-color:#7DD3FC;" onclick="event.stopPropagation();openEditOrder('+bk.id+')">✏️ 編輯</button>'
-    +'<button class="oa-btn oa-del" onclick="event.stopPropagation();delO('+bk.id+')">🗑 刪除</button>'
-    +'<button class="oa-btn" style="background:var(--pk4);color:var(--pk);border-color:var(--pk2);" onclick="event.stopPropagation();openGenPw('+bk.id+')">'+(hasPw?'🔑 查看':'🔑 設定')+'密碼</button>'
-    +'<button class="oa-btn" style="background:#F0FFF4;color:#1A7A4A;border-color:#52C48A;" onclick="event.stopPropagation();showPetDetail('+bk.id+')">🐾 寵物資料</button>'
-    +(bk.status==='已完成'?('<button class="oa-btn" style="background:#FFF9E8;color:#B8860B;border-color:#FFD700;" onclick="event.stopPropagation();openAdminReview('+bk.id+')">⭐ 好評管理</button>'):'')
-    +'</div>'
-    +'</div></div></div>';
+// settings page above
 }
 
-
-function buildSlotList(bk){
-  const SLOT_LABELS={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
-  const slots=[];
-  const raw=bk.assignedTo||'';
-  if(!raw) return slots;
-  try{
-    const parsed=JSON.parse(raw);
-    if(!Array.isArray(parsed)||!parsed.length) return slots;
-    // Case 1: already has sitter assignments [{date,slot,sitter,transport}]
-    if(parsed[0].slot!==undefined&&parsed[0].slots===undefined){
-      const seen=new Set();
-      parsed.forEach(a=>{
-        const key=a.date+'|'+a.slot;
-        if(!seen.has(key)){seen.add(key);slots.push({date:a.date,slot:a.slot,label:SLOT_LABELS[a.slot]||a.slot});}
-      });
-      return slots;
-    }
-    // Case 2: original slot selection [{date, slots:['morning','evening']}]
-    if(parsed[0].slots!==undefined){
-      parsed.forEach(d=>{
-        (d.slots||[]).forEach(s=>{
-          slots.push({date:d.date,slot:s,label:SLOT_LABELS[s]||s});
-        });
-      });
-      return slots;
-    }
-  }catch(e){}
-  return slots;
-}
-
-async function assignSlot(orderId, date, slot, sitter){
-  const numId = parseInt(orderId) || orderId;
-
-  // 1. 直接從 Supabase 讀取最新資料（不用 cache）
-  var freshRes = await _supa.from('orders').select('id,assigned_to').eq('id', numId).limit(1);
-  if(freshRes.error || !freshRes.data || !freshRes.data.length){
-    alert('找不到訂單 id=' + numId + '\nerr=' + (freshRes.error ? freshRes.error.message : '無資料'));
-    return;
+function renderSettingsPage(){
+  var svcP=_siteSettings.svc_prices||[];
+  // Support both old object format and new array format
+  if(!Array.isArray(svcP)){
+    var arr=[];
+    Object.keys(svcP).forEach(function(tier){
+      var labels={'weekday':'平日','holiday':'連假','cny':'春節'};
+      arr.push({label:labels[tier]||tier,companion:(svcP[tier]&&svcP[tier].companion)||0,walk:(svcP[tier]&&svcP[tier].walk)||0,both:(svcP[tier]&&svcP[tier].both)||0});
+    });
+    svcP=arr;
   }
-  var freshRow = freshRes.data[0];
-  var raw = freshRow.assigned_to || '';
+  var addonP=_siteSettings.addon_prices||[];
+  var transP=_siteSettings.transport_rates||[];
+  var lmP=_siteSettings.landmarks||[];
+  var svcItems=_siteSettings.service_items||[];
+  var html='<div style="display:grid;gap:20px;">';
 
-  // 2. 展開時段
-  var assigns = [];
-  if(raw){
-    try{
-      var parsed = JSON.parse(raw);
-      if(Array.isArray(parsed) && parsed.length){
-        if(parsed[0].slots !== undefined){
-          parsed.forEach(function(d){
-            (d.slots||[]).forEach(function(s){
-              assigns.push({date:d.date, slot:s, sitter:'', transport:0});
-            });
-          });
-        } else {
-          assigns = parsed;
-        }
-      }
-    }catch(e){}
-  }
-
-  // 3. 設定保母
-  var ai = assigns.findIndex(function(x){ return x.date===date && x.slot===slot; });
-  if(sitter){
-    if(ai >= 0) assigns[ai].sitter = sitter;
-    else assigns.push({date:date, slot:slot, sitter:sitter, transport:0});
-  } else {
-    if(ai >= 0) assigns[ai].sitter = '';
-  }
-
-  // 4. 寫入 Supabase
-  var newJson = JSON.stringify(assigns);
-  var upRes = await _supa.from('orders').update({assigned_to: newJson}).eq('id', numId);
-  if(upRes.error){
-    alert('update 失敗: ' + upRes.error.message);
-    return;
-  }
-
-  // 5. 等 200ms 再讀回確認
-  await new Promise(function(r){setTimeout(r,200);});
-  var checkRes = await _supa.from('orders').select('assigned_to').eq('id', numId).limit(1);
-  var saved = checkRes.data && checkRes.data[0] ? checkRes.data[0].assigned_to : '';
-  var ok = saved && saved.includes(sitter || '');
-
-  if(!ok && sitter){
-    alert('❌ update 沒有寫入！\n\n送出值: ' + newJson.substring(0,80) + '\n\nDB實際: ' + String(saved).substring(0,80));
-    return;
-  }
-
-  // 6. 更新 cache 和 UI
-  var bk = (_bCache||[]).find(function(x){ return String(x.id) === String(numId); });
-  if(bk) bk.assignedTo = saved || newJson;
-
-  assigns.forEach(function(a){
-    var sel = document.querySelector('[data-slot-id="' + numId + '-' + a.date + '-' + a.slot + '"]');
-    if(sel){
-      sel.value = a.sitter || '';
-      sel.style.borderColor = a.sitter ? '#06C755' : 'var(--pk3)';
-      sel.style.background = a.sitter ? '#F0FFF4' : '#fff';
-    }
+  // ── 服務價格（完全自由編輯）──
+  html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💰 主要服務價格</div>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:.82rem;margin-bottom:8px;">'
+    +'<thead><tr style="background:var(--pk4);">'
+    +'<th style="padding:7px 10px;text-align:left;border:1px solid var(--pk3);">方案名稱</th>'
+    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">到府陪伴</th>'
+    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">散步服務</th>'
+    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">陪伴+散步</th>'
+    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">操作</th>'
+    +'</tr></thead>'
+    +'<tbody id="svc-price-list">';
+  svcP.forEach(function(row,i){
+    html+='<tr>'
+      +'<td style="padding:4px 6px;border:1px solid var(--pk3);"><input type="text" id="svl-'+i+'" value="'+(row.label||'')+'" style="width:100%;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.82rem;" placeholder="方案名稱"></td>'
+      +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;"><input type="number" id="svc-'+i+'" value="'+(row.companion||0)+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+      +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;"><input type="number" id="svw-'+i+'" value="'+(row.walk||0)+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+      +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;"><input type="number" id="svb-'+i+'" value="'+(row.both||0)+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+      +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;"><button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;">刪除</button></td>'
+      +'</tr>';
   });
+  html+='</tbody></table>';
+  html+='<button onclick="addSvcPriceRow()" style="padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;margin-right:6px;">＋ 新增方案</button>'
+    +'<button onclick="savePrices()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存價格</button>'
+    +'<span id="sp-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
+
+  // 附加服務
+  html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">➕ 附加服務項目與價格</div>';
+  html+='<div id="addon-list">';
+  addonP.forEach(function(a,i){
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+      +'<input type="text" value="'+a.emoji+'" id="ae-'+i+'" style="width:36px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
+      +'<input type="text" value="'+a.key+'" id="ak-'+i+'" style="width:100px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<span>$</span><input type="number" value="'+a.price+'" id="ap-'+i+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<span>/</span><input type="text" value="'+(a.per||'次')+'" id="au-'+i+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+      +'</div>';
+  });
+  html+='</div>'
+    +'<button onclick="addAddonRow()" style="margin:4px 4px 0 0;padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">＋ 新增</button>'
+    +'<button onclick="saveAddons()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="addon-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
+
+  // 車馬費
+  html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🚗 車馬費費率</div>';
+  html+='<div id="trans-list">';
+  transP.forEach(function(t,i){
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      +'<input type="number" value="'+t.km_min+'" id="tk-min-'+i+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<span>~</span><input type="number" value="'+t.km_max+'" id="tk-max-'+i+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<span>km $</span><input type="number" value="'+t.price+'" id="tp-'+i+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+      +'</div>';
+  });
+  html+='</div>'
+    +'<button onclick="addTransRow()" style="margin:4px 4px 0 0;padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">＋ 新增區間</button>'
+    +'<button onclick="saveTrans()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="trans-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
+
+  // 地標
+  html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">📍 附近參考地標</div>';
+  html+='<div id="lm-list">';
+  lmP.forEach(function(l,i){
+    html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
+      +'<input type="text" value="'+l.emoji+'" id="le-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
+      +'<input type="text" value="'+l.name+'" id="ln-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+      +'</div>';
+  });
+  html+='</div>'
+    +'<button onclick="addLmRow()" style="margin:4px 4px 0 0;padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">＋ 新增地標</button>'
+    +'<button onclick="saveLandmarks()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="lm-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
+
+  // 服務項目一覽
+  html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 服務項目一覽</div>';
+  html+='<div id="si-list">';
+  svcItems.forEach(function(s,i){
+    html+='<div style="background:var(--pk4);border-radius:10px;padding:10px;margin-bottom:8px;">'
+      +'<div style="display:flex;gap:8px;margin-bottom:6px;">'
+      +'<input type="text" value="'+s.emoji+'" id="se-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
+      +'<input type="text" value="'+s.title+'" id="st-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<input type="text" value="'+(s.duration||'')+'" id="sd-'+i+'" style="width:80px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="時長">'
+      +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+      +'</div>'
+      +'<textarea id="ss-'+i+'" rows="2" style="width:100%;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.8rem;box-sizing:border-box;">'+s.desc+'</textarea>'
+      +'</div>';
+  });
+  html+='</div>'
+    +'<button onclick="addSvcItemRow()" style="margin:4px 4px 0 0;padding:6px 14px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">＋ 新增服務</button>'
+    +'<button onclick="saveSvcItems()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="si-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
+
+  html+='</div>';
+  document.getElementById('settingsContent').innerHTML=html;
 }
 
 async function setSlotTransport(orderId, sitter, amount){
@@ -2214,19 +2156,181 @@ function refreshPasswords(){renderPasswords();}
 function goPage(page,el){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('on'));
   el.classList.add('on');
-  ['orders','salary','owners','coupons','reviews','passwords'].forEach(p=>{
-    document.getElementById('page-'+(p)+'').style.display=p===page?'block':'none';
+  ['orders','salary','owners','coupons','reviews','passwords','settings'].forEach(p=>{
+    var el2=document.getElementById('page-'+p);
+    if(el2) el2.style.display=p===page?'block':'none';
   });
-  const titles={orders:'📋 訂單管理',salary:'💰 薪資計算',owners:'🏠 毛孩爸媽系統',coupons:'🎟 折抵券',reviews:'⭐ 好評管理',passwords:'🔐 密碼總覽'};
+  const titles={orders:'📋 訂單管理',salary:'💰 薪資計算',owners:'🏠 毛孩爸媽系統',coupons:'🎟 折抵券',reviews:'⭐ 好評管理',passwords:'🔐 密碼總覽',settings:'⚙️ 網站設定'};
   document.getElementById('pageTitle').textContent=titles[page]||'';
   if(page==='salary')renderSalary();
   if(page==='owners'){renderOwners();renderSitterPwStatus();}
   if(page==='passwords')renderPasswords();
   if(page==='coupons')renderCoupons();
   if(page==='reviews')renderReviewsAdmin();
+  if(page==='settings')loadSiteSettings().then(renderSettingsPage);
 }
 
 
+
+// ══════════════════════════════════════════════
+// 網站設定
+// ══════════════════════════════════════════════
+var _siteSettings={};
+async function loadSiteSettings(){
+  try{
+    var res=await _supa.from('site_settings').select('*');
+    if(res.error)throw res.error;
+    (res.data||[]).forEach(function(row){_siteSettings[row.key]=row.value;});
+  }catch(e){console.error('loadSiteSettings:',e.message);}
+}
+async function saveSiteSetting(key,value){
+  var res=await _supa.from('site_settings').upsert([{key:key,value:value,updated_at:new Date().toISOString()}],{onConflict:'key'});
+  if(res.error)throw res.error;
+  _siteSettings[key]=value;
+}
+
+function removeAddonRow(btn){btn.closest('div').remove();}
+function addAddonRow(){
+  var list=document.getElementById('addon-list');
+  var i=list.children.length;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;';
+  d.innerHTML='<input type="text" id="ae-'+i+'" style="width:36px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;" placeholder="emoji">'
+    +'<input type="text" id="ak-'+i+'" style="width:100px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="名稱">'
+    +'<span>$</span><input type="number" id="ap-'+i+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" value="50">'
+    +'<span>/</span><input type="text" id="au-'+i+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" value="次">'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>';
+  list.appendChild(d);
+}
+function addTransRow(){
+  var list=document.getElementById('trans-list');
+  var i=list.children.length;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  d.innerHTML='<input type="number" id="tk-min-'+i+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" value="0">'
+    +'<span>~</span><input type="number" id="tk-max-'+i+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" value="999">'
+    +'<span>km，費用 $</span><input type="number" id="tp-'+i+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" value="0">'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>';
+  list.appendChild(d);
+}
+function addLmRow(){
+  var list=document.getElementById('lm-list');
+  var i=list.children.length;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  d.innerHTML='<input type="text" id="le-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;" value="📍">'
+    +'<input type="text" id="ln-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="地標名稱">'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>';
+  list.appendChild(d);
+}
+function addSvcItemRow(){
+  var list=document.getElementById('si-list');
+  var i=list.children.length;
+  var d=document.createElement('div');
+  d.style.cssText='background:var(--pk4);border-radius:10px;padding:10px;margin-bottom:8px;';
+  d.innerHTML='<div style="display:flex;gap:8px;margin-bottom:6px;">'
+    +'<input type="text" id="se-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;" value="🐾">'
+    +'<input type="text" id="st-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="服務名稱">'
+    +'<input type="text" id="sd-'+i+'" style="width:80px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="時長">'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+    +'</div>'
+    +'<textarea id="ss-'+i+'" rows="2" style="width:100%;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.8rem;box-sizing:border-box;" placeholder="描述"></textarea>';
+  list.appendChild(d);
+}
+function addSvcPriceRow(){
+  var tbody=document.getElementById('svc-price-list');
+  var i=tbody.rows.length;
+  var tr=document.createElement('tr');
+  tr.innerHTML='<td style="padding:4px 6px;border:1px solid var(--pk3);">'
+    +'<input type="text" id="svl-'+i+'" style="width:100%;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.82rem;" placeholder="方案名稱"></td>'
+    +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;">'
+    +'<input type="number" id="svc-'+i+'" value="0" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+    +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;">'
+    +'<input type="number" id="svw-'+i+'" value="0" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+    +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;">'
+    +'<input type="number" id="svb-'+i+'" value="0" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:.82rem;"></td>'
+    +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;">'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;">刪除</button></td>';
+  tbody.appendChild(tr);
+}
+
+async function savePrices(){
+  try{
+    var rows=document.querySelectorAll('#svc-price-list tr');
+    var val=[];
+    rows.forEach(function(tr,i){
+      var l=tr.querySelector('[id^="svl-"]');
+      var comp=tr.querySelector('[id^="svc-"]');
+      var walk=tr.querySelector('[id^="svw-"]');
+      var both=tr.querySelector('[id^="svb-"]');
+      if(l&&l.value.trim()) val.push({label:l.value.trim(),companion:parseInt(comp?comp.value:0)||0,walk:parseInt(walk?walk.value:0)||0,both:parseInt(both?both.value:0)||0});
+    });
+    await saveSiteSetting('svc_prices',val);
+    var msg=document.getElementById('sp-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+async function saveAddons(){
+  try{
+    var rows=document.querySelectorAll('#addon-list > div');
+    var val=[];
+    rows.forEach(function(row,i){
+      var k=row.querySelector('[id^="ak-"]');
+      var p=row.querySelector('[id^="ap-"]');
+      var e=row.querySelector('[id^="ae-"]');
+      var u=row.querySelector('[id^="au-"]');
+      if(k&&k.value.trim()) val.push({emoji:e?e.value:'',key:k.value.trim(),price:parseInt(p?p.value:0)||0,per:u?u.value:'次',hasQty:false});
+    });
+    await saveSiteSetting('addon_prices',val);
+    var msg=document.getElementById('addon-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+async function saveTrans(){
+  try{
+    var rows=document.querySelectorAll('#trans-list > div');
+    var val=rows.length?[]:[];
+    rows.forEach(function(row,i){
+      var mn=row.querySelector('[id^="tk-min-"]');
+      var mx=row.querySelector('[id^="tk-max-"]');
+      var p=row.querySelector('[id^="tp-"]');
+      val.push({km_min:parseInt(mn?mn.value:0)||0,km_max:parseInt(mx?mx.value:999)||999,price:parseInt(p?p.value:0)||0});
+    });
+    await saveSiteSetting('transport_rates',val);
+    var msg=document.getElementById('trans-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+async function saveLandmarks(){
+  try{
+    var rows=document.querySelectorAll('#lm-list > div');
+    var val=[];
+    rows.forEach(function(row){
+      var n=row.querySelector('[id^="ln-"]');
+      var e=row.querySelector('[id^="le-"]');
+      if(n&&n.value.trim()) val.push({emoji:e?e.value:'📍',name:n.value.trim()});
+    });
+    await saveSiteSetting('landmarks',val);
+    var msg=document.getElementById('lm-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+async function saveSvcItems(){
+  try{
+    var rows=document.querySelectorAll('#si-list > div');
+    var val=[];
+    rows.forEach(function(row,i){
+      var e=row.querySelector('[id^="se-"]');
+      var t=row.querySelector('[id^="st-"]');
+      var s=row.querySelector('[id^="ss-"]');
+      var d=row.querySelector('[id^="sd-"]');
+      if(t&&t.value.trim()) val.push({emoji:e?e.value:'🐾',title:t.value,desc:s?s.value:'',duration:d?d.value:''});
+    });
+    await saveSiteSetting('service_items',val);
+    var msg=document.getElementById('si-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
 async function openEditOrder(bookId){
   try{
   _editingBookId = parseInt(bookId)||bookId;
@@ -2824,6 +2928,70 @@ function toggleDepositInput(bookId){
   if(amt)amt.style.opacity=checked?'1':'0.4';
 }
 
+
+// ── 保母附加費 ──
+function buildExtraFeeHTML(bk){
+  var fees=(bk.sitterExtraFees||[]);
+  var rows=fees.map(function(f,i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">'
+      +'<input type="text" id="ef-name-'+i+'" value="'+(f.name||'')+'" style="flex:1;padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" placeholder="項目名稱（如車馬費）">'
+      +'<span>$</span><input type="number" id="ef-price-'+i+'" value="'+(f.unitPrice||0)+'" style="width:70px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;">'
+      +'<span>×</span><input type="number" id="ef-times-'+i+'" value="'+(f.times||1)+'" style="width:55px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;">'
+      +'<span>= $<strong id="ef-sub-'+i+'">'+(( f.unitPrice||0)*(f.times||1))+'</strong></span>'
+      +'<button onclick="removeExtraFee('+i+')" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:.74rem;">✕</button>'
+      +'</div>';
+  }).join('');
+  return '<div style="margin-top:12px;padding:14px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:12px;">'
+    +'<div style="font-size:.78rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💸 保母附加費用（顯示於保母端）</div>'
+    +'<div id="extra-fee-list">'+rows+'</div>'
+    +'<button onclick="addExtraFeeRow()" style="padding:6px 14px;background:#FFF8E1;border:1.5px dashed #FFD54F;color:#8B6000;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;margin-top:4px;">＋ 新增項目</button>'
+    +'&nbsp;<button onclick="saveExtraFees('+bk.id+')" style="padding:7px 18px;background:linear-gradient(135deg,#FFB300,#F57F17);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存</button>'
+    +'<span id="ef-msg-'+bk.id+'" style="margin-left:8px;font-size:.76rem;color:var(--g);font-weight:800;"></span>'
+    +'</div>';
+}
+
+function addExtraFeeRow(){
+  var list=document.getElementById('extra-fee-list');
+  var i=list.children.length;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+  d.innerHTML='<input type="text" id="ef-name-'+i+'" style="flex:1;padding:5px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" placeholder="項目名稱">'
+    +'<span>$</span><input type="number" id="ef-price-'+i+'" value="0" style="width:70px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" oninput="updateEfSub('+i+')">'
+    +'<span>×</span><input type="number" id="ef-times-'+i+'" value="1" style="width:55px;padding:5px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.82rem;" oninput="updateEfSub('+i+')">'
+    +'<span>= $<strong id="ef-sub-'+i+'">0</strong></span>'
+    +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:.74rem;">✕</button>';
+  list.appendChild(d);
+}
+
+function updateEfSub(i){
+  var p=parseInt(document.getElementById('ef-price-'+i)?.value)||0;
+  var t=parseInt(document.getElementById('ef-times-'+i)?.value)||0;
+  var s=document.getElementById('ef-sub-'+i);
+  if(s) s.textContent=p*t;
+}
+
+function removeExtraFee(i){
+  var rows=document.querySelectorAll('#extra-fee-list > div');
+  if(rows[i]) rows[i].remove();
+}
+
+async function saveExtraFees(bookId){
+  var rows=document.querySelectorAll('#extra-fee-list > div');
+  var fees=[];
+  rows.forEach(function(row,i){
+    var n=row.querySelector('[id^="ef-name-"]');
+    var p=row.querySelector('[id^="ef-price-"]');
+    var t=row.querySelector('[id^="ef-times-"]');
+    if(n&&n.value.trim()) fees.push({name:n.value.trim(),unitPrice:parseInt(p?p.value:0)||0,times:parseInt(t?t.value:1)||1});
+  });
+  try{
+    await dbUpdateOrder(bookId,{sitter_extra_fees:fees});
+    var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+    if(bk) bk.sitterExtraFees=fees;
+    var msg=document.getElementById('ef-msg-'+bookId);
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
 function buildVisitPaymentHTML(bk, total){
   var vid=bk.id;
   var vDate=bk.visitDate||'';
@@ -2872,6 +3040,7 @@ function buildVisitPaymentHTML(bk, total){
     '<button onclick="saveVisitInfo('+vid+')" style="padding:7px 18px;background:linear-gradient(135deg,#0EA5E9,#0369A1);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.8rem;">💾 儲存家訪</button>',
     '<span id="vi-msg-'+vid+'" style="font-size:.76rem;color:var(--g);font-weight:800;margin-left:8px;"></span>',
     '</div>',
+    buildExtraFeeHTML(bk),
     // Contract & fee table upload section
     '<div style="margin-top:12px;padding:14px;background:#F5F3FF;border:1.5px solid #C4B5FD;border-radius:12px;">',
     '<div style="font-size:.78rem;font-weight:900;color:#6D28D9;margin-bottom:10px;">📄 合約 & 費用表上傳</div>',

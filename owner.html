@@ -1668,10 +1668,10 @@ document.head.appendChild(_shakeStyle);
   try{history.replaceState(null,'',window.location.pathname);}catch(e){}
   // 呼叫 Edge Function 換取 LINE User ID
   try{
-    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/line-callback',{
+    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({code:code, bookId:state})
+      body:JSON.stringify({action:'line-callback', code:code, bookId:state})
     });
     var rawText=await res.text();
     console.log('[line-callback] status='+res.status+' body='+rawText);

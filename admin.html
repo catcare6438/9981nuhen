@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1780735153 -->
+<!-- build:1781330590 -->
 
 
 
@@ -1285,7 +1285,8 @@ function getAssignedSitters(assignments){
 // All data now from Supabase — use async wrappers
 // Sync cache for rendering (refreshed on each page action)
 let _bCache=[]; let _cCache=[]; let _rCache=[]; let _opCache={}; let _editingBookId=null;
-async function getB(){_bCache=await dbGetOrders();return _bCache;}
+async function getB(){
+  console.log('[getB] called, cache='+(_ordersCache?_ordersCache.length:'null'));_bCache=await dbGetOrders();return _bCache;}
 function saveB(arr){_bCache=arr;} // no-op, updates done via dbUpdateOrder/dbDeleteOrder
 async function getCoupons(){_cCache=await dbGetCoupons();return _cCache;}
 async function getReviews(){_rCache=await dbGetReviews();return _rCache;}
@@ -1352,7 +1353,14 @@ async function renderOrders(){
   const sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
   const dt=ts=>new Date(ts).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   const ownerPws=await getOwnerPws();
-  list.innerHTML=b.map(bk=>buildOrderCard(bk,sCls,ownerPws)).join('');
+  console.log('[renderOrders] building',b.length,'cards');
+  try{
+    list.innerHTML=b.map(function(bk){
+      try{ return buildOrderCard(bk,sCls,ownerPws); }
+      catch(e){ console.error('[buildOrderCard] error for id='+bk.id,e.message,e.stack); return '<div style="color:red;padding:10px;">訂單'+bk.id+'載入錯誤：'+e.message+'</div>'; }
+    }).join('');
+    console.log('[renderOrders] done');
+  }catch(e2){ console.error('[renderOrders] fatal:',e2.message); }
 }
 
 function buildOrderCard(bk, sCls, ownerPws){

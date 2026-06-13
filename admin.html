@@ -3166,8 +3166,9 @@ function buildExtraFeeHTML(bk){
   return html;
 }
 
-function efCalc(el){
-  var uid=el?el.dataset.uid:null;
+function efCalc(elOrUid){
+  // Accept both DOM element and uid string
+  var uid=typeof elOrUid==='string'?elOrUid:(elOrUid&&elOrUid.dataset?elOrUid.dataset.uid:null);
   if(!uid) return;
   var p=parseFloat(document.getElementById('ef-p-'+uid)?.value)||0;
   var t=parseFloat(document.getElementById('ef-t-'+uid)?.value)||1;

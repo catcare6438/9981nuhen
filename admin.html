@@ -1366,6 +1366,37 @@ async function renderOrders(){
   }).join('');
 }
 
+
+function buildSlotList(bk){
+  const SLOT_LABELS={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+  const slots=[];
+  const raw=bk.assignedTo||'';
+  if(!raw) return slots;
+  try{
+    const parsed=JSON.parse(raw);
+    if(!Array.isArray(parsed)||!parsed.length) return slots;
+    // Case 1: assignment format [{date,slot,sitter,transport}]
+    if(parsed[0].slot!==undefined&&parsed[0].slots===undefined){
+      const seen=new Set();
+      parsed.forEach(function(a){
+        const key=a.date+'|'+a.slot;
+        if(!seen.has(key)){seen.add(key);slots.push({date:a.date,slot:a.slot,label:SLOT_LABELS[a.slot]||a.slot});}
+      });
+      return slots;
+    }
+    // Case 2: original slot selection [{date, slots:['morning','evening']}]
+    if(parsed[0].slots!==undefined){
+      parsed.forEach(function(d){
+        (d.slots||[]).forEach(function(s){
+          slots.push({date:d.date,slot:s,label:SLOT_LABELS[s]||s});
+        });
+      });
+      return slots;
+    }
+  }catch(e){}
+  return slots;
+}
+
 function buildOrderCard(bk, sCls, ownerPws){
   const{total}=calcB(bk);
   const svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、');

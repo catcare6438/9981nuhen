@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781316809 -->
+<!-- build:1781362078 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -979,12 +979,15 @@ async function login(){
     renderMain();
   }catch(e){
     showLoginErr('登入失敗：'+e.message);
+    console.error('[login] error:',e);
+    alert('[debug] 登入失敗：'+e.message+'\nname='+name);
   }finally{
     if(btn){btn.textContent='登入保母專區 →';btn.disabled=false;}
   }
 }
 
 function showLoginErr(msg){
+  console.error('[loginErr]',msg);
   var el=document.getElementById('loginErr');
   if(el){el.style.display='block';el.textContent=msg;}
 }

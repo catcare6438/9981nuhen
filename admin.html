@@ -2031,27 +2031,34 @@ async function renderSitterPwStatus(){
 }
 async function renderOwners(){
   const _allO2=await getB();
-  const b=_allO2.filter(x=>x.status==='已確認'||x.status==='已完成');
+  const b=_allO2.filter(x=>x.status==='已確認'||x.status==='已完成'||x.status==='接案中');
   const pws=await getOwnerPws();
   const grid=document.getElementById('ownerGrid');
-  if(!b.length){grid.innerHTML=`<div class="empty-msg">尚無已確認訂單 🐾</div>`;return;}
-  // Also show all owner passwords in a summary
-  const allPws=getOwnerPws();
-  const allBk=await getB();
-  grid.innerHTML=b.map(bk=>{
+  if(!b.length){grid.innerHTML='<div class="empty-msg">尚無已確認訂單 🐾</div>';return;}
+  grid.innerHTML=b.map(function(bk){
     const pw=pws[bk.id];
-    return `<div class="owner-card">
-      <div class="owner-name">🐾 ${bk.ownerName}（${bk.petName||'寵物'}）</div>
-      <div class="owner-row">📅 ${bk.startDate} ～ ${bk.endDate}</div>
-      <div class="owner-row">📱 ${bk.ownerPhone}</div>
-      ${pw?`<div style="margin-top:8px;">
-        <div style="font-size:.72rem;color:var(--tl);margin-bottom:4px;">會員密碼（純數字）</div>
-        <div class="owner-pw" style="font-size:1.2rem;letter-spacing:4px;">${pw}</div>
-        </div>`:'<div style="font-size:.8rem;color:var(--tl);margin-top:8px;">尚未設定密碼</div>'}
-      <div style="margin-top:10px;">
-        <button class="gen-pw-btn" onclick="openGenPw(${bk.id})">🔑 ${pw?'查看/更換':'指派'}密碼</button>
-      </div>
-    </div>`;
+    const petNames=(bk.petData&&bk.petData.length)
+      ?bk.petData.map(function(p){return p.name||'';}).filter(Boolean).join('、')
+      :(bk.petName||'');
+    const lineTag=bk.ownerLineId
+      ?'<span style="color:#06C755;font-size:.72rem;font-weight:800;background:#F0FFF4;padding:2px 7px;border-radius:6px;">✅ LINE已綁定</span>'
+      :'<span style="color:#aaa;font-size:.72rem;background:#f5f5f5;padding:2px 7px;border-radius:6px;">💬 未綁定</span>';
+    return '<div class="owner-card">'
+      +'<div class="owner-name" style="font-size:1rem;font-weight:900;">'+bk.ownerName+'</div>'
+      +'<div style="margin:4px 0 8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">'+lineTag+'</div>'
+      +(petNames?'<div class="owner-row" style="font-size:.78rem;color:var(--tl);">🐾 '+petNames+'</div>':'')
+      +'<div class="owner-row">📞 '+bk.ownerPhone+'</div>'
+      +(bk.ownerAddr?'<div class="owner-row">📍 '+bk.ownerAddr+'</div>':'')
+      +(bk.homeVisitDate?'<div class="owner-row" style="color:#0369A1;font-weight:800;">🏠 家訪：'+bk.homeVisitDate+'</div>':'')
+      +'<div class="owner-row" style="font-size:.74rem;color:var(--tl);">📅 '+bk.startDate+'～'+bk.endDate+'</div>'
+      +(pw
+        ?'<div style="margin-top:8px;"><div style="font-size:.72rem;color:var(--tl);margin-bottom:4px;">會員密碼</div>'
+          +'<div class="owner-pw" style="font-size:1.2rem;letter-spacing:4px;">'+pw+'</div></div>'
+        :'<div style="font-size:.8rem;color:var(--tl);margin-top:8px;">尚未設定密碼</div>')
+      +'<div style="margin-top:10px;">'
+      +'<button class="gen-pw-btn" onclick="openGenPw('+bk.id+')">🔑 '+(pw?'查看/更換':'指派')+'密碼</button>'
+      +'</div>'
+      +'</div>';
   }).join('');
 }
 

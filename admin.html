@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781374956 -->
+<!-- build:1781433129 -->
 
 
 
@@ -1379,7 +1379,7 @@ async function renderOrders(){
   const q=document.getElementById('searchQ').value.toLowerCase();
   if(q)b=b.filter(x=>[x.ownerName,x.ownerPhone,x.petName||''].join(' ').toLowerCase().includes(q));
   if(curFilter)b=b.filter(x=>x.status===curFilter);
-  b.sort((a,z)=>z.id-a.id);
+  b.sort(function(a,z){return String(z.id)>String(a.id)?1:-1;});
   const list=document.getElementById('orderList');
   if(!b.length){list.innerHTML=`<div class="empty-msg">目前沒有符合的預約 🐾</div>`;return;}
   const sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
@@ -2568,7 +2568,7 @@ async function openEditOrder(bookId){
   _editingBookId = parseInt(bookId)||bookId;
   // Ensure cache is loaded
   if(!_bCache||!_bCache.length) await getB();
-  const bk = (_bCache||[]).find(x=>x.id===parseInt(bookId)||x.id===bookId);
+  const bk = (_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(!bk){alert('找不到訂單 id='+bookId+' cache:'+(_bCache||[]).length);return;}
 
   const SVC_OPT = [{k:'companion',l:'到府陪伴'},{k:'walk',l:'遛狗服務'},{k:'both',l:'到府＋遛狗'}];
@@ -3452,17 +3452,13 @@ async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
   showPetDetail(bookId);
 }
 async function refreshAll(){
-  console.log('[refreshAll] start');
   try{
     await loadSittersList();
-    console.log('[refreshAll] sitters loaded');
     await renderStats();
-    console.log('[refreshAll] stats done');
     await renderOrders();
-    console.log('[refreshAll] orders done');
   }catch(e){
-    console.error('[refreshAll] error:',e.message,e.stack);
-    alert('[debug] refreshAll 失敗：'+e.message);
+    console.error('[refreshAll]',e.message);
+    alert('後台載入失敗：'+e.message);
   }
 }
 

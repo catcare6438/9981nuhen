@@ -2390,9 +2390,12 @@ async function submitReport(){
           petPhotos:reportPhotos.map(function(p){return p.dataUrl||'';}).filter(Boolean)
         })
       });
-      var notifyData=await notifyRes.json();
-      if(notifyData.success) console.log('[LINE] 通知已發送 ✅');
-      else console.warn('[LINE] 通知失敗：',notifyData.error||notifyData);
+      var notifyRaw=await notifyRes.text();
+      console.log('[LINE回報通知] status='+notifyRes.status+' body='+notifyRaw);
+      var notifyData={};
+      try{notifyData=JSON.parse(notifyRaw);}catch(e){}
+      if(notifyData.success) alert('✅ LINE 通知已發送');
+      else alert('❌ LINE 通知失敗\n'+notifyRaw.substring(0,300));
     }catch(ne){
       console.warn('[LINE] 推播錯誤（不影響回報儲存）：',ne.message);
     }

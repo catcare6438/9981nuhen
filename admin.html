@@ -1675,11 +1675,11 @@ function buildOrderCard(bk, sCls, ownerPws){
     +(extraPetBadge?'<div style="margin:4px 0;">'+extraPetBadge+'</div>':'')
     +'<div style="margin:8px 0;" onclick="event.stopPropagation()">'+slotSection+'</div>'
     +'<div class="order-actions" onclick="event.stopPropagation()">'
-    +'<button class="oa-btn" onclick="showDetail(\"'+bk.id+'\")">📋 詳細</button>'
-    +'<button class="oa-btn" onclick="openEditOrder(\"'+bk.id+'\")">✏️ 編輯</button>'
-    +(hasPw?'<button class="oa-btn" onclick="showPetDetail(\"'+bk.id+'\")">🐾 寵物</button>':'')
-    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(\"'+bk.id+'\")">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
-    +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder('+bk.id+')">🗑️ 刪除</button>'
+    +'<button class="oa-btn" onclick="showDetail(this.dataset.id)" data-id="'+bk.id+'">📋 詳細</button>'
+    +'<button class="oa-btn" onclick="openEditOrder(this.dataset.id)" data-id="'+bk.id+'">✏️ 編輯</button>'
+    +(hasPw?'<button class="oa-btn" onclick="showPetDetail(this.dataset.id)" data-id="'+bk.id+'">🐾 寵物</button>':'')
+    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
     +'</div>'

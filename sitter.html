@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781433129 -->
+<!-- build:1781440823 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -223,11 +223,108 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .btn-arrive:disabled,.btn-leave:disabled{background:#ccc;cursor:not-allowed;opacity:.5;}
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
-const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+const SUPA_KEY='neon_worker_auth';
+// ══════════════════════════════════════════════
+// Supabase → Cloudflare Worker Polyfill
+// ══════════════════════════════════════════════
+// ── Cloudflare Worker 轉接頭 ──
+const WORKER_URL = 'https://catwoli-api.catwoli6644.workers.dev';
+const _supa = {
+  from: (tableName) => ({
+    select: (cols) => ({
+      order: (col, opts) => ({
+        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_order='+col+'&_asc='+(!!(opts&&opts.ascending)));const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+        eq: (col2,val) => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col2+'='+encodeURIComponent(val)+'&_order='+col);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} } }),
+        limit: (n) => ({ single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_order='+col+'&_limit='+n);const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } }) })
+      }),
+      eq: (col,val) => ({
+        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val));const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+        limit: (n) => ({
+          then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit='+n);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+          single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+        }),
+        single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+      }),
+      then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+      limit: (n) => ({
+        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit='+n);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+        single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+      }),
+      single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+    }),
+    insert: (rows) => ({
+      then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)});const j=await res.json();resolve({data:j.data||j,error:j.error||null});}catch(e){resolve({data:null,error:e});} },
+      select: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)});const j=await res.json();resolve({data:j.data?[j.data]:[],error:j.error||null});}catch(e){resolve({data:[],error:e});} } })
+    }),
+    upsert: (rows, opts) => ({
+      then: async (resolve) => { try{const row=Array.isArray(rows)?rows[0]:rows;const conflict=opts&&opts.onConflict?'&_conflict='+opts.onConflict:'';const res=await fetch(WORKER_URL+'/'+tableName+'?_upsert=1'+conflict,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});const j=await res.json();resolve({data:j.data||j,error:j.error||null});}catch(e){resolve({data:null,error:e});} }
+    }),
+    update: (fields) => ({
+      eq: (col,val) => ({
+        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});const j=await res.json();resolve({data:j.data||null,error:j.error||null});}catch(e){resolve({data:null,error:e});} }
+      })
+    }),
+    delete: () => ({
+      eq: (col,val) => ({
+        then: async (resolve) => { try{await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val),{method:'DELETE'});resolve({error:null});}catch(e){resolve({error:e});} }
+      })
+    })
+  })
+};
+
+
+class _SupaQuery {
+  constructor(table){
+    this._t=table; this._f={}; this._sel='*';
+    this._lim=null; this._m='select'; this._data=null; this._sngl=false;
+  }
+  select(c){this._sel=c;return this;}
+  eq(k,v){this._f[k]=v;return this;}
+  limit(n){this._lim=n;return this;}
+  order(col,opt){return this;}
+  insert(rows){this._m='insert';this._data=Array.isArray(rows)?rows[0]:rows;return this;}
+  update(fields){this._m='update';this._data=fields;return this;}
+  upsert(rows,opt){this._m='upsert';this._data=Array.isArray(rows)?rows[0]:rows;this._uopt=opt;return this;}
+  delete(){this._m='delete';return this;}
+  single(){this._sngl=true;return this;}
+
+  then(resolve,reject){
+    const run = async () => {
+      const t=this._t, f=this._f;
+      let data;
+      try{
+        if(this._m==='insert'){
+          data = await _workerFetch(t+'/insert', {fields:this._data});
+        } else if(this._m==='update'){
+          const fk=Object.keys(f)[0];
+          data = await _workerFetch(t+'/update', {filterKey:fk, filterVal:f[fk], fields:this._data});
+        } else if(this._m==='upsert'){
+          data = await _workerFetch(t+'/upsert', {...this._data, ...(this._uopt||{})});
+        } else if(this._m==='delete'){
+          const fk=Object.keys(f)[0];
+          data = await _workerFetch(t+'/delete', {filterKey:fk, filterVal:f[fk]});
+        } else {
+          // select
+          data = await _workerFetch(t+'/list', {filters:f, limit:this._lim});
+          if(Array.isArray(data)){
+            Object.entries(f).forEach(([k,v])=>{
+              data=data.filter(r=>String(r[k])===String(v));
+            });
+            if(this._lim) data=data.slice(0,this._lim);
+          }
+        }
+        const result = this._sngl?(Array.isArray(data)?data[0]:data):data;
+        resolve({data:result, error:null});
+      }catch(e){
+        resolve({data:null, error:{message:e.message}});
+      }
+    };
+    run();
+  }
+}
+// ══════════════════════════════════════════════
+
 
 // Safe error message extractor — never touches Headers or non-serialisable fields
 function _errMsg(e){

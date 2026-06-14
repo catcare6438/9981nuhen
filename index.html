@@ -241,9 +241,82 @@ footer .ft{font-weight:900;font-size:1.1rem;color:var(--p1);margin-bottom:8px;fo
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
-const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
-const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
+// 已經幫你填好 Cloudflare Worker 的專屬路由
+const WORKER_URL = 'https://catwoli-api.catwoli6644.workers.dev'; 
+
+// 萬用模擬轉接頭：完美偽裝成舊的 Supabase 語法，前端程式碼一個字都不用改！
+const _supa = {
+  from: (tableName) => {
+    return {
+      select: () => ({
+        order: (col, {ascending}) => ({
+          then: async (resolve) => {
+            try {
+              const res = await fetch(`${WORKER_URL}/${tableName}`);
+              const data = await res.json();
+              resolve({ data, error: null });
+            } catch (e) { resolve({ data: [], error: e }); }
+          }
+        }),
+        eq: (col, val) => ({
+          then: async (resolve) => {
+            try {
+              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`);
+              const data = await res.json();
+              resolve({ data, error: null });
+            } catch (e) { resolve({ data: [], error: e }); }
+          }
+        }),
+        then: async (resolve) => {
+          try {
+            const res = await fetch(`${WORKER_URL}/${tableName}`);
+            const data = await res.json();
+            resolve({ data, error: null });
+          } catch (e) { resolve({ data: [], error: e }); }
+        }
+      }),
+      insert: (rows) => ({
+        then: async (resolve) => {
+          try {
+            const res = await fetch(`${WORKER_URL}/${tableName}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(rows[0])
+            });
+            const data = await res.json();
+            resolve({ data, error: null });
+          } catch (e) { resolve({ data: null, error: e }); }
+        }
+      }),
+      update: (fields) => ({
+        eq: (col, val) => ({
+          then: async (resolve) => {
+            try {
+              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(fields)
+              });
+              resolve({ error: null });
+            } catch (e) { resolve({ error: e }); }
+          }
+        })
+      }),
+      delete: () => ({
+        eq: (col, val) => ({
+          then: async (resolve) => {
+            try {
+              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`, {
+                method: 'DELETE'
+              });
+              resolve({ error: null });
+            } catch (e) { resolve({ error: e }); }
+          }
+        })
+      })
+    };
+  }
+};
 
 // Safe error message extractor — never touches Headers or non-serialisable fields
 function _errMsg(e){

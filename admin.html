@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781456380 -->
+<!-- build:1781456953 -->
 
 
 
@@ -1138,15 +1138,19 @@ function login(){
     as.style.display='flex';as.classList.add('show');
     const now=new Date();
     document.getElementById('salMonth').value=''+(now.getFullYear())+'-'+(String(now.getMonth()+1).padStart(2,'0'))+'';
-    // Test Supabase connection first
-    testSupabaseConnection().then(async ok=>{
-      if(ok){
-        await loadSittersList(); // 先載入保母名單，再 render
+    // 直接執行，不需要測試連線
+    (async ()=>{
+      console.log('[login] starting load...');
+      try{
+        await loadSittersList();
+        console.log('[login] sitters loaded');
         refreshAll();
-        // loadSitterPws not needed;
+        console.log('[login] refreshAll called');
+      }catch(e){ console.error('[login] error:',e.message); alert('載入失敗：'+e.message); }
+      // loadSitterPws not needed;
         loadSitterMgmt();
-      }
-    });
+      }catch(e2){ console.error('[login] mgmt error:',e2.message); }
+    })();
   } else {
     document.getElementById('loginErr').style.display='block';
     document.getElementById('pwIn').value='';

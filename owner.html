@@ -1707,73 +1707,50 @@ document.head.appendChild(_shakeStyle);
 
 // LINE Login callback handler (also handles iOS Safari)
 (async function lineCallbackCheck(){
-  var params=new URLSearchParams(window.location.search);
-  var code=params.get('code');
-  var state=params.get('state');
-  if(!code||!state) return;
-  // Clear URL params - use replaceState for iOS compatibility
+  // iOS Safari: read params before any redirect
+  var search = window.location.search;
+  var params = new URLSearchParams(search);
+  var code  = params.get('code');
+  var state = params.get('state');
+  if(!code || !state) return;
+
+  // Clear URL immediately (iOS compatible)
   try{
-    var cleanUrl=window.location.protocol+'//'+window.location.host+window.location.pathname;
-    window.history.replaceState({},'',cleanUrl);
+    var cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+    window.history.replaceState(null, '', cleanUrl);
   }catch(e){}
-  var statusEl=document.getElementById('lineBindStatus');
-  if(statusEl){statusEl.style.display='block';statusEl.textContent='⏳ LINE 綁定中...';}
-  try{
-    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({action:'line-callback',code:code,bookId:state})
+
+  // Show status
+  function showLineStatus(msg, color){
+    var el = document.getElementById('lineBindStatus');
+    if(el){ el.textContent=msg; el.style.display='block'; el.style.color=color||'#333'; }
+    document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(r){
+      r.textContent=msg; r.style.display='block'; r.style.color=color||'#333';
     });
-    var rawText=await res.text();
-    var data={};
-    try{data=JSON.parse(rawText);}catch(e){data={error:rawText};}
+  }
+  showLineStatus('⏳ LINE 綁定中...', '#888');
+
+  try{
+    var res = await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+SUPA_KEY},
+      body: JSON.stringify({action:'line-callback', code:code, bookId:state})
+    });
+    var raw = await res.text();
+    var data = {};
+    try{ data = JSON.parse(raw); }catch(e){ data = {error: raw}; }
     if(data.success){
-      if(statusEl){statusEl.textContent='✅ LINE 綁定成功！保母回報將即時通知您。';statusEl.style.color='#06C755';}
-      else alert('✅ LINE 綁定成功！');
-      document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(el){
-        el.textContent='✅ LINE 綁定成功！';el.style.display='block';el.style.color='#06C755';
-      });
+      showLineStatus('✅ LINE 綁定成功！保母回報將即時通知您 🐾', '#06C755');
     } else {
-      var msg='❌ 綁定失敗：'+(data.error||'未知錯誤');
-      if(statusEl){statusEl.textContent=msg;statusEl.style.color='#E05252';}
-      else alert(msg);
+      showLineStatus('❌ 綁定失敗：'+(data.error||'未知錯誤 status='+res.status), '#E05252');
     }
   }catch(e){
-    var msg2='❌ 網路錯誤：'+e.message;
-    if(statusEl){statusEl.textContent=msg2;statusEl.style.color='#E05252';}
-    else alert(msg2);
+    showLineStatus('❌ 網路錯誤：'+e.message, '#E05252');
   }
 })();
 
 // ── LINE Login 回調處理 ──
-(async function lineCallbackCheck(){
-  var params=new URLSearchParams(window.location.search);
-  var code=params.get('code');
-  var state=params.get('state'); // state 帶 bookId
-  if(!code||!state) return;
-  // 清除 URL 參數
-  try{history.replaceState(null,'',window.location.pathname);}catch(e){}
-  // 呼叫 Edge Function 換取 LINE User ID
-  try{
-    var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({action:'line-callback', code:code, bookId:state})
-    });
-    var rawText=await res.text();
-    console.log('[line-callback] status='+res.status+' body='+rawText);
-    var data={};
-    try{data=JSON.parse(rawText);}catch(pe){data={error:rawText};}
-    if(data.success){
-      showLineBindResult('✅ LINE 綁定成功！日後保母回報會即時通知您。','#06C755');
-    } else {
-      showLineBindResult('❌ 綁定失敗：'+(data.error||'status='+res.status),'#E05252');
-    }
-  }catch(e){
-    console.error('[line-callback] fetch error:',e);
-    showLineBindResult('❌ 網路錯誤：'+e.message,'#E05252');
-  }
-})();
+
 
 
 function doLineLogin(bookId){

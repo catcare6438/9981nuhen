@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781362078 -->
+<!-- build:1781433129 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -954,7 +954,7 @@ async function login(){
   try{
     // 直接從 Supabase 驗證密碼
     var{data,error}=await _supa.from('sitter_passwords')
-      .select('name,password,display_name,bio')
+      .select('name,password')
       .eq('name',name).limit(1);
     if(error) throw new Error(error.message);
     if(!data||!data.length){
@@ -967,7 +967,7 @@ async function login(){
       return;
     }
     // 登入成功
-    var displayName=row.display_name||row.name;
+    var displayName=row.name;
     ME={name:row.name, displayName:displayName, info:{role:'到府褓姆',av:'🐾'}};
     sessionStorage.setItem('sitterName',row.name);
     sessionStorage.setItem('sitterPw',pw);
@@ -979,8 +979,7 @@ async function login(){
     renderMain();
   }catch(e){
     showLoginErr('登入失敗：'+e.message);
-    console.error('[login] error:',e);
-    alert('[debug] 登入失敗：'+e.message+'\nname='+name);
+    console.error('[login] error:',e.message);
   }finally{
     if(btn){btn.textContent='登入保母專區 →';btn.disabled=false;}
   }

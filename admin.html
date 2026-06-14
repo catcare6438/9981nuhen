@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781440823 -->
+<!-- build:1781441977 -->
 
 
 
@@ -364,52 +364,66 @@ const SUPA_KEY='neon_worker_auth';
 // ══════════════════════════════════════════════
 // Supabase → Cloudflare Worker Polyfill
 // ══════════════════════════════════════════════
-// ── Cloudflare Worker 轉接頭 ──
+// ── Cloudflare Worker 轉接頭（格式A：直接陣列）──
 const WORKER_URL = 'https://catwoli-api.catwoli6644.workers.dev';
+
+async function _wfetch(path, opts){
+  const res = await fetch(WORKER_URL + path, opts);
+  const j = await res.json();
+  // Worker 直接回傳陣列或物件
+  if(Array.isArray(j)) return {data:j, error:null};
+  if(j && j.error) return {data:null, error:{message:j.error||j.message}};
+  if(j && j.rows) return {data:j.rows, error:null};
+  // single row object
+  return {data:j, error:null};
+}
+
 const _supa = {
-  from: (tableName) => ({
+  from: (table) => ({
     select: (cols) => ({
       order: (col, opts) => ({
-        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_order='+col+'&_asc='+(!!(opts&&opts.ascending)));const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
-        eq: (col2,val) => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col2+'='+encodeURIComponent(val)+'&_order='+col);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} } }),
-        limit: (n) => ({ single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_order='+col+'&_limit='+n);const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } }) })
+        then: async (cb) => cb(await _wfetch('/'+table+'?_order='+col+'&_asc='+(!!(opts&&opts.ascending)))),
+        eq: (c2,v) => ({ then: async (cb) => cb(await _wfetch('/'+table+'?'+c2+'='+encodeURIComponent(v)+'&_order='+col)) }),
+        limit: (n) => ({ single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_order='+col+'&_limit='+n); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } }) })
       }),
       eq: (col,val) => ({
-        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val));const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+        then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val))),
         limit: (n) => ({
-          then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit='+n);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
-          single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+          then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit='+n)),
+          single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
         }),
-        single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val)+'&_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+        single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
       }),
-      then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
+      then: async (cb) => cb(await _wfetch('/'+table)),
       limit: (n) => ({
-        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit='+n);const j=await res.json();resolve({data:j.data||j,error:null});}catch(e){resolve({data:[],error:e});} },
-        single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+        then: async (cb) => cb(await _wfetch('/'+table+'?_limit='+n)),
+        single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
       }),
-      single: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?_limit=1');const j=await res.json();const arr=j.data||j;resolve({data:Array.isArray(arr)?arr[0]:arr,error:null});}catch(e){resolve({data:null,error:e});} } })
+      single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
     }),
     insert: (rows) => ({
-      then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)});const j=await res.json();resolve({data:j.data||j,error:j.error||null});}catch(e){resolve({data:null,error:e});} },
-      select: () => ({ then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)});const j=await res.json();resolve({data:j.data?[j.data]:[],error:j.error||null});}catch(e){resolve({data:[],error:e});} } })
+      then: async (cb) => cb(await _wfetch('/'+table, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)})),
+      select: () => ({ then: async (cb) => { const r=await _wfetch('/'+table,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)}); cb({data:r.data?[r.data]:[],error:r.error}); } })
     }),
     upsert: (rows, opts) => ({
-      then: async (resolve) => { try{const row=Array.isArray(rows)?rows[0]:rows;const conflict=opts&&opts.onConflict?'&_conflict='+opts.onConflict:'';const res=await fetch(WORKER_URL+'/'+tableName+'?_upsert=1'+conflict,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});const j=await res.json();resolve({data:j.data||j,error:j.error||null});}catch(e){resolve({data:null,error:e});} }
+      then: async (cb) => {
+        const row=Array.isArray(rows)?rows[0]:rows;
+        const conflict=opts&&opts.onConflict?'&_conflict='+opts.onConflict:'';
+        cb(await _wfetch('/'+table+'?_upsert=1'+conflict,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)}));
+      }
     }),
     update: (fields) => ({
       eq: (col,val) => ({
-        then: async (resolve) => { try{const res=await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});const j=await res.json();resolve({data:j.data||null,error:j.error||null});}catch(e){resolve({data:null,error:e});} }
+        then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)}))
       })
     }),
     delete: () => ({
       eq: (col,val) => ({
-        then: async (resolve) => { try{await fetch(WORKER_URL+'/'+tableName+'?'+col+'='+encodeURIComponent(val),{method:'DELETE'});resolve({error:null});}catch(e){resolve({error:e});} }
+        then: async (cb) => { try{await fetch(WORKER_URL+'/'+table+'?'+col+'='+encodeURIComponent(val),{method:'DELETE'});cb({error:null});}catch(e){cb({error:e});} }
       })
     })
   })
 };
-
-
 class _SupaQuery {
   constructor(table){
     this._t=table; this._f={}; this._sel='*';

@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781445228 -->
+<!-- build:1781456380 -->
 
 
 
@@ -489,9 +489,14 @@ function _errMsg(e){
 
 // ── Supabase helpers ──
 async function dbGetOrders(){
+  console.log('[dbGetOrders] fetching...');
   const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
   if(error){console.error('getOrders:',_errMsg(error));return[];}
-  return(data||[]).map(dbRowToOrder);
+  console.log('[dbGetOrders] raw data:', JSON.stringify((data||[]).slice(0,1)).substring(0,200));
+  console.log('[dbGetOrders] count:', (data||[]).length);
+  const mapped=(data||[]).map(dbRowToOrder);
+  console.log('[dbGetOrders] mapped[0]:', JSON.stringify(mapped[0]||{}).substring(0,200));
+  return mapped;
 }
 async function dbInsertOrder(b){
   const row=orderToDbRow(b);

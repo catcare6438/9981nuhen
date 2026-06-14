@@ -671,7 +671,7 @@ function orderToDbRow(b){
 }
 function dbRowToOrder(r){
   return{
-    id:r.id,ts:r.ts,
+    id:String(r.id),ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
@@ -1497,7 +1497,7 @@ async function renderOrders(){
   const q=document.getElementById('searchQ').value.toLowerCase();
   if(q)b=b.filter(x=>[x.ownerName,x.ownerPhone,x.petName||''].join(' ').toLowerCase().includes(q));
   if(curFilter)b=b.filter(x=>x.status===curFilter);
-  b.sort(function(a,z){return String(z.id)>String(a.id)?1:-1;});
+  b.sort(function(a,z){var ai=String(a.id),zi=String(z.id);return zi>ai?1:zi<ai?-1:0;});
   const list=document.getElementById('orderList');
   if(!b.length){list.innerHTML=`<div class="empty-msg">目前沒有符合的預約 🐾</div>`;return;}
   const sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
@@ -1525,7 +1525,7 @@ async function deleteOrder(orderId){
 }
 
 async function assignSlot(orderId, date, slot, sitter){
-  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(orderId));
   if(!bk){alert('找不到訂單');return;}
   clearOrdersCache();
   const assigns=parseAssignments(bk.assignedTo);
@@ -1675,10 +1675,10 @@ function buildOrderCard(bk, sCls, ownerPws){
     +(extraPetBadge?'<div style="margin:4px 0;">'+extraPetBadge+'</div>':'')
     +'<div style="margin:8px 0;" onclick="event.stopPropagation()">'+slotSection+'</div>'
     +'<div class="order-actions" onclick="event.stopPropagation()">'
-    +'<button class="oa-btn" onclick="showDetail('+bk.id+')">📋 詳細</button>'
-    +'<button class="oa-btn" onclick="openEditOrder('+bk.id+')">✏️ 編輯</button>'
-    +(hasPw?'<button class="oa-btn" onclick="showPetDetail('+bk.id+')">🐾 寵物</button>':'')
-    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw('+bk.id+')">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" onclick="showDetail(\"'+bk.id+'\")">📋 詳細</button>'
+    +'<button class="oa-btn" onclick="openEditOrder(\"'+bk.id+'\")">✏️ 編輯</button>'
+    +(hasPw?'<button class="oa-btn" onclick="showPetDetail(\"'+bk.id+'\")">🐾 寵物</button>':'')
+    +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(\"'+bk.id+'\")">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder('+bk.id+')">🗑️ 刪除</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
@@ -1804,7 +1804,7 @@ function renderSettingsPage(){
 }
 
 async function setSlotTransport(orderId, sitter, amount){
-  const bk=(_bCache||[]).find(x=>x.id===orderId||x.id===parseInt(orderId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(orderId));
   if(!bk)return;
   const assigns=parseAssignments(bk.assignedTo);
   // Set transport for ALL slots of this sitter
@@ -1834,7 +1834,7 @@ async function changeStatus(id,status){
 async function sendConfirmNotify(bookId){
   // 取得完整訂單資料
   var allB=await getB();
-  var bk=allB.find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  var bk=allB.find(function(x){return String(x.id)===String(bookId);});
   if(!bk){console.warn('sendConfirmNotify: 找不到訂單');return;}
   var res=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
     method:'POST',
@@ -1907,7 +1907,7 @@ function buildAdjHTML(pid,bk,adjs2){
 }
 function showDetail(bookId){
   try{
-  const bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  const bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單 id='+bookId);return;}
 
   const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
@@ -2211,7 +2211,7 @@ async function renderOwners(){
           +'<div style="font-size:1.3rem;letter-spacing:5px;font-weight:900;color:var(--pk);">'+pw+'</div>'
           +'</div>'
         :'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">尚未設定密碼</div>')
-      +'<button class="gen-pw-btn" onclick="openGenPw('+bk.id+')">🔑 '+(pw?'查看/更換':'指派')+'密碼</button>'
+      +'<button class="gen-pw-btn" onclick="openGenPw(\"'+bk.id+'\")">🔑 '+(pw?'查看/更換':'指派')+'密碼</button>'
       +'</div>';
   }).join('');
 }
@@ -3155,7 +3155,7 @@ async function uploadVisitPhotos(bookId, input){
   if(!files.length) return;
   var msg=document.getElementById('vi-photo-msg-'+bookId);
   if(msg) msg.textContent='⏳ 上傳中...';
-  var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
   var existing=bk.visitPhotos||[];
   var newPhotos=[];
@@ -3178,7 +3178,7 @@ async function uploadVisitPhotos(bookId, input){
 }
 
 async function removeVisitPhoto(bookId, photoIdx){
-  var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk) return;
   var photos=(bk.visitPhotos||[]).filter(function(_,i){return i!==photoIdx;});
   try{
@@ -3384,7 +3384,7 @@ async function saveExtraFees(bookId){
   });
   try{
     await dbUpdateOrder(bookId,{sitter_extra_fees:fees});
-    var bk=(_bCache||[]).find(function(x){return x.id===bookId||x.id===parseInt(bookId);});
+    var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
     if(bk) bk.sitterExtraFees=fees;
     var msg=document.getElementById('ef-msg-'+bookId);
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}

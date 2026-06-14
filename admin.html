@@ -1293,7 +1293,10 @@ function getAssignedSitters(assignments){
 // ── DATA ──
 // All data now from Supabase — use async wrappers
 // Sync cache for rendering (refreshed on each page action)
-let _bCache=[]; let _cCache=[]; let _rCache=[]; let _opCache={}; let _editingBookId=null;
+let _bCache=[], _cCache=[], _rCache=[], _opCache={}, _editingBookId=null;
+// 快取時間戳（毫秒）
+var _cCacheTime=0, _opCacheTime=0, _rCacheTime=0;
+var CACHE_TTL=120000; // 2 分鐘
 var _ordersCache=null, _ordersCacheTime=0;
 async function getB(){
   var now=Date.now();
@@ -1304,9 +1307,23 @@ async function getB(){
 }
 function clearOrdersCache(){_ordersCache=null;_ordersCacheTime=0;}
 function saveB(arr){_bCache=arr;} // no-op, updates done via dbUpdateOrder/dbDeleteOrder
-async function getCoupons(){_cCache=await dbGetCoupons();return _cCache;}
+async function getCoupons(){
+  var now=Date.now();
+  if(_cCache&&_cCache.length&&(now-_cCacheTime)<CACHE_TTL) return _cCache;
+  _cCache=await dbGetCoupons();
+  _cCacheTime=now;
+  return _cCache;
+}
+function clearCouponCache(){_cCache=[];_cCacheTime=0;}
 async function getReviews(){_rCache=await dbGetReviews();return _rCache;}
-async function getOwnerPws(){_opCache=await dbGetOwnerPws();return _opCache;}
+async function getOwnerPws(){
+  var now=Date.now();
+  if(_opCache&&Object.keys(_opCache).length&&(now-_opCacheTime)<CACHE_TTL) return _opCache;
+  _opCache=await dbGetOwnerPws();
+  _opCacheTime=now;
+  return _opCache;
+}
+function clearPwCache(){_opCache={};_opCacheTime=0;}
 async function saveOwnerPws(o){} // no-op, use dbSetOwnerPw
 
 function calcBForSitter(b, sitterName){
@@ -1687,6 +1704,7 @@ async function confirmO(id){await dbUpdateOrder(id,{status:'已確認'});refresh
 async function doneO(id){await dbUpdateOrder(id,{status:'已完成'});refreshAll();}
 async function cancelO(id){if(!confirm('確定取消此訂單？'))return;await dbUpdateOrder(id,{status:'已取消'});refreshAll();}
 async function changeStatus(id,status){
+  clearOrdersCache();
   await dbUpdateOrder(id,{status});
   // 狀態改為「已確認」時，自動發送家訪確認+催繳通知
   if(status==='已確認'){
@@ -1982,7 +2000,7 @@ async function deleteOwnerPw(){
   const id=parseInt(document.getElementById('genPwBookId').value);
   if(!confirm('確定要刪除此飼主的會員密碼？'))return;
   await dbDeleteOwnerPw(id);
-  closeM('genPwMod');refreshAll();
+  clearPwCache();closeM('genPwMod');refreshAll();
   alert('✅ 密碼已刪除');
 }
 async function saveOwnerPw(){
@@ -1990,7 +2008,7 @@ async function saveOwnerPw(){
   const pw=document.getElementById('genPwDisplay').value.replace(/[^0-9]/g,'');
   if(!pw){alert('請輸入數字密碼');return;}
   await dbSetOwnerPw(id,pw);
-  closeM('genPwMod');refreshAll();
+  clearPwCache();closeM('genPwMod');refreshAll();
   alert('✅ 會員密碼已儲存：'+(pw)+'\n請告知飼主到前台點「🏠 毛孩爸媽」輸入此數字密碼\n（密碼可隨時在此修改）');
 }
 

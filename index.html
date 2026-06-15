@@ -241,82 +241,9 @@ footer .ft{font-weight:900;font-size:1.1rem;color:var(--p1);margin-bottom:8px;fo
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
-// 已經幫你填好 Cloudflare Worker 的專屬路由
-const WORKER_URL = 'https://catwoli-api.catwoli6644.workers.dev'; 
-
-// 萬用模擬轉接頭：完美偽裝成舊的 Supabase 語法，前端程式碼一個字都不用改！
-const _supa = {
-  from: (tableName) => {
-    return {
-      select: () => ({
-        order: (col, {ascending}) => ({
-          then: async (resolve) => {
-            try {
-              const res = await fetch(`${WORKER_URL}/${tableName}`);
-              const data = await res.json();
-              resolve({ data, error: null });
-            } catch (e) { resolve({ data: [], error: e }); }
-          }
-        }),
-        eq: (col, val) => ({
-          then: async (resolve) => {
-            try {
-              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`);
-              const data = await res.json();
-              resolve({ data, error: null });
-            } catch (e) { resolve({ data: [], error: e }); }
-          }
-        }),
-        then: async (resolve) => {
-          try {
-            const res = await fetch(`${WORKER_URL}/${tableName}`);
-            const data = await res.json();
-            resolve({ data, error: null });
-          } catch (e) { resolve({ data: [], error: e }); }
-        }
-      }),
-      insert: (rows) => ({
-        then: async (resolve) => {
-          try {
-            const res = await fetch(`${WORKER_URL}/${tableName}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(rows[0])
-            });
-            const data = await res.json();
-            resolve({ data, error: null });
-          } catch (e) { resolve({ data: null, error: e }); }
-        }
-      }),
-      update: (fields) => ({
-        eq: (col, val) => ({
-          then: async (resolve) => {
-            try {
-              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(fields)
-              });
-              resolve({ error: null });
-            } catch (e) { resolve({ error: e }); }
-          }
-        })
-      }),
-      delete: () => ({
-        eq: (col, val) => ({
-          then: async (resolve) => {
-            try {
-              const res = await fetch(`${WORKER_URL}/${tableName}?${col}=${encodeURIComponent(val)}`, {
-                method: 'DELETE'
-              });
-              resolve({ error: null });
-            } catch (e) { resolve({ error: e }); }
-          }
-        })
-      })
-    };
-  }
-};
+const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
+const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
 
 // Safe error message extractor — never touches Headers or non-serialisable fields
 function _errMsg(e){
@@ -756,7 +683,7 @@ function dbRowToOrder(r){
   <div class="modal">
     <div class="modal-ico">🐾</div>
     <div class="modal-title">預約申請已送出！</div>
-    <div class="modal-msg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出，請點擊下方按鈕加入官方帳號，預約家訪日期~謝謝！</div>
+    <div class="modal-msg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出！3秒後將自動跳轉 LINE 授權，完成綁定後即可查看每日照護回報 🐾</div>
     <div class="modal-line"><a class="line-join" href="https://line.me/R/ti/p/@099nuhen" target="_blank" style="font-size:1rem;padding:14px 28px;display:inline-flex;align-items:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.02 2 11c0 4.18 2.76 7.73 6.76 9.29L8 22l2.09-1.28C10.7 20.88 11.35 21 12 21c5.52 0 10-4.02 10-9s-4.48-9-10-9z"/></svg>加入 @099nuhen</a>
     <div style="background:linear-gradient(135deg,#FFF0F5,#FFF9E8);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;margin-top:12px;font-size:.8rem;color:var(--tl);line-height:1.7;">
       🏠 <strong style="color:var(--p1);">請加入官方帳號獲取毛孩爸媽專屬密碼</strong><br>
@@ -1502,6 +1429,17 @@ async function submitBook(){
     await dbInsertOrder(b);
     sendNewOrderNotify(b).catch(()=>{});
     document.getElementById('modalOv').classList.add('show');
+    // 自動觸發 LINE Login 綁定（3秒後跳轉，讓用戶先看到成功訊息）
+    var _orderId = String(b.id);
+    setTimeout(function(){
+      var lineLoginUrl = 'https://access.line.me/oauth2/v2.1/authorize'
+        + '?response_type=code'
+        + '&client_id=2010383087'
+        + '&redirect_uri=' + encodeURIComponent('https://catcare6438.github.io/9981nuhen/owner.html')
+        + '&state=' + _orderId
+        + '&scope=profile%20openid';
+      window.location.href = lineLoginUrl;
+    }, 3000);
   }catch(e){
     alert('訂單儲存失敗，請檢查網路連線後再試 🐱\n'+e.message);
   }

@@ -1206,39 +1206,82 @@ async function renderCases(){
             ${b.ownerAddr?'<div style="font-size:.76rem;color:var(--tl);margin-top:2px;">📍 '+b.ownerAddr+'</div>':''}
           </div>
         </div>
-        <div style="text-align:right;min-width:0;flex-shrink:0;">
+        <div style="min-width:0;flex-shrink:0;text-align:right;">
           <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
-          <div class="case-fee-sub" style="text-align:right;line-height:1.8;">
-            <div style="color:var(--pk);font-weight:800;">到府照護</div>
-            <div>$200 / 次（半小時）× ${calcSitterSalary(b).sessions}次</div>
-            <div style="color:var(--pk);font-weight:900;font-size:.84rem;">= $${(200*calcSitterSalary(b).sessions).toLocaleString()}</div>
-            ${(()=>{
-              const ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
-              const addons=b.addons||[];
-              if(!addons.length) return '';
-              const rows=addons.map(a=>{
-                // 支援 "餵藥×3隻" 格式
-                const m=a.match(/^(.+?)×(\d+)/);
-                const name=m?m[1]:a;
-                const qty=m?parseInt(m[2]):1;
-                const price=(ADDON_P[name]||50)*qty;
-                return `<div style="color:var(--tl);font-size:.76rem;">+ ${a} $${price}/次 × ${calcSitterSalary(b).sessions}次 = <strong>$${(price*calcSitterSalary(b).sessions).toLocaleString()}</strong></div>`;
-              }).join('');
-              return rows;
-            })()}
-            ${(()=>{
-              const sal=calcSitterSalary(b);
-              if(sal.transport>0) return `<div style="color:var(--tl);font-size:.76rem;">+ 車馬費 $${sal.transport}/次 × ${sal.sessions}次 = <strong>$${sal.transportTotal.toLocaleString()}</strong></div>`;
-              return '<div style="color:var(--g);font-size:.7rem;">車馬費免收</div>';
-            })()}
-            <div style="margin-top:6px;padding-top:6px;border-top:1.5px dashed var(--pk3);font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:.92rem;text-align:right;">
-              💰 總計 $${calcSitterSalary(b).total.toLocaleString()}
-            </div>
-          </div>
-          ${(b.sitterExtraFees&&b.sitterExtraFees.length)?'<div style="margin-top:6px;padding:8px 10px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:10px;font-size:.78rem;"><strong style="color:#8B6000;">💸 附加費用：</strong>'
-            +b.sitterExtraFees.map(function(f){return (f.name||'')+'  $'+f.unitPrice+'×'+f.times+'=$'+(f.unitPrice*f.times);}).join('　')+'</div>':''}
+          <div style="font-size:.72rem;color:var(--tl);">💰 本單薪資</div>
         </div>
         ${buildVisitHtml(b)}
+      </div>
+      <div style="background:linear-gradient(135deg,#FFF5F8,#FFF8F0);border:1.5px solid var(--pk3);border-radius:12px;padding:14px 16px;margin:10px 0;font-size:.82rem;">
+        <div style="font-weight:900;color:var(--pk);margin-bottom:10px;font-family:'Nunito',sans-serif;font-size:.92rem;">💰 費用明細</div>
+
+        ${(()=>{
+          const sal=calcSitterSalary(b);
+          const ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+          const addons=b.addons||[];
+          const petData=b.petData||[];
+          const catCount=b.catCount||0;
+          const dogCount=b.dogCount||0;
+          const petCount=catCount+dogCount;
+          let rows='';
+
+          // 基本照護費
+          rows+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #FFE4EC;">'
+            +'<span>🐾 到府照護</span>'
+            +'<span style="font-family:Nunito,sans-serif;">$200 × '+sal.sessions+'次 = <strong style="color:var(--pk);">$'+(200*sal.sessions).toLocaleString()+'</strong></span>'
+            +'</div>';
+
+          // 寵物加收（多隻寵物）
+          if(petCount>1){
+            const petExtra=(petCount-1)*100;
+            rows+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #FFE4EC;">'
+              +'<span>🐱 寵物加收（第2隻起 $100/隻）</span>'
+              +'<span style="font-family:Nunito,sans-serif;">$'+(petExtra)+' × '+sal.sessions+'次 = <strong>$'+(petExtra*sal.sessions).toLocaleString()+'</strong></span>'
+              +'</div>';
+          }
+
+          // 附加服務（飼主前台下單的）
+          addons.forEach(function(a){
+            const m=a.match(/^(.+?)×(\d+)/);
+            const name=m?m[1]:a;
+            const qty=m?parseInt(m[2]):1;
+            const price=(ADDON_P[name]||50)*qty;
+            rows+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #FFE4EC;">'
+              +'<span>💊 '+a+'</span>'
+              +'<span style="font-family:Nunito,sans-serif;">$'+price+' × '+sal.sessions+'次 = <strong>$'+(price*sal.sessions).toLocaleString()+'</strong></span>'
+              +'</div>';
+          });
+
+          // 車馬費
+          if(sal.transport>0){
+            rows+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #FFE4EC;">'
+              +'<span>🚗 車馬費</span>'
+              +'<span style="font-family:Nunito,sans-serif;">$'+sal.transport+' × '+sal.sessions+'次 = <strong>$'+sal.transportTotal.toLocaleString()+'</strong></span>'
+              +'</div>';
+          } else {
+            rows+='<div style="color:var(--g);padding:4px 0;font-size:.76rem;">✅ 車馬費免收</div>';
+          }
+
+          // 保母額外附加費（後台新增的）
+          const extraFees=b.sitterExtraFees||[];
+          if(extraFees.length){
+            rows+='<div style="margin-top:8px;padding-top:6px;font-weight:800;color:#8B6000;font-size:.8rem;">💸 附加費用（後台）</div>';
+            extraFees.forEach(function(f){
+              rows+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;">'
+                +'<span style="color:#8B6000;">'+( f.name||'')+'</span>'
+                +'<span style="font-family:Nunito,sans-serif;">$'+f.unitPrice+' × '+f.times+' = <strong>$'+(f.unitPrice*f.times)+'</strong></span>'
+                +'</div>';
+            });
+          }
+
+          // 總計
+          rows+='<div style="display:flex;justify-content:space-between;padding:8px 0 2px;font-weight:900;font-size:.95rem;font-family:Nunito,sans-serif;">'
+            +'<span style="color:var(--pk);">💰 總計</span>'
+            +'<span style="color:var(--pk);">$'+sal.total.toLocaleString()+'</span>'
+            +'</div>';
+
+          return rows;
+        })()}
       </div>
       <div class="checkin-row">
         <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
@@ -2588,11 +2631,11 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
   if(savedName && savedPw){
     try{
       var{data}=await _supa.from('sitter_passwords')
-        .select('name,password,display_name')
+        .select('name,password')
         .eq('name',savedName).limit(1);
       if(data&&data.length&&data[0].password===savedPw){
         var row=data[0];
-        ME={name:row.name,displayName:row.display_name||row.name,info:{role:'到府褓姆',av:'🐾'}};
+        ME={name:row.name,displayName:row.name,info:{role:'到府褓姆',av:'🐾'}};
         // Set select value
         var sel=document.getElementById('sitterSel');
         if(sel) sel.value=row.name;

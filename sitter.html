@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781445228 -->
+<!-- build:1781534085 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1000,7 +1000,7 @@ let reportVideos=[];
 let videoName='';
 let videoDuration=0;
 let petNames=[];
-console.log('[sitter] build 1781445228 - Worker格式A');
+console.log('[sitter] build 1781534085 - v3fix');
 let _myCases=[];
 let petProfilePhotos={};  // bookId_petIndex -> base64 photo
 let activePetIdx=0;
@@ -1228,7 +1228,7 @@ async function renderCases(){
 
         // ── 計算照護小計 ──
         var careTotal=200*sal.sessions;
-        if(petCount>1) careTotal+=(petCount-1)*100*sal.sessions;
+        if(petCount>3) careTotal+=(petCount-3)*50*sal.sessions; // 第4隻起$50/隻
         if(sal.transport>0) careTotal+=sal.transportTotal;
 
         // ── 計算附加服務小計 ──
@@ -1251,8 +1251,12 @@ async function renderCases(){
         row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐾 到府照護</span><span style="font-family:Nunito;">$200 × '+sal.sessions+'次 = <strong style="color:var(--pk);">$'+(200*sal.sessions).toLocaleString()+'</strong></span></div>';
 
         if(petCount>1){
-          var petExtra=(petCount-1)*100;
-          row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐱 寵物加收（'+petCount+'隻）</span><span style="font-family:Nunito;">$'+petExtra+' × '+sal.sessions+'次 = <strong>$'+(petExtra*sal.sessions).toLocaleString()+'</strong></span></div>';
+          if(petCount>3){
+            var petExtra=(petCount-3)*50;
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐱 寵物加收（第'+petCount+'隻，超過3隻 $50/隻）</span><span style="font-family:Nunito;">$'+petExtra+' × '+sal.sessions+'次 = <strong>$'+(petExtra*sal.sessions).toLocaleString()+'</strong></span></div>';
+          } else {
+            row+='<div style="color:var(--g);padding:3px 0;font-size:.76rem;">✅ 寵物3隻內免加收</div>';
+          }
         }
 
         if(sal.transport>0){
@@ -1459,7 +1463,11 @@ async function pressArrive(bookId){
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
-  renderCases();
+  // 直接更新按鈕 DOM，不重新渲染（避免按鈕跳回藍色）
+  var arrBtn=document.getElementById('arrive-'+bookId);
+  var leaBtn=document.getElementById('leave-'+bookId);
+  if(arrBtn){arrBtn.disabled=true;arrBtn.textContent='✅ 已抵達';arrBtn.style.background='#aaa';}
+  if(leaBtn){leaBtn.disabled=false;}
   // 發送 LINE 通知（透過 Worker）
   try{
     var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
@@ -1476,7 +1484,9 @@ async function pressLeave(bookId){
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='left';
-  renderCases();
+  // 直接更新按鈕 DOM
+  var leaBtn2=document.getElementById('leave-'+bookId);
+  if(leaBtn2){leaBtn2.disabled=true;leaBtn2.textContent='✅ 已離開';leaBtn2.style.background='#aaa';}
   try{
     var leaveRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',

@@ -1217,7 +1217,7 @@ async function renderCases(){
 
         ${(()=>{
           const sal=calcSitterSalary(b);
-          const ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+          const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
           const addons=b.addons||[];
           const petData=b.petData||[];
           const catCount=b.catCount||0;
@@ -1274,10 +1274,41 @@ async function renderCases(){
             });
           }
 
-          // 總計
-          rows+='<div style="display:flex;justify-content:space-between;padding:8px 0 2px;font-weight:900;font-size:.95rem;font-family:Nunito,sans-serif;">'
-            +'<span style="color:var(--pk);">💰 總計</span>'
-            +'<span style="color:var(--pk);">$'+sal.total.toLocaleString()+'</span>'
+          // ── 照護總計 ──
+          var careTotal = 200*sal.sessions;
+          if(petCount>1) careTotal += (petCount-1)*100*sal.sessions;
+          if(sal.transport>0) careTotal += sal.transportTotal;
+
+          rows+='<div style="display:flex;justify-content:space-between;padding:7px 0 2px;border-top:2px solid var(--pk3);font-weight:900;font-size:.88rem;font-family:Nunito,sans-serif;margin-top:4px;">'
+            +'<span style="color:var(--pk);">🐾 照護小計</span>'
+            +'<span style="color:var(--pk);">$'+careTotal.toLocaleString()+'</span>'
+            +'</div>';
+
+          // ── 附加服務總計 ──
+          var addonTotal = addons.reduce(function(sum,a){
+            const m2=a.match(/^(.+?)×(\d+)/);
+            const name=m2?m2[1]:a;
+            const qty=m2?parseInt(m2[2]):1;
+            const ADDON_P2={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+            return sum+(ADDON_P2[name]||50)*qty*sal.sessions;
+          },0);
+
+          var extraTotal=(b.sitterExtraFees||[]).reduce(function(sum,f){
+            return sum+(f.unitPrice||0)*(f.times||0);
+          },0);
+
+          if(addonTotal>0||extraTotal>0){
+            rows+='<div style="display:flex;justify-content:space-between;padding:5px 0;font-weight:900;font-size:.88rem;font-family:Nunito,sans-serif;">'
+              +'<span style="color:#8B6000;">💊 附加服務小計</span>'
+              +'<span style="color:#8B6000;">$'+(addonTotal+extraTotal).toLocaleString()+'</span>'
+              +'</div>';
+          }
+
+          // ── 總收入 ──
+          var grandTotal = careTotal + addonTotal + extraTotal;
+          rows+='<div style="display:flex;justify-content:space-between;padding:8px 12px;background:linear-gradient(135deg,var(--pk),var(--pk2));border-radius:10px;font-weight:900;font-size:1rem;font-family:Nunito,sans-serif;margin-top:6px;">'
+            +'<span style="color:#fff;">💰 總收入</span>'
+            +'<span style="color:#fff;">$'+grandTotal.toLocaleString()+'</span>'
             +'</div>';
 
           return rows;

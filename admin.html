@@ -1290,7 +1290,7 @@ async function uploadPetProfilePhoto(bookId, petIdx, dataUrl){
   pd[petIdx].photo=dataUrl;
   var upRes=await _supa.from('orders').update({pet_data:pd}).eq('id',bookId);
   if(upRes.error){alert('上傳失敗：'+upRes.error.message);return;}
-  var bk=(_bCache||[]).find(function(x){return x.id===bookId;});
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
   showPetDetail(bookId);
 }
@@ -1864,7 +1864,7 @@ function upB(id,fn){} // deprecated
 
 // ── DETAIL BREAKDOWN ──
 function showPetDetail(bookId){
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(!bk)return;
   const petHtml=renderPetDataHtml(bk.petData, bookId);
   const notesHtml=bk.petNotes?('<div style="margin-top:12px;background:#FFF8E1;border:1.5px solid #FFB800;border-radius:10px;padding:12px 14px;font-size:.84rem;line-height:1.7;"><strong style="color:#8B6000;">📝 注意事項</strong><br>'+bk.petNotes+'</div>'):'';
@@ -1872,7 +1872,7 @@ function showPetDetail(bookId){
   document.getElementById('petDetailInner').innerHTML=`
     <div style="margin-bottom:8px;font-size:.82rem;color:var(--tl);">飼主：<strong>${bk.ownerName}</strong></div>
     ${petHtml}${notesHtml}
-    <button onclick="downloadPetFile((_bCache||[]).find(x=>x.id===${bookId}))" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細</button>`;
+    <button onclick="downloadPetFile((_bCache||[]).find(x=>String(x.id)===String(${bookId})))" style="width:100%;margin-top:14px;padding:11px;background:linear-gradient(135deg,#52C48A,#06C755);color:#fff;border:none;border-radius:12px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;">📥 下載寵物明細</button>`;
   window._petDetailBookId = parseInt(bookId)||bookId;
   document.getElementById('petDetailModal').dataset.bookId=bookId;
   document.getElementById('petDetailModal').classList.add('show');
@@ -2075,7 +2075,7 @@ async function addAdj(bookId){
   const reason=document.getElementById('adjReason-'+bookId).value.trim();
   if(!amt){alert('請輸入金額');return;}
   if(!reason){alert('請填寫原因');return;}
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(!bk)return;
   const adjs=Array.isArray(bk.manualAdjs)?[...bk.manualAdjs]:(bk.manualAdj?[{amount:bk.manualAdj,reason:'舊調整'}]:[]);
   adjs.push({amount:amt,reason});
@@ -2090,7 +2090,7 @@ async function addAdj(bookId){
 
 async function removeAdj(bookId,idx){
   if(!confirm('確定刪除此調整項目？'))return;
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(!bk)return;
   const adjs=Array.isArray(bk.manualAdjs)?[...bk.manualAdjs]:[];
   adjs.splice(idx,1);
@@ -3278,7 +3278,7 @@ async function saveVisitInfo(bookId){
   const visitDate=document.getElementById('vi-date-'+bookId)?.value||'';
   const visitNotes=document.getElementById('vi-notes-'+bookId)?.value||'';
   const caution=document.getElementById('vi-caution-'+bookId)?.value||'';
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   const visitPhotos=(bk&&bk.visitPhotos)||[];
   await dbUpdateOrder(bookId,{visit_date:visitDate,visit_notes:visitNotes,caution,visit_photos:visitPhotos});
   if(bk){bk.visitDate=visitDate;bk.visitNotes=visitNotes;bk.caution=caution;}
@@ -3295,7 +3295,7 @@ async function savePaymentInfo(bookId,total){
   const payMethod=payMethodEl?payMethodEl.value:'';
   const payNote=document.getElementById('pay-note-'+bookId)?.value||'';
   await dbUpdateOrder(bookId,{deposit_paid:depositPaid,full_paid:fullPaid,deposit_amount:depositAmount,deposit_date:depositDate,pay_method:payMethod,pay_note:payNote});
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(bk){bk.depositPaid=depositPaid;bk.fullPaid=fullPaid;bk.depositAmount=depositAmount;bk.depositDate=depositDate;bk.payMethod=payMethod;bk.payNote=payNote;}
   const msg=document.getElementById('pay-msg-'+bookId);
   if(msg){msg.textContent='✅ 已儲存';setTimeout(()=>msg.textContent='',2000);}
@@ -3487,7 +3487,7 @@ function buildVisitPaymentHTML(bk, total){
 }
 
 async function openAdminReview(bookId){
-  const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===parseInt(bookId));
+  const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
   if(!bk)return;
   const petName=bk.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk.petName||'毛孩');
   const sitterName=parseAssignedSitters(bk.assignedTo).join('、')||'保母';
@@ -3585,7 +3585,7 @@ async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
   pd[petIdx].photo=dataUrl;
   var up=await _supa.from('orders').update({pet_data:pd}).eq('id',bookId);
   if(up.error){alert('上傳失敗：'+up.error.message);return;}
-  var bk=(_bCache||[]).find(function(x){return x.id===bookId;});
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
   showPetDetail(bookId);
 }

@@ -3244,7 +3244,7 @@ async function addNewSitter(){
   if(!pw||!pw.trim())return;
   try{
     var{error}=await _supa.from('sitter_passwords').insert([{
-      name:name, password:pw.trim(), display_name:name, bio:''
+      name:name, password:pw.trim()
     }]);
     if(error)throw new Error(error.message);
     alert('✅ 保母「'+name+'」已新增！');

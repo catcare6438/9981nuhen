@@ -985,7 +985,7 @@ const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散�
 const SVC_PRICE     = {companion:300,walk:200,both:500};   // 平日
 const HOL_PRICE     = {companion:450,walk:350,both:750};   // 一般連假
 const CNY_PRICE     = {companion:600,walk:500,both:1000};  // 春節過年
-const ADDON_PRICE={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 // ── 2026 台灣連假（行政院人事行政總處核定）──
 const CNY_HOLIDAYS   = new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);   // 春節 2/14~2/22
 const OTHER_HOLIDAYS = new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-10-24","2026-10-25","2026-10-26","2026-12-25","2026-12-26","2026-12-27"]);  // 其他連假
@@ -1054,7 +1054,7 @@ function parseSlotStats(bk){
 }
 
 function calcBv2(bk){
-  const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  const AN={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   const{totalSessions,holSessions,cnySessions,normSessions}=parseSlotStats(bk);
   const addon=(bk.addons||[]).reduce((s,a)=>{
     var m2=a.match(/^(.+?)[×x\*×](\d+)/);
@@ -1914,7 +1914,7 @@ function showDetail(bookId){
   const bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單 id='+bookId);return;}
 
-  const AN={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  const AN={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   const SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
   const cal=calcBv2(bk);
   const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
@@ -2694,7 +2694,8 @@ async function openEditOrder(bookId){
   if(!bk){alert('找不到訂單 id='+bookId+' cache:'+(_bCache||[]).length);return;}
 
   const SVC_OPT = [{k:'companion',l:'到府陪伴'},{k:'walk',l:'遛狗服務'},{k:'both',l:'到府＋遛狗'}];
-  const ADDON_OPT = ['餵藥','點藥','舒緩按摩','剪指甲','協助排便導尿','收信','澆花','倒垃圾'];
+  const ADDON_OPT = ['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿','收信','澆花','倒垃圾'];
+  const ADDON_HAS_QTY = {'餵藥':true,'點藥':true,'擦藥':true}; // 需要填數量（幾隻）
   const SLOT_OPT = [{k:'morning',l:'🌅 早上'},{k:'noon',l:'☀️ 中午'},{k:'evening',l:'🌙 晚上'}];
   const DAY_N = ['日','一','二','三','四','五','六'];
 
@@ -2800,8 +2801,23 @@ async function openEditOrder(bookId){
       <div class="edit-row"><span class="edit-label">加購</span>
         <div style="display:flex;flex-wrap:wrap;gap:6px;">
           ${ADDON_OPT.map(function(a){
-            var chk=(bk.addons||[]).includes(a)?'checked':'';
-            return '<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;"><input type="checkbox" name="e-addon" value="'+a+'" '+chk+'> '+a+'</label>';
+            // Check if this addon is already selected (支援 "餵藥×3隻" 格式)
+            var existingAddon=(bk.addons||[]).find(function(x){
+              return x===a||x.startsWith(a+'×');
+            });
+            var chk=existingAddon?'checked':'';
+            var hasQty=ADDON_HAS_QTY[a];
+            var curQty=1;
+            if(existingAddon){
+              var m2=existingAddon.match(/×(\d+)/);
+              if(m2) curQty=parseInt(m2[1]);
+            }
+            var qtyHtml=hasQty
+              ?'<select name="e-addon-qty-'+a+'" style="padding:2px 4px;border:1px solid var(--pk3);border-radius:5px;font-size:.74rem;margin-left:2px;">'
+                +[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===curQty?' selected':'')+'>'+n+'隻</option>';}).join('')
+                +'</select>'
+              :'';
+            return '<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;background:'+(existingAddon?'#FFF0F5':'#fff')+';padding:4px 8px;border-radius:8px;border:1px solid '+(existingAddon?'var(--pk3)':'#eee')+';cursor:pointer;"><input type="checkbox" name="e-addon" value="'+a+'" '+chk+'> '+a+qtyHtml+'</label>';
           }).join('')}
         </div>
       </div>

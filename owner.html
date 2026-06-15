@@ -1852,6 +1852,13 @@ document.head.appendChild(_shakeStyle);
     try{ data = JSON.parse(raw); }catch(e){ data = {error: raw}; }
     if(data.success){
       showLineStatus('✅ LINE 綁定成功！保母回報將即時通知您 🐾', '#06C755');
+      // 綁定成功後，用 state(bookId) 對應的密碼自動登入
+      // 讓用戶重新輸入密碼進入毛孩專區
+      setTimeout(function(){
+        var loginErr=document.getElementById('ownerErr');
+        var hint=document.getElementById('lineBindStatus');
+        if(hint) hint.textContent='✅ LINE 綁定成功！請輸入您的專屬密碼進入毛孩專區 🐾';
+      }, 1000);
     } else {
       showLineStatus('❌ 綁定失敗：'+(data.error||'未知錯誤 status='+res.status), '#E05252');
     }

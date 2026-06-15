@@ -971,8 +971,12 @@ let ADMIN_PW=localStorage.getItem('adminPw')||DEFAULT_PW;
 var SITTERS_LIST=['Ying','小語','小汶','菓菓','小茹','阿瑛']; // default, overwritten on load
 async function loadSittersList(){
   try{
-    var{data}=await _supa.from('sitter_passwords').select('name').order('name');
-    if(data&&data.length) SITTERS_LIST=data.map(function(r){return r.name;});
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords');
+    var data=await res.json();
+    if(Array.isArray(data)&&data.length){
+      SITTERS_LIST=data.map(function(r){return r.name;}).sort();
+      console.log('[sitters] loaded:',SITTERS_LIST);
+    }
   }catch(e){console.warn('loadSittersList:',e);}
 }
 const ROLES={Ying:'資深貓咪照護',小汶:'老年寵物照護',菓菓:'中途志工',小茹:'中途志工',阿瑛:'中途志工'};

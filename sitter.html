@@ -1419,16 +1419,16 @@ async function pressArrive(bookId){
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
   renderCases();
-  // 發送 LINE 通知
+  // 發送 LINE 通知（透過 Worker）
   try{
-    var res2=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+    var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({action:'send-checkin-notify',bookId:Number(bookId),sitter:ME.name,type:'arrive',time:timeStr})
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'send-checkin-notify',bookId:String(bookId),sitter:ME.name,type:'arrive',time:timeStr})
     });
-    var txt2=await res2.text();
-    alert('[debug] bookId='+bookId+'\nstatus='+res2.status+'\n'+txt2.substring(0,400));
-  }catch(e){alert('error:'+e.message);}
+    var notifyData=await notifyRes.json();
+    console.log('[打卡抵達]',notifyData);
+  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
 }
 
 async function pressLeave(bookId){
@@ -1437,16 +1437,10 @@ async function pressLeave(bookId){
   _checkinState[bookId]='left';
   renderCases();
   try{
-    await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+    var leaveRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-      body:JSON.stringify({
-        action:'send-checkin-notify',
-        bookId:Number(bookId),
-        sitter:ME.name,
-        type:'leave',
-        time:timeStr
-      })
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({action:'send-checkin-notify',bookId:String(bookId),sitter:ME.name,type:'leave',time:timeStr})
     });
     console.log('[打卡] 離開通知已發送');
   }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
@@ -2486,9 +2480,9 @@ async function submitReport(){
   console.log('[LINE] 開始推播通知 bookId='+currentBookId);
   (async function(){
     try{
-      var notifyRes=await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action',{
+      var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
         method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
+        headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
           action:   'send-report-notify',
           bookId:   Number(currentBookId),

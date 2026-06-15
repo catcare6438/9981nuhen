@@ -1842,10 +1842,10 @@ document.head.appendChild(_shakeStyle);
   showLineStatus('⏳ LINE 綁定中...', '#888');
 
   try{
-    var res = await fetch('https://cswejuvithewfyhmisfc.supabase.co/functions/v1/smart-action', {
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/line-callback', {
       method: 'POST',
-      headers: {'Content-Type':'application/json', 'Authorization':'Bearer '+SUPA_KEY},
-      body: JSON.stringify({action:'line-callback', code:code, bookId:state})
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({code:code, bookId:state})
     });
     var raw = await res.text();
     var data = {};

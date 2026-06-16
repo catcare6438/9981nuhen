@@ -1698,27 +1698,44 @@ function buildContractSection(bk){
   var contract = bk.contractUrl||'';
   var feeTable = bk.feeTableUrl||'';
   if(!contract && !feeTable) return '';
+
+  function renderFile(url, label, filename){
+    if(!url) return '';
+    var isImg = url.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+    var isPdf = url.startsWith('data:application/pdf') || /\.pdf$/i.test(url);
+    var isHttp = url.startsWith('http');
+    if(isImg){
+      return '<img src="'+url+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);cursor:pointer;" onclick="openLB(this.src,\''+filename+'\')"><br>'
+        +'<a href="'+url+'" download="'+filename+'" style="font-size:.74rem;color:var(--pk);text-decoration:none;">⬇️ 下載圖片</a>';
+    } else if(isPdf){
+      return '<div style="display:flex;gap:8px;">'
+        +'<a href="'+url+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看'+label+'</a>'
+        +'<a href="'+url+'" download="'+filename+'" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a>'
+        +'</div>';
+    } else if(isHttp){
+      // R2 URL - 嘗試圖片顯示，失敗就改連結
+      return '<img src="'+url+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);cursor:pointer;" '
+        +'onclick="openLB(this.src,\''+filename+'\')" '
+        +'onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
+        +'<div style="display:none;gap:8px;margin-top:4px;">'
+        +'<a href="'+url+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看'+label+'</a>'
+        +'<a href="'+url+'" download="'+filename+'" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a>'
+        +'</div>';
+    }
+    return '<a href="'+url+'" target="_blank" style="color:var(--pk);">查看'+label+'</a>';
+  }
+
   var html = ['<div style="margin-top:10px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
     '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">📄 合約 &amp; 費用表</div>',
     '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">'];
   if(contract){
-    html.push('<div>');
-    html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📋 服務合約書</div>');
-    if(contract.startsWith('data:image')){
-      html.push('<img src="'+contract+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);" onclick="openLB(this.src,\'合約書.jpg\')">');
-    } else if(contract.startsWith('data:application/pdf')){
-      html.push('<div style="display:flex;gap:8px;"><a href="'+contract+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看合約書</a><a href="'+contract+'" download="合約書.pdf" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a></div>');
-    }
+    html.push('<div><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📋 服務合約書</div>');
+    html.push(renderFile(contract,'合約書','合約書'));
     html.push('</div>');
   }
   if(feeTable){
-    html.push('<div>');
-    html.push('<div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">💰 服務費用表</div>');
-    if(feeTable.startsWith('data:image')){
-      html.push('<img src="'+feeTable+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);" onclick="openLB(this.src,\'費用表.jpg\')">');
-    } else if(feeTable.startsWith('data:application/pdf')){
-      html.push('<div style="display:flex;gap:8px;"><a href="'+feeTable+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看費用表</a><a href="'+feeTable+'" download="費用表.pdf" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a></div>');
-    }
+    html.push('<div><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">💰 服務費用表</div>');
+    html.push(renderFile(feeTable,'費用表','費用表'));
     html.push('</div>');
   }
   html.push('</div></div>');

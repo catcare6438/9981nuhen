@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781534085 -->
+<!-- build:1781616025 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1000,7 +1000,7 @@ let reportVideos=[];
 let videoName='';
 let videoDuration=0;
 let petNames=[];
-console.log('[sitter] build 1781534085 - v3fix');
+console.log('[sitter] build 1781616025 - persist');
 let _myCases=[];
 let petProfilePhotos={};  // bookId_petIndex -> base64 photo
 let activePetIdx=0;
@@ -1456,13 +1456,31 @@ function buildTodoSection(bk){
 }
 
 // ── 打卡狀態 ──
-var _checkinState = {}; // {bookId: 'arrived'|'left'}
+// _checkinState 持久化：用 sessionStorage 存，以今天日期為 key，隔天自動失效
+var _checkinStateKey = 'checkinState_' + new Date().toISOString().slice(0,10);
+var _checkinState = (function(){
+  try{
+    var saved = sessionStorage.getItem(_checkinStateKey);
+    if(saved) return JSON.parse(saved);
+  }catch(e){}
+  return {};
+})();
+function _saveCheckinState(){
+  try{ sessionStorage.setItem(_checkinStateKey, JSON.stringify(_checkinState)); }catch(e){}
+  // 清除舊的 key（昨天之前的）
+  try{
+    Object.keys(sessionStorage).filter(function(k){
+      return k.startsWith('checkinState_') && k !== _checkinStateKey;
+    }).forEach(function(k){ sessionStorage.removeItem(k); });
+  }catch(e){}
+}
 
 async function pressArrive(bookId){
   var bk=(_myCases||[]).find(function(x){return String(x.id)===String(bookId);});
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
+  _saveCheckinState(); // 持久化到 sessionStorage
   // 直接更新按鈕 DOM，不重新渲染（避免按鈕跳回藍色）
   var arrBtn=document.getElementById('arrive-'+bookId);
   var leaBtn=document.getElementById('leave-'+bookId);
@@ -1484,6 +1502,7 @@ async function pressLeave(bookId){
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='left';
+  _saveCheckinState(); // 持久化到 sessionStorage
   // 直接更新按鈕 DOM
   var leaBtn2=document.getElementById('leave-'+bookId);
   if(leaBtn2){leaBtn2.disabled=true;leaBtn2.textContent='✅ 已離開';leaBtn2.style.background='#aaa';}

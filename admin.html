@@ -3433,337 +3433,356 @@ function efCalc(elOrUid){
 async function exportOrderPDF(bookId){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
-
   var btn=document.querySelector('[data-id="'+bookId+'"][onclick*="exportOrderPDF"]');
   if(btn){btn.textContent='⏳ 產生中...';btn.disabled=true;}
 
   try{
-    // ── 取得回報資料 ──
+    // 取回報資料
     var reports=[];
     try{
-      var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId+'&_order=ts&_asc=true');
-      var raw=await res.json();
-      reports=Array.isArray(raw)?raw:[];
-    }catch(e){console.warn('fetch reports:',e);}
+      var rres=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId+'&_order=ts&_asc=true');
+      var rraw=await rres.json();
+      reports=Array.isArray(rraw)?rraw:[];
+    }catch(e){}
 
     const {jsPDF}=window.jspdf;
     var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
-    var PW=595, PH=842; // A4 pt
+    var PW=595,PH=842;
 
-    // ── 輔助函式 ──
+    // Canvas 繪圖輔助
+    async function pageToImg(drawFn){
+      var cv=document.createElement('canvas');
+      cv.width=PW*2; cv.height=PH*2; // 2x解析度
+      var ctx=cv.getContext('2d');
+      ctx.scale(2,2);
+      ctx.fillStyle='#fff';
+      ctx.fillRect(0,0,PW,PH);
+      await drawFn(ctx);
+      return cv.toDataURL('image/jpeg',0.92);
+    }
+
+    // 載入網路圖片到 canvas
     async function loadImg(url){
-      return new Promise(function(resolve){
-        if(!url){resolve(null);return;}
+      return new Promise(function(res){
+        if(!url){res(null);return;}
         var img=new Image();
         img.crossOrigin='anonymous';
         img.onload=function(){
-          try{
-            var cv=document.createElement('canvas');
-            var maxW=1200,maxH=1200;
-            var w=img.width,h=img.height;
-            if(w>maxW){h=Math.round(h*maxW/w);w=maxW;}
-            if(h>maxH){w=Math.round(w*maxH/h);h=maxH;}
-            cv.width=w;cv.height=h;
-            cv.getContext('2d').drawImage(img,0,0,w,h);
-            resolve({data:cv.toDataURL('image/jpeg',0.82),w:w,h:h});
-          }catch(e){resolve(null);}
+          var cv=document.createElement('canvas');
+          var mw=800,mh=800,w=img.width,h=img.height;
+          if(w>mw){h=Math.round(h*mw/w);w=mw;}
+          if(h>mh){w=Math.round(w*mh/h);h=mh;}
+          cv.width=w;cv.height=h;
+          cv.getContext('2d').drawImage(img,0,0,w,h);
+          res({d:cv.toDataURL('image/jpeg',0.85),w:img.width,h:img.height});
         };
-        img.onerror=function(){resolve(null);};
+        img.onerror=function(){res(null);};
         img.src=url;
       });
     }
 
-    function newPage(isFirst){
-      if(!isFirst) doc.addPage();
+    // 畫圓角矩形
+    function rrect(ctx,x,y,w,h,r,fill,stroke){
+      ctx.beginPath();
+      ctx.moveTo(x+r,y);
+      ctx.lineTo(x+w-r,y);
+      ctx.arcTo(x+w,y,x+w,y+r,r);
+      ctx.lineTo(x+w,y+h-r);
+      ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+      ctx.lineTo(x+r,y+h);
+      ctx.arcTo(x,y+h,x,y+h-r,r);
+      ctx.lineTo(x,y+r);
+      ctx.arcTo(x,y,x+r,y,r);
+      ctx.closePath();
+      if(fill){ctx.fillStyle=fill;ctx.fill();}
+      if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=1;ctx.stroke();}
     }
 
-    // ── 顏色定義 ──
-    var C={
-      pk:[255,92,125], pk2:[255,143,171], pk3:[255,214,224],
-      gold:[255,179,0], goldL:[255,248,225],
-      blue:[3,105,161], blueL:[240,249,255],
-      green:[4,120,87], greenL:[240,253,244],
-      gray:[100,100,100], grayL:[248,248,248],
-      white:[255,255,255], dark:[40,40,40]
-    };
-
-    function setFill(col){doc.setFillColor(col[0],col[1],col[2]);}
-    function setDraw(col){doc.setDrawColor(col[0],col[1],col[2]);}
-    function setTxt(col){doc.setTextColor(col[0],col[1],col[2]);}
-
-    function roundRect(x,y,w,h,r,fill,stroke){
-      doc.roundedRect(x,y,w,h,r,r,fill&&stroke?'FD':fill?'F':stroke?'D':'N');
-    }
-
-    // ── 封面頁 ──
-    newPage(true);
-
-    // 粉色漸層背景上半
-    setFill(C.pk); doc.rect(0,0,PW,320,'F');
-    setFill([255,120,150]); doc.rect(0,260,PW,60,'F');
-
-    // 貓掌裝飾
-    setFill([255,255,255]); doc.setGState(new doc.GState({opacity:0.1}));
-    doc.circle(500,60,80,'F');
-    doc.circle(50,180,60,'F');
-    doc.setGState(new doc.GState({opacity:1}));
-
-    // 標題
-    setTxt(C.white);
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(11);
-    doc.text('MAOWOLI',PW/2,80,{align:'center'});
-    doc.setFontSize(26);
-    doc.text('貓窩裏 🐾',PW/2,130,{align:'center'});
-    doc.setFontSize(14);
-    doc.text('到府寵物保母 照護完整紀錄',PW/2,162,{align:'center'});
-
-    // 白色主卡片
-    setFill(C.white);
-    roundRect(40,200,PW-80,560,16,true,false);
-
-    // 飼主資訊
-    setTxt(C.pk);
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    doc.text('👤  飼主資訊',60,260);
-
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(10);
-    setTxt(C.dark);
-    var rows=[
-      ['飼主姓名',bk.ownerName||''],
-      ['聯絡電話',bk.ownerPhone||''],
-      ['服務地址',bk.ownerAddr||'未填'],
-      ['服務期間',( bk.startDate||'')+' ～ '+(bk.endDate||'')],
-      ['服務項目',(bk.services||[]).join('、')||''],
-      ['附加服務',(bk.addons||[]).join('、')||'無'],
-      ['費用總計','NT$ '+((bk.total||0).toLocaleString())],
-      ['派遣保母',bk.assignedTo||''],
-    ];
-    var ry=285;
-    rows.forEach(function(r){
-      setTxt(C.gray); doc.text(r[0]+'：',60,ry);
-      setTxt(C.dark); doc.text(String(r[1]).substring(0,40),160,ry);
-      ry+=22;
-    });
-
-    // 分隔線
-    setDraw(C.pk3); doc.setLineWidth(1);
-    doc.line(60,ry+5,PW-60,ry+5);
-    ry+=20;
-
-    // 毛孩資訊
-    setTxt(C.pk);
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    doc.text('🐾  毛孩資訊',60,ry);
-    ry+=22;
-
-    doc.setFont('helvetica','normal');
-    doc.setFontSize(10);
-    var pets=bk.petData||[];
-    pets.forEach(function(p,i){
-      var typeStr=p.type==='cat'?'🐱 貓咪':'🐶 狗狗';
-      var healthStr=(p.health&&p.health.length)?'健康注意：'+p.health.join('、'):'健康良好';
-      setTxt(C.dark);
-      doc.text((i+1)+'.  '+( p.name||'未命名')+'  ｜  '+typeStr+'  ｜  '+( p.gender||'')+'  ｜  '+healthStr,60,ry);
-      ry+=20;
-      if(p.notes){
-        setTxt(C.gray);
-        doc.text('    備注：'+p.notes.substring(0,50),60,ry);
-        ry+=18;
-      }
-    });
-
-    // 家訪資訊
-    if(bk.visitDate){
-      ry+=8;
-      setDraw(C.pk3); doc.line(60,ry,PW-60,ry); ry+=16;
-      setTxt(C.blue);
-      doc.setFontSize(13);
-      doc.setFont('helvetica','bold');
-      doc.text('🏠  家訪資訊',60,ry); ry+=22;
-      doc.setFont('helvetica','normal');
-      doc.setFontSize(10);
-      setTxt(C.dark);
-      doc.text('家訪日期：'+bk.visitDate,60,ry); ry+=18;
-      if(bk.visitNotes){doc.text('備注：'+bk.visitNotes.substring(0,50),60,ry);ry+=18;}
-      if(bk.caution){setTxt([192,80,0]);doc.text('注意事項：'+bk.caution.substring(0,50),60,ry);ry+=18;}
-    }
-
-    // 回報總覽
-    ry+=8;
-    setDraw(C.pk3); doc.line(60,ry,PW-60,ry); ry+=16;
-    setTxt(C.pk);
-    doc.setFontSize(13);
-    doc.setFont('helvetica','bold');
-    doc.text('📋  照護回報總覽（共 '+reports.length+' 筆）',60,ry);
-
-    // 底部
-    setFill(C.pk3);
-    doc.rect(40,PH-60,PW-80,40,'F');
-    setTxt(C.pk);
-    doc.setFontSize(9);
-    doc.setFont('helvetica','normal');
-    doc.text('貓窩裏 到府寵物保母  ｜  LINE @099nuhen  ｜  感謝您的信任與托付 🐾',PW/2,PH-34,{align:'center'});
-
-    // ── 每日回報頁 ──
-    for(var ri=0;ri<reports.length;ri++){
-      var r=reports[ri];
-      newPage(false);
-
-      // 頂部色條
-      setFill(C.pk); doc.rect(0,0,PW,56,'F');
-      setTxt(C.white);
-      doc.setFontSize(13);
-      doc.setFont('helvetica','bold');
-      var dateStr=r.date||(r.ts?new Date(parseInt(r.ts)).toLocaleDateString('zh-TW'):'');
-      doc.text('📅  '+dateStr+'  ｜  保母：'+(r.sitter||''),40,36);
-      doc.setFontSize(9);
-      doc.setFont('helvetica','normal');
-      var timeStr=(r.time_start||r.timeStart||'')+(((r.time_end||r.timeEnd))?(' — '+(r.time_end||r.timeEnd)):'');
-      if(timeStr) doc.text('服務時間：'+timeStr,PW-180,36,{align:'left'});
-
-      // 頁碼
-      setTxt(C.gray);
-      doc.setFontSize(8);
-      doc.text('第 '+(ri+2)+' 頁 / 共 '+(reports.length+1)+' 頁',PW-50,PH-20,{align:'right'});
-
-      var py=80;
-
-      // ── 消毒準備 ──
-      var disinfect=r.disinfect||r.disinfect||[];
-      if(disinfect.length){
-        setFill(C.blueL); roundRect(36,py,PW-72,42+disinfect.length*18,8,true,false);
-        setTxt(C.blue); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('🧴  進門前消毒準備',50,py+18);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); setTxt(C.dark);
-        disinfect.forEach(function(d,i){ doc.text('✓  '+d,60,py+36+i*16); });
-        py+=52+disinfect.length*16;
-      }
-
-      // ── 安全確認 ──
-      var safety=r.safety||[];
-      if(safety.length){
-        setFill(C.greenL); roundRect(36,py,PW-72,42+safety.length*18,8,true,false);
-        setTxt(C.green); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('🔒  安全確認',50,py+18);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); setTxt(C.dark);
-        safety.forEach(function(s,i){ doc.text('✓  '+s,60,py+36+i*16); });
-        py+=52+safety.length*16;
-      }
-
-      // ── 今日服務 ──
-      var svcs=r.services||[];
-      if(svcs.length){
-        setFill(C.goldL); roundRect(36,py,PW-72,42+svcs.length*18,8,true,false);
-        setTxt(C.gold); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('🧹  今日服務內容',50,py+18);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); setTxt(C.dark);
-        svcs.forEach(function(s,i){ doc.text('✔  '+s,60,py+36+i*16); });
-        py+=52+svcs.length*16;
-      }
-
-      // ── 每隻寵物回報 ──
-      var petReps=r.pet_reports||r.petReports||[];
-      petReps.forEach(function(pr){
-        if(py>PH-120){doc.addPage();py=60;}
-        setFill(C.pk3); roundRect(36,py,PW-72,14,6,true,false);
-        setTxt(C.pk); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('🐾  '+(pr.name||'毛孩')+'  的今日狀況',50,py+10);
-        py+=22;
-
-        setFill(C.white); setDraw(C.pk3); doc.setLineWidth(0.5);
-        roundRect(36,py,PW-72,1,0,false,true);
-
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); setTxt(C.dark);
-        var fields=[
-          ['進食狀況', pr.eating||pr.eat||''],
-          ['飲水狀況', pr.water||pr.drink||''],
-          ['排泄狀況', pr.poop||pr.toilet||''],
-          ['精神狀態', pr.spirit||pr.mood||''],
-          ['行為觀察', pr.behavior||pr.action||''],
-          ['特殊注意', pr.note||pr.special||''],
-        ];
-        var col=0;
-        fields.forEach(function(f){
-          if(!f[1]) return;
-          var fx=col===0?50:PW/2;
-          if(py>PH-100){doc.addPage();py=60;col=0;}
-          setTxt(C.gray); doc.text(f[0]+'：',fx,py+14);
-          setTxt(C.dark); doc.text(String(f[1]).substring(0,28),fx+60,py+14);
-          if(col===0){col=1;}else{col=0;py+=20;}
-        });
-        if(col===1) py+=20;
-        py+=10;
-      });
-
-      // ── 保母日記 ──
-      var diary=r.diary||r.note||'';
-      if(diary){
-        if(py>PH-120){doc.addPage();py=60;}
-        setFill(C.grayL); roundRect(36,py,PW-72,56,8,true,false);
-        setTxt(C.pk); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('📝  保母今日小日記',50,py+16);
-        doc.setFont('helvetica','normal'); doc.setFontSize(9); setTxt(C.dark);
-        var lines=doc.splitTextToSize(diary,PW-120);
-        lines.slice(0,3).forEach(function(l,i){ doc.text(l,50,py+32+i*14); });
-        py+=70;
-      }
-
-      // ── 照片 ──
-      var photos=[];
-      var petPhotos=r.pet_photos||r.petPhotos||[];
-      petPhotos.forEach(function(p){
-        var url=typeof p==='string'?p:(p.dataUrl||p.url||'');
-        if(url&&url.startsWith('http')) photos.push(url);
-      });
-
-      if(photos.length){
-        if(py>PH-160){doc.addPage();py=60;}
-        setTxt(C.pk); doc.setFontSize(10); doc.setFont('helvetica','bold');
-        doc.text('📸  今日照片（'+photos.length+'張）',50,py);
-        py+=16;
-
-        var cols=3;
-        var imgW=(PW-80)/cols-8;
-        var imgH=imgW*0.75;
-        var col2=0;
-
-        for(var pi=0;pi<Math.min(photos.length,9);pi++){
-          if(py+imgH>PH-60){doc.addPage();py=60;col2=0;}
-          var imgData=await loadImg(photos[pi]);
-          if(imgData){
-            var ix=40+col2*(imgW+8);
-            doc.addImage(imgData.data,'JPEG',ix,py,imgW,imgH);
-            // 圓角邊框效果
-            setDraw(C.pk3); doc.setLineWidth(0.5);
-            doc.rect(ix,py,imgW,imgH,'D');
-          }
-          col2++;
-          if(col2>=cols){col2=0;py+=imgH+8;}
+    function wrapText(ctx,text,x,y,maxW,lineH){
+      var chars=text.split('');
+      var line='';
+      var ly=y;
+      for(var i=0;i<chars.length;i++){
+        var testLine=line+chars[i];
+        if(ctx.measureText(testLine).width>maxW){
+          ctx.fillText(line,x,ly);
+          line=chars[i];
+          ly+=lineH;
+        }else{
+          line=testLine;
         }
-        if(col2>0) py+=imgH+12;
-        else py+=8;
       }
+      if(line) ctx.fillText(line,x,ly);
+      return ly;
+    }
+
+    // ══════════════════════════════════════
+    // 封面頁
+    // ══════════════════════════════════════
+    var coverImg=await pageToImg(async function(ctx){
+      // 粉色頂部
+      var grad=ctx.createLinearGradient(0,0,PW,0);
+      grad.addColorStop(0,'#FF5C7D');
+      grad.addColorStop(1,'#FF8FAB');
+      ctx.fillStyle=grad;
+      ctx.fillRect(0,0,PW,180);
+
+      // 品牌標題
+      ctx.fillStyle='rgba(255,255,255,0.15)';
+      ctx.beginPath();ctx.arc(PW-60,40,70,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,255,255,0.1)';
+      ctx.beginPath();ctx.arc(40,140,50,0,Math.PI*2);ctx.fill();
+
+      ctx.fillStyle='#fff';
+      ctx.font='bold 28px "Noto Sans TC",sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('貓窩裏 🐾 到府寵物保母',PW/2,75);
+      ctx.font='16px "Noto Sans TC",sans-serif';
+      ctx.fillText('寵物照護完整紀錄',PW/2,108);
+      ctx.font='12px "Noto Sans TC",sans-serif';
+      ctx.fillText('MAOWOLI PET CARE REPORT',PW/2,134);
+      ctx.textAlign='left';
+
+      // 白色卡片
+      rrect(ctx,30,160,PW-60,600,14,'#fff','#FFD6E0');
+
+      // 飼主資訊
+      ctx.fillStyle='#FF5C7D';
+      ctx.font='bold 14px "Noto Sans TC",sans-serif';
+      ctx.fillText('👤 飼主資訊',50,202);
+      ctx.strokeStyle='#FFD6E0';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(50,210);ctx.lineTo(PW-50,210);ctx.stroke();
+
+      var infoRows=[
+        ['姓名',bk.ownerName||''],
+        ['電話',bk.ownerPhone||''],
+        ['地址',bk.ownerAddr||'未填'],
+        ['服務期間',(bk.startDate||'')+' ～ '+(bk.endDate||'')],
+        ['服務項目',(bk.services||[]).join('、')||''],
+        ['附加服務',(bk.addons||[]).join('、')||'無'],
+        ['費用總計','NT$ '+((bk.total||0).toLocaleString())],
+        ['派遣保母',bk.assignedTo||''],
+      ];
+      var ry=232;
+      infoRows.forEach(function(r){
+        ctx.fillStyle='#888';
+        ctx.font='11px "Noto Sans TC",sans-serif';
+        ctx.fillText(r[0],50,ry);
+        ctx.fillStyle='#222';
+        ctx.font='12px "Noto Sans TC",sans-serif';
+        ctx.fillText(String(r[1]).substring(0,35),140,ry);
+        ry+=22;
+      });
+
+      // 分隔線
+      ctx.strokeStyle='#FFE4EC';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(50,ry+4);ctx.lineTo(PW-50,ry+4);ctx.stroke();
+      ry+=20;
+
+      // 毛孩資訊
+      ctx.fillStyle='#FF5C7D';
+      ctx.font='bold 14px "Noto Sans TC",sans-serif';
+      ctx.fillText('🐾 毛孩資訊',50,ry);
+      ry+=20;
+
+      var pets=bk.petData||[];
+      pets.forEach(function(p,i){
+        var typeStr=p.type==='cat'?'🐱 貓':'🐶 狗';
+        var txt=(i+1)+'.  '+( p.name||'未命名')+'  ｜  '+typeStr+'  ｜  '+(p.gender||'');
+        if(p.health&&p.health.length) txt+='  ｜  健康注意：'+p.health.join('、');
+        ctx.fillStyle='#333';
+        ctx.font='11px "Noto Sans TC",sans-serif';
+        ctx.fillText(txt.substring(0,55),52,ry);
+        ry+=20;
+      });
+
+      // 回報總筆數
+      ry+=8;
+      rrect(ctx,50,ry,PW-100,40,8,'#FFF0F5',null);
+      ctx.fillStyle='#FF5C7D';
+      ctx.font='bold 13px "Noto Sans TC",sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('📋 共 '+reports.length+' 天照護回報',PW/2,ry+25);
+      ctx.textAlign='left';
 
       // 底部
-      setFill(C.pk3);
-      doc.rect(0,PH-36,PW,36,'F');
-      setTxt(C.pk);
-      doc.setFontSize(8);
-      doc.text('貓窩裏 到府寵物保母  ｜  '+dateStr+'  照護紀錄  ｜  @099nuhen',PW/2,PH-16,{align:'center'});
+      ctx.fillStyle='#FFD6E0';
+      ctx.fillRect(0,PH-44,PW,44);
+      ctx.fillStyle='#FF5C7D';
+      ctx.font='11px "Noto Sans TC",sans-serif';
+      ctx.textAlign='center';
+      ctx.fillText('貓窩裏 到府寵物保母  ｜  LINE @099nuhen  ｜  感謝您的信任與托付 🐾',PW/2,PH-18);
+      ctx.textAlign='left';
+    });
+    doc.addImage(coverImg,'JPEG',0,0,PW,PH);
+
+    // ══════════════════════════════════════
+    // 每日回報頁
+    // ══════════════════════════════════════
+    for(var ri=0;ri<reports.length;ri++){
+      var r=reports[ri];
+      doc.addPage();
+
+      var pageImg=await pageToImg(async function(ctx){
+        var dateStr=r.date||(r.ts?new Date(parseInt(r.ts)).toLocaleDateString('zh-TW'):'');
+        var sitter=r.sitter||'';
+        var timeStart=r.time_start||r.timeStart||'';
+        var timeEnd=r.time_end||r.timeEnd||'';
+
+        // 頂部
+        var grad2=ctx.createLinearGradient(0,0,PW,0);
+        grad2.addColorStop(0,'#FF5C7D');
+        grad2.addColorStop(1,'#FF8FAB');
+        ctx.fillStyle=grad2;
+        ctx.fillRect(0,0,PW,64);
+        ctx.fillStyle='#fff';
+        ctx.font='bold 15px "Noto Sans TC",sans-serif';
+        ctx.fillText('📅 '+dateStr+'  ｜  保母：'+sitter,26,30);
+        if(timeStart){
+          ctx.font='11px "Noto Sans TC",sans-serif';
+          ctx.fillText('🕐 '+timeStart+(timeEnd?' — '+timeEnd:''),26,50);
+        }
+        ctx.font='10px "Noto Sans TC",sans-serif';
+        ctx.textAlign='right';
+        ctx.fillText((ri+2)+' / '+(reports.length+1)+' 頁',PW-20,44);
+        ctx.textAlign='left';
+
+        var py=80;
+
+        // 消毒
+        var disinfect=r.disinfect||[];
+        if(disinfect.length){
+          rrect(ctx,20,py,PW-40,20+disinfect.length*20+16,8,'#EFF6FF',null);
+          ctx.fillStyle='#1D4ED8';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('🧴 進門前消毒準備',34,py+16);
+          ctx.fillStyle='#1E3A5F';ctx.font='11px "Noto Sans TC",sans-serif';
+          disinfect.forEach(function(d,i){ctx.fillText('✓  '+d,40,py+34+i*20);});
+          py+=24+disinfect.length*20+8;
+        }
+
+        // 安全確認
+        var safety=r.safety||[];
+        if(safety.length){
+          rrect(ctx,20,py,PW-40,20+safety.length*20+16,8,'#F0FDF4',null);
+          ctx.fillStyle='#15803D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('🔒 安全確認',34,py+16);
+          ctx.fillStyle='#14532D';ctx.font='11px "Noto Sans TC",sans-serif';
+          safety.forEach(function(s,i){ctx.fillText('✓  '+s,40,py+34+i*20);});
+          py+=24+safety.length*20+8;
+        }
+
+        // 今日服務
+        var svcs=r.services||[];
+        if(svcs.length){
+          rrect(ctx,20,py,PW-40,20+svcs.length*20+16,8,'#FFFBEB',null);
+          ctx.fillStyle='#B45309';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('🧹 今日服務內容',34,py+16);
+          ctx.fillStyle='#78350F';ctx.font='11px "Noto Sans TC",sans-serif';
+          svcs.forEach(function(s,i){ctx.fillText('✔  '+s,40,py+34+i*20);});
+          py+=24+svcs.length*20+8;
+        }
+
+        // 毛孩回報
+        var petReps=r.pet_reports||r.petReports||[];
+        petReps.forEach(function(pr){
+          if(py>PH-140) return;
+          rrect(ctx,20,py,PW-40,16,0,'#FFD6E0',null);
+          ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('🐾 '+( pr.name||'毛孩')+' 今日狀況',30,py+12);
+          py+=22;
+          var fields=[
+            ['🍽 進食',pr.eating||pr.eat||''],
+            ['💧 飲水',pr.water||pr.drink||''],
+            ['🚽 排泄',pr.poop||pr.toilet||''],
+            ['✨ 精神',pr.spirit||pr.mood||''],
+            ['👀 行為',pr.behavior||pr.action||''],
+          ];
+          var col=0;
+          fields.forEach(function(f){
+            if(!f[1]) return;
+            var fx=col===0?26:(PW/2+10);
+            ctx.fillStyle='#888';ctx.font='10px "Noto Sans TC",sans-serif';
+            ctx.fillText(f[0]+'：',fx,py+13);
+            ctx.fillStyle='#222';ctx.font='11px "Noto Sans TC",sans-serif';
+            ctx.fillText(String(f[1]).substring(0,18),fx+62,py+13);
+            if(col===0){col=1;}else{col=0;py+=22;}
+          });
+          if(col===1) py+=22;
+          if(pr.note||pr.special){
+            ctx.fillStyle='#C05000';ctx.font='11px "Noto Sans TC",sans-serif';
+            ctx.fillText('⚠ 特殊注意：'+(pr.note||pr.special||'').substring(0,40),26,py+13);
+            py+=22;
+          }
+          py+=8;
+        });
+
+        // 保母日記
+        var diary=r.diary||r.note||'';
+        if(diary&&py<PH-120){
+          rrect(ctx,20,py,PW-40,80,8,'#F9F9F9','#FFD6E0');
+          ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('📝 保母今日小日記',34,py+18);
+          ctx.fillStyle='#333';ctx.font='11px "Noto Sans TC",sans-serif';
+          wrapText(ctx,diary,34,py+36,PW-80,18);
+          py+=88;
+        }
+
+        // 照片區塊標題
+        var photos=[];
+        var petPhotos=r.pet_photos||r.petPhotos||[];
+        petPhotos.forEach(function(p){
+          var url=typeof p==='string'?p:(p.dataUrl||p.url||'');
+          if(url&&url.startsWith('http')) photos.push(url);
+        });
+
+        if(photos.length&&py<PH-80){
+          ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
+          ctx.fillText('📸 今日照片（'+photos.length+'張）',26,py+14);
+          py+=26;
+
+          // 照片（3欄，最多6張）
+          var maxPh=Math.min(photos.length,6);
+          var imgW=(PW-60)/3-8;
+          var imgH=imgW*0.75;
+          for(var pi=0;pi<maxPh;pi++){
+            if(py+imgH>PH-50) break;
+            var imgD=await loadImg(photos[pi]);
+            if(imgD){
+              var ix=20+(pi%3)*(imgW+8);
+              if(pi%3===0&&pi>0) py+=imgH+8;
+              rrect(ctx,ix,py,imgW,imgH,6,null,'#FFD6E0');
+              ctx.drawImage(await (function(u){
+                return new Promise(function(resolve){
+                  var im=new Image();im.crossOrigin='anonymous';
+                  im.onload=function(){resolve(im);};
+                  im.onerror=function(){resolve(null);};
+                  im.src=u;
+                });
+              })(photos[pi]),ix,py,imgW,imgH);
+            }
+          }
+        }
+
+        // 底部
+        ctx.fillStyle='#FFD6E0';
+        ctx.fillRect(0,PH-36,PW,36);
+        ctx.fillStyle='#FF5C7D';
+        ctx.font='10px "Noto Sans TC",sans-serif';
+        ctx.textAlign='center';
+        ctx.fillText('貓窩裏 🐾  '+dateStr+'  ｜  保母：'+sitter+'  ｜  LINE @099nuhen',PW/2,PH-14);
+        ctx.textAlign='left';
+      });
+
+      doc.addImage(pageImg,'JPEG',0,0,PW,PH);
     }
 
-    // ── 下載 ──
-    var filename='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';
-    doc.save(filename);
+    var fname='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';
+    doc.save(fname);
     if(btn){btn.textContent='✅ 下載完成';setTimeout(function(){btn.textContent='📄 打包PDF';btn.disabled=false;},2000);}
 
   }catch(e){
     console.error('PDF error:',e);
-    alert('PDF 產生失敗：'+e.message);
+    alert('PDF失敗：'+e.message);
     if(btn){btn.textContent='📄 打包PDF';btn.disabled=false;}
   }
 }
@@ -3827,18 +3846,43 @@ function buildAddonItemRow(bookId, idx, item){
   }).join('');
   var sd=item.startDate||(bk?bk.startDate:'')||'';
   var ed=item.endDate||(bk?bk.endDate:'')||'';
+  var curSlots=item.slots||['早','中','晚'];
+  var slotOpts=['早','中','晚'];
+  var slotHtml=slotOpts.map(function(s){
+    var checked=curSlots.includes(s)?'checked':'';
+    return '<label style="display:flex;align-items:center;gap:2px;font-size:.76rem;cursor:pointer;">'
+      +'<input type="checkbox" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="slot-'+s+'" onchange="updateAddonSlot(this)" '+checked+'>'+s+'</label>';
+  }).join('');
+
   return '<div id="addon-row-'+bookId+'-'+idx+'" data-bid="'+bookId+'" data-idx="'+idx+'" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1.5px solid #FFE082;border-radius:10px;padding:8px 10px;margin-bottom:6px;">'
     +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="name" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'+opts+'</select>'
     +'<span style="font-size:.76rem;color:#888;">隻數：</span>'
     +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="qty" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'
     +[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+((item.qty||1)===n?' selected':'')+'>'+n+'隻</option>';}).join('')
     +'</select>'
+    +'<span style="font-size:.76rem;color:#888;">時段：</span>'
+    +'<div style="display:flex;gap:4px;padding:3px 6px;border:1px solid #FFD54F;border-radius:6px;background:#FFFDE7;">'+slotHtml+'</div>'
     +'<span style="font-size:.76rem;color:#888;">開始：</span>'
     +'<input type="date" value="'+sd+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="startDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
     +'<span style="font-size:.76rem;color:#888;">結束：</span>'
     +'<input type="date" value="'+ed+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="endDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
     +'<button data-bid="'+bookId+'" data-idx="'+idx+'" onclick="removeAddonItem(this.dataset.bid,parseInt(this.dataset.idx))" style="padding:3px 8px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:6px;font-size:.74rem;cursor:pointer;">✕</button>'
     +'</div>';
+}
+
+function updateAddonSlot(cb){
+  var bookId=cb.dataset.bid;
+  var idx=parseInt(cb.dataset.idx);
+  var field=cb.dataset.field; // 'slot-早', 'slot-中', 'slot-晚'
+  var s=field.replace('slot-','');
+  if(!_addonItemsEdit[bookId]||!_addonItemsEdit[bookId][idx]) return;
+  var cur=_addonItemsEdit[bookId][idx].slots||['早','中','晚'];
+  if(cb.checked){
+    if(!cur.includes(s)) cur.push(s);
+  } else {
+    cur=cur.filter(function(x){return x!==s;});
+  }
+  _addonItemsEdit[bookId][idx].slots=cur;
 }
 
 function updateAddonRowEl(el){
@@ -3896,7 +3940,9 @@ async function saveAddonItems(btn){
 
   // 同時更新舊格式 addons[] 相容保母端
   var legacyAddons=items.map(function(x){
-    return x.qty>1?x.name+'×'+x.qty+'隻':x.name;
+    var base=x.qty>1?x.name+'×'+x.qty+'隻':x.name;
+    if(x.slots&&x.slots.length&&x.slots.length<3) base+='（'+ x.slots.join('/')+')';
+    return base;
   });
 
   var msg=document.getElementById('extra-addon-msg-'+bookId);

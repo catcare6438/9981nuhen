@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781616054 -->
+<!-- build:1781619567 -->
 
 
 
@@ -545,8 +545,10 @@ async function dbUpdateOrder(id,fields){
     contract_url:'contract_url',
     fee_table_url:'fee_table_url',
     sitter_extra_fees:'sitter_extra_fees',
+    addon_items:'addon_items',
     owner_line_id:'owner_line_id',
     manual_adjs:'manual_adjs',
+    addon_items:'addon_items',
   };
   const row={};
   Object.keys(fields).forEach(k=>{
@@ -707,6 +709,7 @@ function dbRowToOrder(r){
   };
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -2076,28 +2079,33 @@ function showDetail(bookId){
   // Visit info
   html+=buildVisitPaymentHTML(bk, Math.max(0,total));
 
-  // ── 追加附加服務 ──
+  // ── 追加附加服務（明細結構，每筆獨立日期）──
+  var _addonItems=JSON.parse(JSON.stringify(bk.addonItems||[]));
+  _addonItemsEdit[bookId]=_addonItems; // 初始化編輯狀態
+  // 舊格式 addons[] 轉新格式
+  if(!_addonItems.length&&bk.addons&&bk.addons.length){
+    _addonItems=bk.addons.map(function(a){
+      var m=a.match(/^(.+?)×(\d+)/);
+      return {name:m?m[1]:a,qty:m?parseInt(m[2]):1,startDate:bk.startDate||'',endDate:bk.endDate||''};
+    });
+  }
+
   html+='<div style="background:#FFF8E1;border:2px solid #FFD54F;border-radius:14px;padding:14px;margin-top:14px;">';
-  html+='<div style="font-size:.84rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💊 追加附加服務（訂單建立後追加）</div>';
-  html+='<div style="font-size:.78rem;color:#888;margin-bottom:10px;">目前：'+(bk.addons&&bk.addons.length?bk.addons.join('、'):'無附加服務')+'</div>';
-  var EXTRA_ADDONS=['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿'];
-  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">';
-  EXTRA_ADDONS.forEach(function(a){
-    var hasQty=(a==='餵藥'||a==='點藥'||a==='擦藥');
-    var alreadyIn=(bk.addons||[]).find(function(x){return x===a||x.startsWith(a+'×');});
-    html+='<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;background:'+(alreadyIn?'#FFF0F5':'#fff')+';padding:4px 8px;border-radius:8px;border:1px solid #FFD54F;cursor:pointer;">'
-      +'<input type="checkbox" name="extra-addon-'+bk.id+'" value="'+a+'" '+(alreadyIn?'checked':'')+'>'+a
-      +(hasQty?'<select name="extra-addon-qty-'+a+'-'+bk.id+'" style="margin-left:3px;padding:2px 4px;border:1px solid #FFD54F;border-radius:5px;font-size:.74rem;">'
-        +[1,2,3,4,5].map(function(n){
-          var curQty=1;
-          if(alreadyIn){var m3=alreadyIn.match(/×(\d+)/);if(m3)curQty=parseInt(m3[1]);}
-          return '<option value="'+n+'"'+(n===curQty?' selected':'')+'>'+n+'隻</option>';
-        }).join('')+'</select>':'')
-      +'</label>';
+  html+='<div style="font-size:.84rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💊 附加服務明細</div>';
+
+  // 現有明細列表
+  html+='<div id="addon-items-'+bk.id+'">';
+  _addonItems.forEach(function(item,idx){
+    html+=buildAddonItemRow(bk.id,idx,item);
   });
   html+='</div>';
-  html+='<button onclick="saveExtraAddons(this)" data-id="'+bk.id+'" style="padding:7px 18px;background:linear-gradient(135deg,#FFD54F,#FFB300);color:#8B6000;border:none;border-radius:8px;font-weight:900;font-size:.8rem;cursor:pointer;">💾 儲存追加服務</button>';
+
+  // 新增一筆按鈕
+  html+='<button onclick="addAddonItem(\''+bk.id+'\')" style="padding:5px 14px;background:#FFF9C4;border:1.5px dashed #FFD54F;color:#8B6000;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:6px;">＋ 新增附加項目</button>';
   html+='<span id="extra-addon-msg-'+bk.id+'" style="font-size:.76rem;color:var(--g);margin-left:8px;font-weight:800;"></span>';
+  html+='<div style="margin-top:10px;">';
+  html+='<button onclick="saveAddonItems(this)" data-id="'+bk.id+'" style="padding:8px 20px;background:linear-gradient(135deg,#FFD54F,#FFB300);color:#8B6000;border:none;border-radius:8px;font-weight:900;font-size:.82rem;cursor:pointer;">💾 儲存附加服務</button>';
+  html+='</div>';
   html+='</div>';
 
   document.getElementById('detailContent').innerHTML=html;
@@ -3423,11 +3431,309 @@ function efCalc(elOrUid){
 
 
 
+
+async function exportOrderPDF(bookId){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+
+  var btn=document.querySelector('[data-id="'+bookId+'"][onclick*="exportOrderPDF"]');
+  if(btn){btn.textContent='⏳ 產生中...';btn.disabled=true;}
+
+  try{
+    const {jsPDF}=window.jspdf;
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+
+    // 字型設定（jsPDF 內建只有英文，中文需特殊處理）
+    // 用 HTML canvas 繪製中文再插入圖片
+    var canvas=document.createElement('canvas');
+    canvas.width=794; canvas.height=1123; // A4 @96dpi
+    var ctx=canvas.getContext('2d');
+
+    // 背景
+    ctx.fillStyle='#fff';
+    ctx.fillRect(0,0,794,1123);
+
+    // 粉色頂部
+    var grad=ctx.createLinearGradient(0,0,794,0);
+    grad.addColorStop(0,'#FF5C7D');
+    grad.addColorStop(1,'#FF8FAB');
+    ctx.fillStyle=grad;
+    ctx.fillRect(0,0,794,100);
+
+    // 標題
+    ctx.fillStyle='#fff';
+    ctx.font='bold 32px "Noto Sans TC", sans-serif';
+    ctx.fillText('貓窩裏 🐾 到府寵物保母', 40, 45);
+    ctx.font='18px "Noto Sans TC", sans-serif';
+    ctx.fillText('照護服務完整紀錄', 40, 78);
+
+    // 右上角
+    ctx.font='14px "Noto Sans TC", sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText(new Date().toLocaleDateString('zh-TW'), 754, 60);
+    ctx.textAlign='left';
+
+    // 飼主資訊區塊
+    var y=130;
+    ctx.fillStyle='#FFF0F5';
+    ctx.roundRect(30,y-20,734,140,10);
+    ctx.fill();
+    ctx.strokeStyle='#FFD6E0';
+    ctx.lineWidth=1.5;
+    ctx.roundRect(30,y-20,734,140,10);
+    ctx.stroke();
+
+    ctx.fillStyle='#FF5C7D';
+    ctx.font='bold 16px "Noto Sans TC", sans-serif';
+    ctx.fillText('👤 飼主資訊', 50, y+5);
+
+    ctx.fillStyle='#333';
+    ctx.font='14px "Noto Sans TC", sans-serif';
+    ctx.fillText('姓名：'+bk.ownerName, 50, y+30);
+    ctx.fillText('電話：'+bk.ownerPhone, 50, y+52);
+    ctx.fillText('地址：'+(bk.ownerAddr||'未填'), 50, y+74);
+    ctx.fillText('服務期間：'+bk.startDate+' ～ '+bk.endDate, 400, y+30);
+    ctx.fillText('服務項目：'+(bk.services||[]).join('、'), 400, y+52);
+    ctx.fillText('費用總計：NT$ '+(bk.total||0).toLocaleString(), 400, y+74);
+
+    // 寵物資訊
+    y=300;
+    ctx.fillStyle='#333';
+    ctx.font='bold 16px "Noto Sans TC", sans-serif';
+    ctx.fillStyle='#FF5C7D';
+    ctx.fillText('🐾 毛孩資訊', 50, y);
+    y+=25;
+    var pets=bk.petData||[];
+    ctx.font='13px "Noto Sans TC", sans-serif';
+    ctx.fillStyle='#333';
+    pets.forEach(function(p,i){
+      ctx.fillText((i+1)+'. '+p.name+' ／ '+(p.type==='cat'?'貓':'狗')+' ／ '+(p.gender||'')+(p.health&&p.health.length?' ／ 健康：'+p.health.join('、'):''), 50, y);
+      y+=22;
+    });
+
+    // 家訪資訊
+    if(bk.visitDate){
+      y+=10;
+      ctx.fillStyle='#0369A1';
+      ctx.font='bold 16px "Noto Sans TC", sans-serif';
+      ctx.fillText('🏠 家訪資訊', 50, y);
+      y+=25;
+      ctx.font='13px "Noto Sans TC", sans-serif';
+      ctx.fillStyle='#333';
+      ctx.fillText('家訪日期：'+bk.visitDate, 50, y); y+=22;
+      if(bk.visitNotes){ctx.fillText('備注：'+bk.visitNotes, 50, y); y+=22;}
+      if(bk.caution){ctx.fillStyle='#C05000';ctx.fillText('注意：'+bk.caution, 50, y);ctx.fillStyle='#333'; y+=22;}
+    }
+
+    // 取得回報資料
+    var reports=[];
+    try{
+      var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
+      reports=await res.json();
+    }catch(e){}
+
+    if(reports.length){
+      y+=10;
+      ctx.fillStyle='#FF5C7D';
+      ctx.font='bold 16px "Noto Sans TC", sans-serif';
+      ctx.fillText('📋 照護回報（共 '+reports.length+' 筆）', 50, y);
+      y+=25;
+      ctx.font='13px "Noto Sans TC", sans-serif';
+      ctx.fillStyle='#333';
+      reports.slice(0,15).forEach(function(r){
+        if(y>1050){
+          doc.addPage();
+          canvas=document.createElement('canvas');
+          canvas.width=794;canvas.height=1123;
+          ctx=canvas.getContext('2d');
+          ctx.fillStyle='#fff';ctx.fillRect(0,0,794,1123);
+          y=50;
+        }
+        var dateStr=r.date||(r.ts?new Date(r.ts).toLocaleDateString('zh-TW'):'');
+        ctx.fillStyle='#555';
+        ctx.fillText('• '+dateStr+' '+r.sitter+'：'+(r.diary||r.note||'（回報完成）').substring(0,40), 50, y);
+        y+=20;
+      });
+    }
+
+    // 底部
+    ctx.fillStyle='#FFD6E0';
+    ctx.fillRect(0,1080,794,43);
+    ctx.fillStyle='#FF5C7D';
+    ctx.font='12px "Noto Sans TC", sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText('貓窩裏 到府寵物保母 🐾  感謝您的信任與托付', 397, 1105);
+    ctx.textAlign='left';
+
+    // 加入到 PDF
+    var imgData=canvas.toDataURL('image/jpeg',0.9);
+    doc.addImage(imgData,'JPEG',0,0,210,297);
+
+    // 下載
+    var filename='貓窩裏_'+bk.ownerName+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';
+    doc.save(filename);
+
+  }catch(e){
+    alert('PDF 產生失敗：'+e.message);
+    console.error(e);
+  }finally{
+    if(btn){btn.textContent='📄 打包PDF';btn.disabled=false;}
+  }
+}
+
+
+async function clearOrderData(bookId){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+  if(!confirm('⚠️ 確定要清空【'+bk.ownerName+'】此單的所有資料？\n\n包含：\n• 所有照護回報\n• 家訪照片\n• 合約書\n• 飼主密碼\n\n此操作無法復原！')){return;}
+  if(!confirm('再次確認：清空後資料永久刪除，無法恢復，確定嗎？')){return;}
+
+  var btn=document.querySelector('[data-id="'+bookId+'"][onclick*="clearOrderData"]');
+  if(btn){btn.textContent='⏳ 清空中...';btn.disabled=true;}
+
+  try{
+    // 1. 刪除此訂單的所有回報
+    var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
+    var reps=await repRes.json();
+    for(var i=0;i<reps.length;i++){
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?id='+reps[i].id,{method:'DELETE'});
+    }
+
+    // 2. 清空訂單的照片、合約、家訪資料
+    await dbUpdateOrder(bookId,{
+      visit_photos:[],
+      contract_url:'',
+      fee_table_url:'',
+      visit_date:'',
+      visit_notes:'',
+      caution:''
+    });
+
+    // 3. 刪除飼主密碼
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+bookId,{method:'DELETE'});
+
+    // 4. 更新快取
+    if(bk){
+      bk.visitPhotos=[];bk.contractUrl='';bk.feeTableUrl='';
+      bk.visitDate='';bk.visitNotes='';bk.caution='';
+    }
+    clearOrdersCache();
+
+    alert('✅ 已清空【'+bk.ownerName+'】此單所有資料');
+    refreshAll();
+  }catch(e){
+    alert('清空失敗：'+e.message);
+  }finally{
+    if(btn){btn.textContent='🧹 清空資料';btn.disabled=false;}
+  }
+}
+
+
+// ── 附加服務明細（每筆獨立日期）──
+var ADDON_OPTS = ['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿'];
+var ADDON_PRICE_MAP = {餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80};
+
+function buildAddonItemRow(bookId, idx, item){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  var opts=ADDON_OPTS.map(function(o){
+    return '<option value="'+o+'"'+(o===(item.name||'')?' selected':'')+'>'+o+'</option>';
+  }).join('');
+  var sd=item.startDate||(bk?bk.startDate:'')||'';
+  var ed=item.endDate||(bk?bk.endDate:'')||'';
+  return '<div id="addon-row-'+bookId+'-'+idx+'" data-bid="'+bookId+'" data-idx="'+idx+'" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1.5px solid #FFE082;border-radius:10px;padding:8px 10px;margin-bottom:6px;">'
+    +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="name" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'+opts+'</select>'
+    +'<span style="font-size:.76rem;color:#888;">隻數：</span>'
+    +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="qty" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'
+    +[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+((item.qty||1)===n?' selected':'')+'>'+n+'隻</option>';}).join('')
+    +'</select>'
+    +'<span style="font-size:.76rem;color:#888;">開始：</span>'
+    +'<input type="date" value="'+sd+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="startDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
+    +'<span style="font-size:.76rem;color:#888;">結束：</span>'
+    +'<input type="date" value="'+ed+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="endDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
+    +'<button data-bid="'+bookId+'" data-idx="'+idx+'" onclick="removeAddonItem(this.dataset.bid,parseInt(this.dataset.idx))" style="padding:3px 8px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:6px;font-size:.74rem;cursor:pointer;">✕</button>'
+    +'</div>';
+}
+
+function updateAddonRowEl(el){
+  var bookId=el.dataset.bid;
+  var idx=parseInt(el.dataset.idx);
+  var field=el.dataset.field;
+  var value=el.value;
+  if(field==='qty') value=parseInt(value);
+  updateAddonRow(bookId,idx,field,value);
+}
+
+// 暫存每個訂單的 addonItems 編輯狀態
+var _addonItemsEdit = {};
+
+function updateAddonRow(bookId, idx, field, value){
+  if(!_addonItemsEdit[bookId]) return;
+  if(_addonItemsEdit[bookId][idx]) _addonItemsEdit[bookId][idx][field]=value;
+}
+
+function addAddonItem(bookId){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!_addonItemsEdit[bookId]) _addonItemsEdit[bookId]=[];
+  var newItem={name:'餵藥',qty:1,startDate:(bk?bk.startDate:''),endDate:(bk?bk.endDate:'')};
+  _addonItemsEdit[bookId].push(newItem);
+  var list=document.getElementById('addon-items-'+bookId);
+  if(list){
+    var div=document.createElement('div');
+    div.innerHTML=buildAddonItemRow(bookId,_addonItemsEdit[bookId].length-1,newItem);
+    list.appendChild(div.firstChild);
+  }
+}
+
+function removeAddonItem(bookId, idx){
+  if(!_addonItemsEdit[bookId]) return;
+  _addonItemsEdit[bookId].splice(idx,1);
+  // Re-render the list
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  bk.addonItems=_addonItemsEdit[bookId].slice();
+  var list=document.getElementById('addon-items-'+bookId);
+  if(list){
+    list.innerHTML=_addonItemsEdit[bookId].map(function(item,i){
+      return buildAddonItemRow(bookId,i,item);
+    }).join('');
+  }
+}
+
+async function saveAddonItems(btn){
+  var bookId=btn.dataset.id;
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+
+  var items=_addonItemsEdit[bookId]||bk.addonItems||[];
+  // 過濾空白
+  items=items.filter(function(x){return x.name;});
+
+  // 同時更新舊格式 addons[] 相容保母端
+  var legacyAddons=items.map(function(x){
+    return x.qty>1?x.name+'×'+x.qty+'隻':x.name;
+  });
+
+  var msg=document.getElementById('extra-addon-msg-'+bookId);
+  try{
+    await dbUpdateOrder(bookId,{
+      addon_items: items,
+      addons: legacyAddons
+    });
+    bk.addonItems=items;
+    bk.addons=legacyAddons;
+    if(msg) msg.textContent='✅ 已儲存 '+items.length+' 筆附加服務';
+    setTimeout(function(){showDetail(bookId);},800);
+  }catch(e){
+    if(msg) msg.textContent='❌ '+e.message;
+  }
+}
+
 async function saveExtraAddons(btn){
   var bookId=btn.dataset.id;
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
   var ADDON_HAS_QTY={'餵藥':true,'點藥':true,'擦藥':true};
+
+  // 收集附加服務（含隻數）
   var newAddons=Array.from(document.querySelectorAll('input[name="extra-addon-'+bookId+'"]:checked')).map(function(x){
     var a=x.value;
     if(ADDON_HAS_QTY[a]){
@@ -3436,11 +3742,25 @@ async function saveExtraAddons(btn){
     }
     return a;
   });
+
+  // 收集服務日期區間
+  var addonStart=document.getElementById('extra-start-'+bookId)?.value||'';
+  var addonEnd=document.getElementById('extra-end-'+bookId)?.value||'';
+
   var msg=document.getElementById('extra-addon-msg-'+bookId);
   try{
-    await dbUpdateOrder(bookId,{addons:newAddons});
+    var updateFields={addons:newAddons};
+    // 若日期和原本訂單不同，才更新（避免覆蓋整單日期）
+    if(addonStart&&addonStart!==bk.startDate) updateFields.start_date=addonStart;
+    if(addonEnd&&addonEnd!==bk.endDate) updateFields.end_date=addonEnd;
+
+    await dbUpdateOrder(bookId,updateFields);
     bk.addons=newAddons;
-    if(msg) msg.textContent='✅ 已更新：'+newAddons.join('、');
+    if(addonStart) bk.startDate=addonStart;
+    if(addonEnd) bk.endDate=addonEnd;
+
+    var dateInfo=(addonStart&&addonEnd)?'（'+addonStart+'～'+addonEnd+'）':'';
+    if(msg) msg.textContent='✅ 已更新：'+(newAddons.length?newAddons.join('、'):'無附加服務')+dateInfo;
     setTimeout(function(){showDetail(bookId);},800);
   }catch(e){
     if(msg) msg.textContent='❌ '+e.message;

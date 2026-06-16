@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- build:1781538381 -->
+<!-- build:1781616054 -->
 
 
 
@@ -2076,6 +2076,30 @@ function showDetail(bookId){
   // Visit info
   html+=buildVisitPaymentHTML(bk, Math.max(0,total));
 
+  // ── 追加附加服務 ──
+  html+='<div style="background:#FFF8E1;border:2px solid #FFD54F;border-radius:14px;padding:14px;margin-top:14px;">';
+  html+='<div style="font-size:.84rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💊 追加附加服務（訂單建立後追加）</div>';
+  html+='<div style="font-size:.78rem;color:#888;margin-bottom:10px;">目前：'+(bk.addons&&bk.addons.length?bk.addons.join('、'):'無附加服務')+'</div>';
+  var EXTRA_ADDONS=['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿'];
+  html+='<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">';
+  EXTRA_ADDONS.forEach(function(a){
+    var hasQty=(a==='餵藥'||a==='點藥'||a==='擦藥');
+    var alreadyIn=(bk.addons||[]).find(function(x){return x===a||x.startsWith(a+'×');});
+    html+='<label style="display:flex;align-items:center;gap:4px;font-size:.78rem;background:'+(alreadyIn?'#FFF0F5':'#fff')+';padding:4px 8px;border-radius:8px;border:1px solid #FFD54F;cursor:pointer;">'
+      +'<input type="checkbox" name="extra-addon-'+bk.id+'" value="'+a+'" '+(alreadyIn?'checked':'')+'>'+a
+      +(hasQty?'<select name="extra-addon-qty-'+a+'-'+bk.id+'" style="margin-left:3px;padding:2px 4px;border:1px solid #FFD54F;border-radius:5px;font-size:.74rem;">'
+        +[1,2,3,4,5].map(function(n){
+          var curQty=1;
+          if(alreadyIn){var m3=alreadyIn.match(/×(\d+)/);if(m3)curQty=parseInt(m3[1]);}
+          return '<option value="'+n+'"'+(n===curQty?' selected':'')+'>'+n+'隻</option>';
+        }).join('')+'</select>':'')
+      +'</label>';
+  });
+  html+='</div>';
+  html+='<button onclick="saveExtraAddons(this)" data-id="'+bk.id+'" style="padding:7px 18px;background:linear-gradient(135deg,#FFD54F,#FFB300);color:#8B6000;border:none;border-radius:8px;font-weight:900;font-size:.8rem;cursor:pointer;">💾 儲存追加服務</button>';
+  html+='<span id="extra-addon-msg-'+bk.id+'" style="font-size:.76rem;color:var(--g);margin-left:8px;font-weight:800;"></span>';
+  html+='</div>';
+
   document.getElementById('detailContent').innerHTML=html;
   document.getElementById('detailMod').classList.add('show');
   }catch(e){alert('明細錯誤：'+e.message+'\\n'+e.stack.split('\\n').slice(0,3).join('\\n'));}
@@ -3397,6 +3421,31 @@ function efCalc(elOrUid){
 }
 
 
+
+
+async function saveExtraAddons(btn){
+  var bookId=btn.dataset.id;
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+  var ADDON_HAS_QTY={'餵藥':true,'點藥':true,'擦藥':true};
+  var newAddons=Array.from(document.querySelectorAll('input[name="extra-addon-'+bookId+'"]:checked')).map(function(x){
+    var a=x.value;
+    if(ADDON_HAS_QTY[a]){
+      var qtyEl=document.querySelector('select[name="extra-addon-qty-'+a+'-'+bookId+'"]');
+      if(qtyEl&&parseInt(qtyEl.value)>1) return a+'×'+qtyEl.value+'隻';
+    }
+    return a;
+  });
+  var msg=document.getElementById('extra-addon-msg-'+bookId);
+  try{
+    await dbUpdateOrder(bookId,{addons:newAddons});
+    bk.addons=newAddons;
+    if(msg) msg.textContent='✅ 已更新：'+newAddons.join('、');
+    setTimeout(function(){showDetail(bookId);},800);
+  }catch(e){
+    if(msg) msg.textContent='❌ '+e.message;
+  }
+}
 
 async function saveSitterTransport(btn){
   var bookId=btn.dataset.bid;

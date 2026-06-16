@@ -1698,6 +1698,8 @@ function buildOrderCard(bk, sCls, ownerPws){
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail(this.dataset.id)" data-id="'+bk.id+'">🐾 寵物</button>':'')
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
+    +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
+    +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
     +'</div>'
@@ -3151,34 +3153,30 @@ async function uploadContractFiles(bookId){
   const msg=document.getElementById('contract-msg-'+bookId);
   if(msg)msg.textContent='⏳ 上傳中...';
 
-  // Upload to R2 instead of base64
-  const fields={};
-  if(contractFile) fields.contract_url=await uploadFileToR2(contractFile);
-  if(feeFile) fields.fee_table_url=await uploadFileToR2(feeFile);
-
   try{
-    // Direct update to Supabase with correct field names
-    const numId=parseInt(bookId)||bookId;
-    const{error:upErr}=await _supa.from('orders').update(fields).eq('id',numId);
-    if(upErr) throw new Error(upErr.message);
-
-    // Verify by reading back
-    const{data:vData}=await _supa.from('orders').select('contract_url,fee_table_url').eq('id',numId).limit(1);
-    const saved=vData&&vData[0];
-    if(!saved||(fields.contract_url&&!saved.contract_url)){
-      throw new Error('儲存成功但讀取不到，可能欄位不存在，請先執行 add_visit_payment.sql');
+    const fields={};
+    if(contractFile){
+      if(msg)msg.textContent='⏳ 上傳合約書...';
+      fields.contract_url=await uploadFileToR2(contractFile);
+    }
+    if(feeFile){
+      if(msg)msg.textContent='⏳ 上傳費用表...';
+      fields.fee_table_url=await uploadFileToR2(feeFile);
     }
 
-    const bk=(_bCache||[]).find(x=>x.id===bookId||x.id===numId);
+    // 用 dbUpdateOrder 走 Worker → Neon
+    await dbUpdateOrder(bookId, fields);
+
+    const bk=(_bCache||[]).find(x=>String(x.id)===String(bookId));
     if(bk){
-      if(saved.contract_url) bk.contractUrl=saved.contract_url;
-      if(saved.fee_table_url) bk.feeTableUrl=saved.fee_table_url;
+      if(fields.contract_url)  bk.contractUrl=fields.contract_url;
+      if(fields.fee_table_url) bk.feeTableUrl=fields.fee_table_url;
     }
     if(msg)msg.textContent='✅ 上傳成功';
     setTimeout(function(){showDetail(bookId);},500);
   }catch(e){
-    alert('上傳失敗：'+e.message);
-    if(msg)msg.textContent='';
+    if(msg)msg.textContent='❌ '+e.message;
+    console.error('uploadContractFiles:',e);
   }
 }
 

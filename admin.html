@@ -637,8 +637,25 @@ async function dbGetOwnerPws(){
   const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
 }
 async function dbSetOwnerPw(bookId,pw){
-  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
-  if(error)console.error('setOwnerPw:',_errMsg(error));
+  // 直接用 Worker PUT（upsert by book_id）
+  try{
+    var bidStr=String(bookId);
+    // 先試 update
+    var r1=await _wfetch('/owner_passwords?book_id='+encodeURIComponent(bidStr),{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pw})
+    });
+    if(r1.error){
+      // insert
+      await _wfetch('/owner_passwords',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({book_id:bidStr,password:pw})
+      });
+    }
+    console.log('[dbSetOwnerPw] saved bid='+bidStr+' pw='+pw);
+  }catch(e){console.error('setOwnerPw:',e.message);}
 }
 async function dbDeleteOwnerPw(bookId){
   const{error}=await _supa.from('owner_passwords').delete().eq('book_id',bookId);
@@ -1792,8 +1809,7 @@ function renderSettingsPage(){
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
       +'<input type="text" value="'+l.emoji+'" id="le-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
       +'<input type="text" value="'+l.name+'" id="ln-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
-      +'<span style="font-size:.76rem;color:var(--tl);white-space:nowrap;">距離(km)：</span>'
-      +'<input type="number" value="'+(l.dist||0)+'" id="ld-'+i+'" min="0" step="0.5" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
+
       +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
       +'</div>';
   });
@@ -2151,7 +2167,7 @@ async function removeAdj(bookId,idx){
 async function openGenPw(bookId){
   document.getElementById('genPwBookId').value=bookId;
   const pws=await getOwnerPws();
-  document.getElementById('genPwDisplay').value=pws[bookId]||genPw();
+  document.getElementById('genPwDisplay').value=pws[bookId]||pws[String(bookId)]||pws[parseInt(bookId)]||genPw();
   document.getElementById('genPwMod').classList.add('show');
 }
 function genPw(){
@@ -2166,19 +2182,19 @@ function genPw(){
 }
 function regenPw(){document.getElementById('genPwDisplay').value=genPw();}
 async function deleteOwnerPw(){
-  const id=parseInt(document.getElementById('genPwBookId').value);
+  const id=document.getElementById('genPwBookId').value; // 字串 id
   if(!confirm('確定要刪除此飼主的會員密碼？'))return;
   await dbDeleteOwnerPw(id);
   clearPwCache();closeM('genPwMod');refreshAll();
   alert('✅ 密碼已刪除');
 }
 async function saveOwnerPw(){
-  const id=parseInt(document.getElementById('genPwBookId').value);
-  const pw=document.getElementById('genPwDisplay').value.replace(/[^0-9]/g,'');
-  if(!pw){alert('請輸入數字密碼');return;}
+  const id=document.getElementById('genPwBookId').value; // 保留字串，避免大數字精度問題
+  const pw=document.getElementById('genPwDisplay').value.replace(/[^0-9a-zA-Z]/g,'');
+  if(!pw){alert('請輸入密碼');return;}
   await dbSetOwnerPw(id,pw);
   clearPwCache();closeM('genPwMod');refreshAll();
-  alert('✅ 會員密碼已儲存：'+(pw)+'\n請告知飼主到前台點「🏠 毛孩爸媽」輸入此數字密碼\n（密碼可隨時在此修改）');
+  alert('✅ 會員密碼已儲存：'+pw+'\n請告知飼主登入毛孩爸媽專區輸入此密碼');
 }
 
 // These mirror the SITTER_INIT_PWS in sitter.html
@@ -2724,8 +2740,7 @@ async function saveLandmarks(){
     rows.forEach(function(row){
       var n=row.querySelector('[id^="ln-"]');
       var e=row.querySelector('[id^="le-"]');
-      var d=row.querySelector('[id^="ld-"]');
-      if(n&&n.value.trim()) val.push({emoji:e?e.value:'📍',name:n.value.trim(),dist:parseFloat(d?d.value:0)||0});
+      if(n&&n.value.trim()) val.push({emoji:e?e.value:'📍',name:n.value.trim()});
     });
     await saveSiteSetting('landmarks',val);
     var msg=document.getElementById('lm-msg');

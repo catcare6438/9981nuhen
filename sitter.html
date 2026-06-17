@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781706841 -->
+<!-- build:1781710337 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1304,11 +1304,11 @@ async function renderCases(){
         return row;
       })()}
       <div class="checkin-row">
-        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${_checkinState[b.id]==='arrived'?'disabled':''}>
-          ${_checkinState[b.id]==='arrived'?'✅ 已抵達':'🔵 我已抵達'}
+        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')">
+          🔵 我已抵達
         </button>
-        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${!_checkinState[b.id]||_checkinState[b.id]==='left'?'disabled':''}>
-          ${_checkinState[b.id]==='left'?'✅ 已結束':'🔴 照顧結束'}
+        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')">
+          🔴 照顧結束
         </button>
       </div>
 
@@ -1481,8 +1481,7 @@ async function pressArrive(bookId){
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
   _saveCheckinState(); // 持久化到 sessionStorage
-  // 按鈕保持可按，不反灰
-  console.log('[arrive]', bookId);
+  // 不更新按鈕 DOM
   // 發送 LINE 通知（透過 Worker）
   try{
     var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
@@ -1500,8 +1499,7 @@ async function pressLeave(bookId){
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='left';
   _saveCheckinState(); // 持久化到 sessionStorage
-  // 按鈕保持可按，不反灰
-  console.log('[leave]', bookId);
+  // 不更新按鈕 DOM
   try{
     var leaveRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',

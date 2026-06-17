@@ -567,8 +567,9 @@ function dbRowToOrder(r){
       <input type="radio" name="urgent" value="0" checked style="display:none;">
       <input type="radio" name="urgent" value="100" style="display:none;">
       <input type="radio" name="urgent" value="200" style="display:none;">
-      <div id="urgentInfo" style="display:none;background:var(--y2);border:1.5px solid var(--y1);border-radius:10px;padding:10px 14px;font-size:.82rem;color:#7A5C00;font-weight:700;">
-        <span id="urgentInfoText"></span>
+      <div id="urgentInfo" style="display:none;background:#FFF3CD;border:2px solid #FFB300;border-radius:10px;padding:12px 16px;font-size:.88rem;color:#7A5C00;font-weight:800;margin-top:8px;">
+        ⚡ <span id="urgentInfoText"></span><br>
+        <span style="font-size:.76rem;font-weight:600;color:#A07000;">急件費用已自動加入費用試算明細</span>
       </div>
     </div>
   </div>
@@ -1215,31 +1216,27 @@ function updateDropAddon(){
 function dcostInfo(km){
   km=parseFloat(km)||0;
   if(!km) return {price:0,freeKm:0,chargeKm:0,perKm:0,label:''};
-  // 預設：5km 免費，超過每 km $50
-  var defaultRates=[
-    {km_min:0,km_max:5,price:0},
-    {km_min:5,km_max:999,price:50}
-  ];
+  var defaultRates=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:999,price:50}];
   var rates=(TRANSPORT_RATES&&TRANSPORT_RATES.length)?TRANSPORT_RATES:defaultRates;
-  // 找免費區間（price=0的最大 km_max）
+  // 找免費上限 km
   var freeKm=0;
   rates.forEach(function(r){
     if((r.price||0)===0){
-      var mx=r.km_max!=null?r.km_max:(r.max||0);
+      var mx=r.km_max!=null?Number(r.km_max):(r.max?Number(r.max):0);
       if(mx>freeKm) freeKm=mx;
     }
   });
-  if(km<=freeKm) return {price:0,freeKm:freeKm,chargeKm:0,perKm:0,label:'🎉 '+freeKm+'km 內免收'};
+  if(km<=freeKm) return {price:0,freeKm:freeKm,chargeKm:0,perKm:0,label:'🎉 '+freeKm+'km 內免收車馬費'};
   var chargeKm=parseFloat((km-freeKm).toFixed(1));
-  // 找超出的費率（取超出部分所在的區間 price）
-  var perKm=50; // 預設每km
+  // 找每 km 費率
+  var perKm=50;
   rates.forEach(function(r){
-    var mn=r.km_min!=null?r.km_min:(r.min||0);
-    var mx=r.km_max!=null?r.km_max:(r.max||999);
-    if(km>mn&&km<=mx&&(r.price||0)>0) perKm=r.price;
+    var mn=r.km_min!=null?Number(r.km_min):(r.min?Number(r.min):0);
+    var mx=r.km_max!=null?Number(r.km_max):(r.max?Number(r.max):999);
+    if(km>freeKm&&mn>=freeKm&&(r.price||0)>0) perKm=r.price;
   });
   var price=Math.round(chargeKm*perKm);
-  var label=km+'km，超'+freeKm+'km，'+chargeKm+'km × $'+perKm+'/km = $'+price;
+  var label=freeKm+'km 內免費，超'+chargeKm+'km × $'+perKm+'/km = $'+price;
   return {price,freeKm,chargeKm,perKm,label};
 }
 function dcost(km){ return dcostInfo(km).price; }
@@ -1296,8 +1293,18 @@ function calc(){
   const baseNormal=svcKeys.reduce((s,k)=>s+(SVCBASE[k]||0),0);
 
   let addon=0; const addonNames=[];
-  document.querySelectorAll('#addonPills input:checked').forEach(cb=>{
-    addon+=parseInt(cb.value)||0; addonNames.push(cb.dataset.name);
+  document.querySelectorAll('#addonPills input:checked').forEach(function(cb){
+    var name=cb.dataset.name||'';
+    var qty=1;
+    // 餵藥/點藥/擦藥：讀隻數
+    var qtyMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
+    if(qtyMap[name]){
+      var qtyEl=document.getElementById(qtyMap[name]);
+      qty=qtyEl?Math.max(1,parseInt(qtyEl.value)||1):1;
+    }
+    var unitPrice=ADDON_PRICES[name]||parseInt(cb.value)||0;
+    addon+=unitPrice*qty;
+    addonNames.push(qty>1?name+'×'+qty:name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
   // 前三隻免費，第四隻起每隻 +$100
@@ -1383,7 +1390,10 @@ function calc(){
         var _tcLabel='🚗 車馬費（'+km+'km，超'+_dci.freeKm+'km × $'+_dci.perKm+'/km）';
         html+=R(_tcLabel,`$${dc}/次 × ${totalSess}次 = $${transportTotal}`);
       }
-      if(urg>0)  html+=R(`⚡ 急件加收`,`$${urg}`,'','color:#FF6B00;font-weight:800;');
+      if(urg>0){
+        var urgLabel=urg===200?'⚡ 急件加收（24小時內）':'⚡ 急件加收（24～48小時）';
+        html+=R(urgLabel,'<strong style="color:#FF6B00;">+$'+urg+'</strong>','','color:#FF6B00;');
+      }
       if(disc>0) html+=R(`🎫 優惠券折抵`,`-$${disc}`,'','color:#06C755;font-weight:800;');
     }
     html+=`<hr class="sum-divider">`;
@@ -1442,7 +1452,15 @@ async function submitBook(){
   const cards=document.querySelectorAll('.svc.on');
   let base=0; cards.forEach(card=>{base+=svcPrice(card.dataset.key);});
   let addon=0; const addons=[];
-  document.querySelectorAll('#addonPills input:checked').forEach(cb=>{addon+=parseInt(cb.value);addons.push(cb.dataset.name);});
+  document.querySelectorAll('#addonPills input:checked').forEach(function(cb){
+    var name=cb.dataset.name||'';
+    var qty=1;
+    var qtyMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
+    if(qtyMap[name]){var qEl=document.getElementById(qtyMap[name]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
+    var unitPrice=ADDON_PRICES[name]||parseInt(cb.value)||0;
+    addon+=unitPrice*qty;
+    addons.push(qty>1?name+'×'+qty+'隻':name);
+  });
   const totalPets=petCounts.cat+petCounts.dog;
   let extra=0; if(totalPets>3)extra=(totalPets-3)*50;
   const sessions=getTotalSessions();

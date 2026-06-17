@@ -590,13 +590,34 @@ async function dbInsertReview(rv){
 var _pwsCache=null;
 async function dbGetOwnerPws(){
   if(_pwsCache) return _pwsCache;
-  const{data,error}=await _supa.from('owner_passwords').select('*');
-  if(error){console.error('getOwnerPws:',_errMsg(error));return{};}
-  const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords');
+    var rows=await res.json();
+    var map={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      map[String(r.book_id||'')]=r.password;
+    });
+    _pwsCache=map;
+    console.log('[dbGetOwnerPws] loaded',Object.keys(map).length,'筆');
+    return map;
+  }catch(e){console.error('[dbGetOwnerPws]',e.message);return{};}
 }
 async function dbSetOwnerPw(bookId,pw){
-  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
-  if(error)console.error('setOwnerPw:',_errMsg(error));
+  var bidStr=String(bookId);
+  try{
+    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(bidStr),{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pw})
+    });
+    var j1=await r1.json();
+    if(!j1||j1.error||!Array.isArray(j1)||!j1.length){
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({book_id:bidStr,password:pw})
+      });
+    }
+    _pwsCache=null;
+  }catch(e){console.error('[dbSetOwnerPw]',e.message);}
 }
 async function dbGetRefCodes(){
   const{data,error}=await _supa.from('referral_codes').select('*');

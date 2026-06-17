@@ -534,6 +534,7 @@ function dbRowToOrder(r){
       </div>
     </div>
     <div style="font-size:.76rem;color:var(--tl);">※ 可複選多項服務</div>
+    <div id="petCountWarning" style="display:none;margin-top:8px;padding:8px 12px;background:#FFF0F5;border:1.5px solid var(--p3);border-radius:10px;font-size:.8rem;font-weight:800;color:var(--p1);"></div>
   </div>
 
   <div class="card">
@@ -587,10 +588,7 @@ function dbRowToOrder(r){
     </div>
     <div style="margin-top:9px;font-size:.76rem;color:var(--tl);" id="transportHint">🐾 5km 以內免收 ｜ 超過 5km 每多 1km 加 $50</div>
     <div id="landmarkHints" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
-      <!-- 地標由後台動態載入 -->
-      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(3)">🏥 小港醫院 (3km)</span>
-      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(8)">🪷 左營蓮池潭 (8km)</span>
-      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(12)">🌳 橋頭甲園公園 (12km)</span>
+      <!-- 地標由後台動態載入（含 km 距離） -->
     </div>
   </div>
 
@@ -641,7 +639,7 @@ function dbRowToOrder(r){
       </div>
       <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
-        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 第三隻起 +$30</div>
+        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 第3隻 +$80 ｜ 第4隻起 +$100/隻</div>
       </div>
     </div>
     <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
@@ -1230,8 +1228,23 @@ function adj(k,d){
   const S_local=window._S||(window._S={cat:1,dog:0,tpd:1});
   S_local[k]=Math.max(0,(S_local[k]||0)+d);
   const el=document.getElementById(k==='tpd'?'tpdVal':k+'Val');
-  if(el)el.textContent=S_local[k];
+  if(el) el.textContent=S_local[k];
   calc();
+
+  var total=(S_local.cat||0)+(S_local.dog||0);
+  var compCard=document.querySelector('[data-key="companion"]');
+  var walkCard=document.querySelector('[data-key="walk"]');
+
+  if(compCard){compCard.style.opacity='';compCard.style.pointerEvents='';}
+  if(walkCard){walkCard.style.opacity='';walkCard.style.pointerEvents='';}
+}
+
+function showPetModal(total){
+  var modal=document.getElementById('petCountModal');
+  if(!modal) return;
+  document.getElementById('petCountModalText').textContent=
+    '您選擇了 '+total+' 隻寵物，需下單「到府+遛狗（1小時）」服務，請點選該選項繼續預約。';
+  modal.classList.add('show');
 }
 
 function R(label,val,bold,style){
@@ -1267,7 +1280,12 @@ function calc(){
     addon+=parseInt(cb.value)||0; addonNames.push(cb.dataset.name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
-  const extra=totalPets>3?(totalPets-3)*50:0;
+  // 1-2隻免加收，第3隻 +$80，第4隻起每隻 +$100
+  var extra=0;
+  if(totalPets>=3){
+    extra=80; // 第3隻
+    if(totalPets>=4) extra+=( totalPets-3)*100; // 第4隻起每隻+100
+  }
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
   let disc=0;
@@ -1633,6 +1651,20 @@ async function initFromSiteSettings(){
 initFromSiteSettings();
 
 </script>
+
+<!-- PET COUNT MODAL -->
+<div class="modal-ov" id="petCountModal">
+  <div class="modal">
+    <div class="modal-ico">🐾</div>
+    <div class="modal-title">寵物數量提醒</div>
+    <div class="modal-msg" id="petCountModalText" style="font-size:.95rem;line-height:1.8;color:#333;"></div>
+    <div style="margin-top:12px;padding:10px 14px;background:#FFF0F5;border-radius:10px;font-size:.8rem;color:var(--p1);font-weight:800;">
+      5～8隻寵物 → 請選「🏠🦮 到府+遛狗（1小時）」<br>
+      此方案不另加收寵物加收費 🎉
+    </div>
+    <button class="modal-close" onclick="document.getElementById('petCountModal').classList.remove('show')" style="margin-top:14px;">了解，我去選一小時方案 🐾</button>
+  </div>
+</div>
 
 <!-- REVIEWS MODAL -->
 <div class="rev-modal-ov" id="revModalOv">

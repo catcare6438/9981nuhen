@@ -637,25 +637,28 @@ async function dbGetOwnerPws(){
   const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
 }
 async function dbSetOwnerPw(bookId,pw){
-  // 直接用 Worker PUT（upsert by book_id）
+  var bidStr=String(bookId);
   try{
-    var bidStr=String(bookId);
-    // 先試 update
-    var r1=await _wfetch('/owner_passwords?book_id='+encodeURIComponent(bidStr),{
+    // 先 UPDATE，若回傳 0 rows 再 INSERT
+    var r1=await fetch(WORKER_URL+'/owner_passwords?book_id='+encodeURIComponent(bidStr),{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({password:pw})
     });
-    if(r1.error){
-      // insert
-      await _wfetch('/owner_passwords',{
+    var j1=await r1.json();
+    var updated=Array.isArray(j1)?j1.length:(j1&&j1.rowCount?j1.rowCount:0);
+    if(!updated){
+      await fetch(WORKER_URL+'/owner_passwords',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({book_id:bidStr,password:pw})
       });
     }
-    console.log('[dbSetOwnerPw] saved bid='+bidStr+' pw='+pw);
-  }catch(e){console.error('setOwnerPw:',e.message);}
+    console.log('[dbSetOwnerPw] ✅ saved bid='+bidStr+' pw='+pw);
+  }catch(e){
+    console.error('[dbSetOwnerPw] ❌',e.message);
+    throw e;
+  }
 }
 async function dbDeleteOwnerPw(bookId){
   const{error}=await _supa.from('owner_passwords').delete().eq('book_id',bookId);
@@ -2465,52 +2468,47 @@ async function deleteRev(id){
 
 // ── PASSWORD OVERVIEW ──
 async function renderPasswords(){
-  // Sitter passwords — still read from localStorage (per-device sitter config)
-  const SITTER_NAMES=['Ying','小汶','菓菓','小茹','阿瑛'];
-  const SITTER_AVS={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
-  const SITTER_INIT={Ying:'ying8866',小汶:'wun7755',菓菓:'guo6644',小茹:'ru5533',阿瑛:'ying4422'};
-  let changedPws={};
-  try{const raw=localStorage.getItem('sitterPwChanged');if(raw)changedPws=JSON.parse(raw);}catch(e){}
+  // ── 保母密碼（從 Neon 讀，只顯示）──
   const sitterEl=document.getElementById('allSitterPws');
   if(sitterEl){
-    sitterEl.innerHTML=SITTER_NAMES.map(n=>{
-      const pw=changedPws[n]||SITTER_INIT[n];
-      const changed=!!changedPws[n];
-      return `<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
-        <span>${SITTER_AVS[n]} <strong>${n}</strong></span>
-        <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:2px;">${pw}</span>
-        ${changed?'<span style="font-size:.68rem;color:var(--g);font-weight:800;">✓ 已自改</span>':'<span style="font-size:.68rem;color:var(--tl);">初始</span>'}
-      </div>`;
-    }).join('');
+    try{
+      var sRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords');
+      var sData=await sRes.json();
+      if(Array.isArray(sData)&&sData.length){
+        sitterEl.innerHTML=sData.map(function(r){
+          return '<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'
+            +'<span>🐾 <strong>'+r.name+'</strong></span>'
+            +'<span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:2px;">'+r.password+'</span>'
+            +'</div>';
+        }).join('');
+      } else {
+        sitterEl.innerHTML='<div style="color:var(--tl);font-size:.84rem;">尚無保母密碼資料</div>';
+      }
+    }catch(e){
+      sitterEl.innerHTML='<div style="color:var(--r);">讀取失敗：'+e.message+'</div>';
+    }
   }
-  // Owner passwords — from Supabase
+
+  // ── 飼主密碼（只顯示，不可修改）──
   const ownerPws=await dbGetOwnerPws();
   const bookings=await getB();
   const ownerEl=document.getElementById('allOwnerPws');
   if(ownerEl){
     const entries=Object.entries(ownerPws);
     if(!entries.length){ownerEl.innerHTML='<div style="color:var(--tl);font-size:.84rem;">尚無飼主會員密碼</div>';return;}
-    ownerEl.innerHTML=entries.map(([bookId,pw])=>{
-      const bk=bookings.find(b=>String(b.id)===String(bookId));
-      return `<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-        <span style="font-size:.84rem;font-weight:700;">${bk?.ownerName||'飼主'}</span>
-        <span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:3px;font-size:.9rem;">${pw}</span>
-        <button onclick="openGenPw(${bookId})" style="background:var(--y2);border:1.5px solid var(--y3);border-radius:8px;padding:4px 10px;font-size:.72rem;font-weight:800;cursor:pointer;">修改</button>
-      </div>`;
+    ownerEl.innerHTML=entries.map(function(entry){
+      var bookId=entry[0], pw=entry[1];
+      var bk=bookings.find(function(b){return String(b.id)===String(bookId);});
+      return '<div style="background:#fff;border:2px solid var(--pk3);border-radius:10px;padding:10px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">'
+        +'<span style="font-size:.84rem;font-weight:700;">'+(bk?bk.ownerName:'飼主')+'</span>'
+        +'<span style="font-family:monospace;background:var(--pk4);padding:3px 10px;border-radius:6px;letter-spacing:3px;font-size:.9rem;">'+pw+'</span>'
+        +'</div>';
     }).join('');
   }
-  // PW change log
-  const log=JSON.parse(localStorage.getItem('sitterPwLog')||'[]');
+
+  // ── 移除舊 log 區 ──
   const logEl=document.getElementById('pwChangeLog');
-  if(logEl){
-    if(!log.length){logEl.innerHTML='<div style="color:var(--tl);font-size:.84rem;">尚無變更紀錄</div>';return;}
-    logEl.innerHTML=log.slice(-10).reverse().map(l=>{
-      const dt=new Date(l.ts).toLocaleString('zh-TW',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-      return `<div style="font-size:.8rem;padding:5px 0;border-bottom:1px dashed var(--pk3);color:var(--t);">
-        ${dt} — <strong>${l.name}</strong> 更改密碼為：<span style="font-family:monospace;background:var(--pk4);padding:2px 8px;border-radius:5px;">${l.newPw}</span>
-      </div>`;
-    }).join('');
-  }
+  if(logEl) logEl.innerHTML='';
 }
 function refreshPasswords(){renderPasswords();}
 

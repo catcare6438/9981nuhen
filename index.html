@@ -438,7 +438,7 @@ function dbRowToOrder(r){
       <div class="field"><label>聯絡電話 <span class="req">*</span></label><input type="tel" id="ownerPhone" placeholder="0912-345-678"></div>
       <div class="field"><label>LINE 暱稱或名稱</label><input type="text" id="ownerLine" placeholder="您的 LINE 顯示名稱（加好友後我們才能找到您）"></div>
       <div class="field full"><label>服務地址 <span class="req">*</span></label>
-        <input type="text" id="ownerAddr" placeholder="例：高雄市楠梓區惠民路XX號X樓">
+        <input type="text" id="ownerAddr" placeholder="例：高雄市楠梓區惠民路76號3樓">
       </div>
 
     </div>
@@ -471,7 +471,7 @@ function dbRowToOrder(r){
     <div id="dogForms"></div>
     <!-- Extra pet surcharge notice -->
     <div id="extraPetNotice" style="display:none;background:var(--p4);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--tl);margin-top:10px;">
-      🐾 第三隻起加收 <strong style="color:var(--p1);">+$50 / 次</strong>（已反映在費用試算）
+      🐾 第四隻起加收 <strong style="color:var(--p1);">+$50 / 次</strong>（已反映在費用試算）
     </div>
     <!-- Attention notes -->
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--p3);">
@@ -509,14 +509,14 @@ function dbRowToOrder(r){
 
   <div class="card">
     <div class="card-title">🐾 主要服務</div>
-    <div class="hprice-note" id="holidayNote">🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $800　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000</div>
+    <div class="hprice-note" id="holidayNote">🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000</div>
     <div class="svc-grid">
       <div class="svc on" data-key="companion" data-base="300" onclick="toggleSvc(this)">
         <div class="svc-ico">🏠</div>
         <div class="svc-name">到府陪伴</div>
         <div class="svc-price" id="priceCompanion">$300 / 0.5H</div>
         <div class="svc-original" id="origCompanion"></div>
-        <div class="svc-desc">餵食・清潔・陪玩・飲食觀察</div>
+        <div class="svc-desc">餵食・清潔・陪玩・健康觀察</div>
       </div>
       <div class="svc" data-key="walk" data-base="200" onclick="toggleSvc(this)">
         <div class="svc-ico">🦮</div>
@@ -585,7 +585,13 @@ function dbRowToOrder(r){
       <span style="font-size:.86rem;color:var(--tl);">公里</span>
       <span id="distLabel" style="font-size:.85rem;color:var(--p1);font-weight:800;font-family:'Nunito',sans-serif;"></span>
     </div>
-    <div style="margin-top:9px;font-size:.76rem;color:var(--tl);">🐾 5km 以內免收 ｜ 超過 5km 每多 1km 加 $50</div>
+    <div style="margin-top:9px;font-size:.76rem;color:var(--tl);" id="transportHint">🐾 5km 以內免收 ｜ 超過 5km 每多 1km 加 $50</div>
+    <div id="landmarkHints" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+      <!-- 地標由後台動態載入 -->
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(3)">🏥 小港醫院 (3km)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(8)">🪷 左營蓮池潭 (8km)</span>
+      <span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;cursor:pointer;" onclick="setLandmark(12)">🌳 橋頭甲園公園 (12km)</span>
+    </div>
   </div>
 
   <div class="card">
@@ -697,7 +703,7 @@ function dbRowToOrder(r){
 
 <script>
 // ── 全域費用設定（由後台 site_settings 動態更新）──
-var BASES={companion:300,walk:200,both:500};
+// BASES 已移除，改用 SVCBASE
 var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
 
@@ -1201,6 +1207,11 @@ function updateDropAddon(){
   if(cb){cb.value=50*qty; cb.dataset.name='點藥×'+qty+'隻';}
   calc();
 }
+function setLandmark(km){
+  var distEl=document.getElementById('dist');
+  if(distEl){distEl.value=km;calc();}
+}
+
 function dcost(km){
   km=parseFloat(km)||0;
   if(!km) return 0;
@@ -1301,7 +1312,7 @@ function calc(){
       html+=`<div class="calc-section-title">📋 一般日照護（${normSessions} 次）</div>`;
       html+=R(svcLabel,`$${baseNormal}/次 × ${normSessions}次 = $${baseNormal*normSessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${normSessions}次 = $${addon*normSessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
+      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
       html+=R('小計',`$${normSvcSub}`,'bold');
       html+=`</div>`;
     }
@@ -1313,7 +1324,7 @@ function calc(){
       html+=`<div class="calc-section-title" style="color:#C05000;">🎊 連假照護（${holSessions} 次）<span style="font-size:.65rem;margin-left:6px;">${holDateStr}</span></div>`;
       html+=R(`${svcLabel}（連假價）`,`$${holBase}/次 × ${holSessions}次 = $${holBase*holSessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${holSessions}次 = $${addon*holSessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
+      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
       html+=R('小計',`$${holSvcSub}`,'bold','color:#C05000;');
       html+=`</div>`;
     }
@@ -1325,7 +1336,7 @@ function calc(){
       html+=`<div class="calc-section-title" style="color:#B00010;">🧧 春節照護（${cnySessions} 次）<span style="font-size:.65rem;margin-left:6px;">${cnyDateStr}</span></div>`;
       html+=R(`${svcLabel}（過年價）`,`$${cnyBase}/次 × ${cnySessions}次 = $${cnyBase*cnySessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${cnySessions}次 = $${addon*cnySessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
+      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
       html+=R('小計',`$${cnySvcSub}`,'bold','color:#B00010;');
       html+=`</div>`;
     }
@@ -1348,7 +1359,7 @@ function calc(){
     html+=R(`${svcLabel2}（一般連假）`,`$${svcKeys.reduce((s,k)=>s+(HOLIDAY_PRICES[k]||0),0)} / 次`);
     html+=R(`${svcLabel2}（春節過年）`,`$${svcKeys.reduce((s,k)=>s+(CNY_PRICES[k]||0),0)} / 次`);
     if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon} / 次`);
-    if(extra>0) html+=R(`第3隻起加收`,`$${extra} / 次`);
+    if(extra>0) html+=R(`第4隻起加收`,`$${extra} / 次`);
     if(dc>0)    html+=R(`🚗 車馬費`,`$${dc} / 次`);
     html+=`</div>`;
     html+=`<div class="sum-total"><span>💕 照護總計為</span><span style="font-size:.88rem;color:var(--tl);">選擇時段後自動計算</span></div>`;
@@ -1615,7 +1626,7 @@ async function initFromSiteSettings(){
       TRANSPORT_RATES=settings.transport_rates;
     }
     calc();
-    console.log('[settings] 費用已更新 companion='+BASES.companion);
+    console.log('[settings] 費用已更新 SVCBASE=',JSON.stringify(SVCBASE));
   }catch(e){console.warn('[settings] 載入失敗:',e.message);}
 }
 // 頁面載入時自動執行

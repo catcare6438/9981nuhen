@@ -1792,6 +1792,8 @@ function renderSettingsPage(){
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'
       +'<input type="text" value="'+l.emoji+'" id="le-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
       +'<input type="text" value="'+l.name+'" id="ln-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<span style="font-size:.76rem;color:var(--tl);white-space:nowrap;">距離(km)：</span>'
+      +'<input type="number" value="'+(l.dist||0)+'" id="ld-'+i+'" min="0" step="0.5" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
       +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
       +'</div>';
   });
@@ -2722,7 +2724,8 @@ async function saveLandmarks(){
     rows.forEach(function(row){
       var n=row.querySelector('[id^="ln-"]');
       var e=row.querySelector('[id^="le-"]');
-      if(n&&n.value.trim()) val.push({emoji:e?e.value:'📍',name:n.value.trim()});
+      var d=row.querySelector('[id^="ld-"]');
+      if(n&&n.value.trim()) val.push({emoji:e?e.value:'📍',name:n.value.trim(),dist:parseFloat(d?d.value:0)||0});
     });
     await saveSiteSetting('landmarks',val);
     var msg=document.getElementById('lm-msg');

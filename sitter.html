@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781616025 -->
+<!-- build:1781706841 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1481,11 +1481,8 @@ async function pressArrive(bookId){
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
   _saveCheckinState(); // 持久化到 sessionStorage
-  // 直接更新按鈕 DOM，不重新渲染（避免按鈕跳回藍色）
-  var arrBtn=document.getElementById('arrive-'+bookId);
-  var leaBtn=document.getElementById('leave-'+bookId);
-  if(arrBtn){arrBtn.disabled=true;arrBtn.textContent='✅ 已抵達';arrBtn.style.background='#aaa';}
-  if(leaBtn){leaBtn.disabled=false;}
+  // 按鈕保持可按，不反灰
+  console.log('[arrive]', bookId);
   // 發送 LINE 通知（透過 Worker）
   try{
     var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
@@ -1503,9 +1500,8 @@ async function pressLeave(bookId){
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='left';
   _saveCheckinState(); // 持久化到 sessionStorage
-  // 直接更新按鈕 DOM
-  var leaBtn2=document.getElementById('leave-'+bookId);
-  if(leaBtn2){leaBtn2.disabled=true;leaBtn2.textContent='✅ 已離開';leaBtn2.style.background='#aaa';}
+  // 按鈕保持可按，不反灰
+  console.log('[leave]', bookId);
   try{
     var leaveRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',

@@ -1773,10 +1773,15 @@ function renderSettingsPage(){
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">➕ 附加服務項目與價格</div>';
   html+='<div id="addon-list" style="overflow-x:auto;">';
   addonP.forEach(function(a,i){
+    var billingOpts=['每日','單次'];
+    var curBilling=a.billing||'每日';
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
-      +'<input type="text" value="'+a.emoji+'" id="ae-'+i+'" style="width:36px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
-      +'<input type="text" value="'+a.key+'" id="ak-'+i+'" style="width:100px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
-      +'<span>$</span><input type="number" value="'+a.price+'" id="ap-'+i+'" style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<input type="text" value="'+a.emoji+'" id="ae-'+i+'" style="width:36px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;" placeholder="emoji">'
+      +'<input type="text" value="'+a.key+'" id="ak-'+i+'" style="width:90px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="名稱">'
+      +'<span style="font-size:.78rem;color:var(--tl);">$</span><input type="number" value="'+a.price+'" id="ap-'+i+'" style="width:65px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
+      +'<select id="ab-'+i+'" style="padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.78rem;">'
+      +billingOpts.map(function(b){return '<option value="'+b+'"'+(b===curBilling?' selected':'')+'>'+b+'</option>';}).join('')
+      +'</select>'
       +'<span>/</span><input type="text" value="'+(a.per||'次')+'" id="au-'+i+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
       +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
       +'</div>';

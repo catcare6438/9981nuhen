@@ -241,6 +241,7 @@ footer .ft{font-weight:900;font-size:1.1rem;color:var(--p1);margin-bottom:8px;fo
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script>
+const WORKER_URL='https://catwoli-api.catwoli6644.workers.dev';
 const SUPA_URL='https://cswejuvithewfyhmisfc.supabase.co';
 const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNzd2VqdXZpdGhld2Z5aG1pc2ZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUxNjk2MDYsImV4cCI6MjA5MDc0NTYwNn0.t_nv4IbqMU0MnGBW9VPtaOZYl1httXL_mLAmUsRxF58';
 const _supa=supabase.createClient(SUPA_URL,SUPA_KEY);
@@ -1009,7 +1010,10 @@ function updateHolidayUI(){
   if(banner) banner.style.display=isHoliday?'block':'none';
   if(note) note.classList.toggle('show',isHoliday);
 
-  const BASES={companion:300,walk:200,both:500};
+  // 從後台讀取費用設定（動態）
+  var BASES={companion:300,walk:200,both:500};
+  var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
   const NAMES={companion:'priceCompanion',walk:'priceWalk',both:'priceBoth'};
   const ORIGS={companion:'origCompanion',walk:'origWalk',both:'origBoth'};
   const LABELS={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
@@ -1548,6 +1552,46 @@ async function doOwnerLogin(){
 function closeOwnerLogin(){document.getElementById('ownerLoginOv').classList.remove('show');}
 
 renderReviews6();
+
+
+// ── 從後台載入費用設定 ──
+async function initFromSiteSettings(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var rows=await res.json();
+    if(!Array.isArray(rows)||!rows.length) return;
+    var settings={};
+    rows.forEach(function(r){settings[r.key]=r.value;});
+
+    if(settings.svc_prices&&Array.isArray(settings.svc_prices)){
+      var normal=settings.svc_prices.find(function(p){return p.label==='平日';});
+      if(normal){
+        BASES.companion=normal.companion||300;
+        BASES.walk=normal.walk||200;
+        BASES.both=normal.both||500;
+      }
+      var cpEl=document.getElementById('priceCompanion');
+      var wkEl=document.getElementById('priceWalk');
+      var btEl=document.getElementById('priceBoth');
+      if(cpEl) cpEl.textContent='$'+BASES.companion+' / 0.5H';
+      if(wkEl) wkEl.textContent='$'+BASES.walk+' / 0.5H';
+      if(btEl) btEl.textContent='$'+BASES.both+' / 0.5H';
+      document.querySelectorAll('[data-key="companion"]').forEach(function(el){el.dataset.base=BASES.companion;});
+      document.querySelectorAll('[data-key="walk"]').forEach(function(el){el.dataset.base=BASES.walk;});
+      document.querySelectorAll('[data-key="both"]').forEach(function(el){el.dataset.base=BASES.both;});
+    }
+    if(settings.addon_prices&&Array.isArray(settings.addon_prices)){
+      settings.addon_prices.forEach(function(a){if(a.key&&a.price) ADDON_PRICES[a.key]=a.price;});
+    }
+    if(settings.transport_rates&&Array.isArray(settings.transport_rates)){
+      TRANSPORT_RATES=settings.transport_rates;
+    }
+    calc();
+    console.log('[settings] 費用已更新 companion='+BASES.companion);
+  }catch(e){console.warn('[settings] 載入失敗:',e.message);}
+}
+// 頁面載入時自動執行
+initFromSiteSettings();
 
 </script>
 

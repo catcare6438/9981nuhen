@@ -2577,15 +2577,30 @@ async function initDefaultSiteSettings(){
     ]}
   ];
   for(var d of defaults){
-    await _supa.from('site_settings').upsert([{key:d.key,value:d.value}],{onConflict:'key'});
+    await _supa.from('site_settings').upsert([{key:d.key,value:d.value,updated_at:new Date().toISOString()}],{onConflict:'key'});
     _siteSettings[d.key]=d.value;
   }
   console.log('[settings] defaults initialized');
 }
 async function saveSiteSetting(key,value){
-  var res=await _supa.from('site_settings').upsert([{key:key,value:value,updated_at:new Date().toISOString()}],{onConflict:'key'});
-  if(res.error)throw res.error;
-  _siteSettings[key]=value;
+  // 直接用 Worker PUT，更可靠
+  try{
+    // 先試 update
+    var resUpd=await _wfetch('/site_settings?key='+encodeURIComponent(key),{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({value:typeof value==='object'?JSON.stringify(value):value, updated_at:new Date().toISOString()})
+    });
+    if(resUpd.error){
+      // fallback: insert
+      await _wfetch('/site_settings',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({key:key,value:typeof value==='object'?JSON.stringify(value):value,updated_at:new Date().toISOString()})
+      });
+    }
+    _siteSettings[key]=value;
+  }catch(e){throw e;}
 }
 
 function removeAddonRow(btn){btn.closest('div').remove();}

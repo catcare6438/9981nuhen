@@ -639,7 +639,7 @@ function dbRowToOrder(r){
       </div>
       <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
-        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 第3隻 +$80 ｜ 第4隻起 +$100/隻</div>
+        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前3隻免加收 ｜ 第4隻起 +$100/隻</div>
       </div>
     </div>
     <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
@@ -1280,12 +1280,8 @@ function calc(){
     addon+=parseInt(cb.value)||0; addonNames.push(cb.dataset.name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
-  // 1-2隻免加收，第3隻 +$80，第4隻起每隻 +$100
-  var extra=0;
-  if(totalPets>=3){
-    extra=80; // 第3隻
-    if(totalPets>=4) extra+=( totalPets-3)*100; // 第4隻起每隻+100
-  }
+  // 前三隻免費，第四隻起每隻 +$100
+  const extra=totalPets>3?(totalPets-3)*100:0;
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
   let disc=0;

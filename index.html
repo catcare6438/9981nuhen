@@ -1205,10 +1205,8 @@ function updateDropAddon(){
   if(cb){cb.value=50*qty; cb.dataset.name='點藥×'+qty+'隻';}
   calc();
 }
-function setLandmark(km){
-  var distEl=document.getElementById('dist');
-  if(distEl){distEl.value=km;calc();}
-}
+// setLandmark removed - no dist
+
 
 function dcost(km){
   km=parseFloat(km)||0;
@@ -1281,7 +1279,7 @@ function calc(){
   });
   const totalPets=petCounts.cat+petCounts.dog;
   // 前三隻免費，第四隻起每隻 +$100
-  const extra=totalPets>3?(totalPets-3)*100:0;
+  const extra=totalPets>3?(totalPets-3)*100:0; // 前3隻免費，第4隻起+$100
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
   let disc=0;
@@ -1598,50 +1596,91 @@ async function initFromSiteSettings(){
     var rows=await res.json();
     if(!Array.isArray(rows)||!rows.length) return;
     var settings={};
-    rows.forEach(function(r){settings[r.key]=r.value;});
+    rows.forEach(function(r){
+      try{ settings[r.key]=typeof r.value==='string'?JSON.parse(r.value):r.value; }
+      catch(e){ settings[r.key]=r.value; }
+    });
 
+    // ── 服務價格 ──
     if(settings.svc_prices&&Array.isArray(settings.svc_prices)){
-      // 更新三組價格
-      settings.svc_prices.forEach(function(tier){
-        var label=tier.label||'';
-        var obj={companion:tier.companion||0,walk:tier.walk||0,both:tier.both||0};
-        if(label.includes('平日')||label.includes('weekday')){
-          SVCBASE.companion=obj.companion||SVCBASE.companion;
-          SVCBASE.walk=obj.walk||SVCBASE.walk;
-          SVCBASE.both=obj.both||SVCBASE.both;
-        } else if(label.includes('春節')||label.includes('cny')){
-          CNY_PRICES.companion=obj.companion||CNY_PRICES.companion;
-          CNY_PRICES.walk=obj.walk||CNY_PRICES.walk;
-          CNY_PRICES.both=obj.both||CNY_PRICES.both;
-        } else if(label.includes('連假')||label.includes('holiday')){
-          HOLIDAY_PRICES.companion=obj.companion||HOLIDAY_PRICES.companion;
-          HOLIDAY_PRICES.walk=obj.walk||HOLIDAY_PRICES.walk;
-          HOLIDAY_PRICES.both=obj.both||HOLIDAY_PRICES.both;
-        }
-      });
-
-      // 更新按鈕顯示
+      var normal=settings.svc_prices.find(function(p){return p.label==='平日';});
+      if(normal){
+        SVCBASE.companion=Number(normal.companion)||300;
+        SVCBASE.walk=Number(normal.walk)||200;
+        SVCBASE.both=Number(normal.both)||500;
+      }
       var cpEl=document.getElementById('priceCompanion');
       var wkEl=document.getElementById('priceWalk');
       var btEl=document.getElementById('priceBoth');
       if(cpEl) cpEl.textContent='$'+SVCBASE.companion+' / 0.5H';
       if(wkEl) wkEl.textContent='$'+SVCBASE.walk+' / 0.5H';
-      if(btEl) btEl.textContent='$'+SVCBASE.both+' / 0.5H';
-      // 更新 data-base 屬性
+      if(btEl) btEl.textContent='$'+SVCBASE.both+' / 45min';
       document.querySelectorAll('[data-key="companion"]').forEach(function(el){el.dataset.base=SVCBASE.companion;});
       document.querySelectorAll('[data-key="walk"]').forEach(function(el){el.dataset.base=SVCBASE.walk;});
       document.querySelectorAll('[data-key="both"]').forEach(function(el){el.dataset.base=SVCBASE.both;});
-      console.log('[settings] 平日價格：',SVCBASE);
     }
-    if(settings.addon_prices&&Array.isArray(settings.addon_prices)){
-      settings.addon_prices.forEach(function(a){if(a.key&&a.price) ADDON_PRICES[a.key]=a.price;});
+
+    // ── 附加服務：完整重建 addonPills ──
+    if(settings.addon_prices&&Array.isArray(settings.addon_prices)&&settings.addon_prices.length){
+      var emojiMap={餵藥:'💊',點藥:'💧',擦藥:'🩹',舒緩按摩:'💆',剪指甲:'✂️',協助排便導尿:'🚿',收信:'📮',澆花:'🌿',倒垃圾:'🗑️'};
+      var hasQtyMap={餵藥:true,點藥:true,擦藥:true};
+      var cbIdMap={餵藥:'addon-feed',點藥:'addon-drop',擦藥:'addon-rub'};
+      var qtyIdMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
+      var fnMap={餵藥:'updateFeedAddon',點藥:'updateDropAddon',擦藥:'updateRubAddon'};
+
+      var pillsDiv=document.getElementById('addonPills');
+      if(pillsDiv){
+        var html='';
+        settings.addon_prices.forEach(function(a){
+          if(!a.key) return;
+          var price=Number(a.price)||0;
+          ADDON_PRICES[a.key]=price;
+          var em=a.emoji||emojiMap[a.key]||'🐾';
+          if(hasQtyMap[a.key]){
+            var cbId=cbIdMap[a.key]||('addon-'+a.key);
+            var qtyId=qtyIdMap[a.key]||('qty-'+a.key);
+            var fn=fnMap[a.key]||'calc';
+            html+='<div class="pill-qty">'
+              +'<input type="checkbox" id="'+cbId+'" value="'+price+'" data-name="'+a.key+'" onchange="'+fn+'()">'
+              +'<label for="'+cbId+'" style="cursor:pointer;">'+em+' '+a.key+' <strong>+$'+price+'</strong>/隻</label>'
+              +'<span class="pill-qty-label">需'+a.key+'</span>'
+              +'<input type="number" class="pill-qty-num" id="'+qtyId+'" min="1" max="10" value="1" oninput="'+fn+'()">'
+              +'<span class="pill-qty-label">隻</span>'
+              +'</div>';
+          } else {
+            html+='<label class="pill" onclick="calc()">'
+              +'<input type="checkbox" value="'+price+'" data-name="'+a.key+'">'+em+' '+a.key+' <strong>+$'+price+'</strong>'
+              +'</label>';
+          }
+        });
+        pillsDiv.innerHTML=html;
+      }
     }
+
+    // ── 車馬費 ──
     if(settings.transport_rates&&Array.isArray(settings.transport_rates)){
       TRANSPORT_RATES=settings.transport_rates;
+      var hint=document.getElementById('transportHint');
+      var free=TRANSPORT_RATES.find(function(r){return (r.price||0)===0;});
+      if(hint&&free) hint.textContent='🐾 '+(free.km_max||5)+'km 以內免收車馬費';
     }
+
+    // ── 地標（純名稱，無距離）──
+    if(settings.landmarks&&Array.isArray(settings.landmarks)){
+      var lDiv=document.getElementById('landmarkHints');
+      if(lDiv){
+        lDiv.innerHTML=settings.landmarks.map(function(lm){
+          return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;">'
+            +(lm.emoji||'📍')+' '+lm.name+'</span>';
+        }).join('');
+      }
+    }
+
     calc();
-    console.log('[settings] 費用已更新 SVCBASE=',JSON.stringify(SVCBASE));
-  }catch(e){console.warn('[settings] 載入失敗:',e.message);}
+    console.log('[settings] 載入完成', Object.keys(settings));
+  }catch(e){
+    console.warn('[settings] 載入失敗:', e.message);
+  }
 }
 // 頁面載入時自動執行
 initFromSiteSettings();

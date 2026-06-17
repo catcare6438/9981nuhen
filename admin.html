@@ -639,22 +639,21 @@ async function dbGetOwnerPws(){
 async function dbSetOwnerPw(bookId,pw){
   var bidStr=String(bookId);
   try{
-    // 先 UPDATE，若回傳 0 rows 再 INSERT
-    var r1=await fetch(WORKER_URL+'/owner_passwords?book_id='+encodeURIComponent(bidStr),{
+    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(bidStr),{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({password:pw})
     });
     var j1=await r1.json();
-    var updated=Array.isArray(j1)?j1.length:(j1&&j1.rowCount?j1.rowCount:0);
+    var updated=Array.isArray(j1)?j1.length:0;
     if(!updated){
-      await fetch(WORKER_URL+'/owner_passwords',{
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({book_id:bidStr,password:pw})
       });
     }
-    console.log('[dbSetOwnerPw] ✅ saved bid='+bidStr+' pw='+pw);
+    console.log('[dbSetOwnerPw] ✅ bid='+bidStr+' pw='+pw);
   }catch(e){
     console.error('[dbSetOwnerPw] ❌',e.message);
     throw e;
@@ -2604,24 +2603,32 @@ async function initDefaultSiteSettings(){
   console.log('[settings] defaults initialized');
 }
 async function saveSiteSetting(key,value){
-  // 直接用 Worker PUT，更可靠
+  var valStr=typeof value==='object'?JSON.stringify(value):String(value);
+  var ts=new Date().toISOString();
   try{
-    // 先試 update
-    var resUpd=await _wfetch('/site_settings?key='+encodeURIComponent(key),{
+    // 先 PUT（update）
+    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key='+encodeURIComponent(key),{
       method:'PUT',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({value:typeof value==='object'?JSON.stringify(value):value, updated_at:new Date().toISOString()})
+      body:JSON.stringify({value:valStr,updated_at:ts})
     });
-    if(resUpd.error){
-      // fallback: insert
-      await _wfetch('/site_settings',{
+    var j1=await r1.json();
+    // 若 update 到 0 rows，改用 POST（insert）
+    var updated=Array.isArray(j1)?j1.length:(j1&&j1.rowCount?j1.rowCount:1);
+    if(!updated||updated===0){
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({key:key,value:typeof value==='object'?JSON.stringify(value):value,updated_at:new Date().toISOString()})
+        body:JSON.stringify({key:key,value:valStr,updated_at:ts})
       });
     }
+    if(!_siteSettings) _siteSettings={};
     _siteSettings[key]=value;
-  }catch(e){throw e;}
+    console.log('[saveSiteSetting] ✅',key,'=',valStr.substring(0,50));
+  }catch(e){
+    console.error('[saveSiteSetting] ❌',e.message);
+    throw e;
+  }
 }
 
 function removeAddonRow(btn){btn.closest('div').remove();}
@@ -2713,8 +2720,8 @@ async function saveAddons(){
       var k=row.querySelector('[id^="ak-"]');
       var p=row.querySelector('[id^="ap-"]');
       var e=row.querySelector('[id^="ae-"]');
-      var u=row.querySelector('[id^="au-"]');
-      if(k&&k.value.trim()) val.push({emoji:e?e.value:'',key:k.value.trim(),price:parseInt(p?p.value:0)||0,per:u?u.value:'次',hasQty:false});
+      var b=row.querySelector('[id^="ab-"]');
+      if(k&&k.value.trim()) val.push({emoji:e?e.value:'🐾',key:k.value.trim(),price:parseInt(p?p.value:0)||0,billing:b?b.value:'每日'});
     });
     await saveSiteSetting('addon_prices',val);
     var msg=document.getElementById('addon-msg');

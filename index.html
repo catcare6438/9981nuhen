@@ -471,7 +471,7 @@ function dbRowToOrder(r){
     <div id="dogForms"></div>
     <!-- Extra pet surcharge notice -->
     <div id="extraPetNotice" style="display:none;background:var(--p4);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--tl);margin-top:10px;">
-      🐾 第四隻起加收 <strong style="color:var(--p1);">+$50 / 次</strong>（已反映在費用試算）
+      🐾 第四隻起加收 <strong style="color:var(--p1);">+$100 / 次</strong>（已反映在費用試算）
     </div>
     <!-- Attention notes -->
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--p3);">
@@ -576,9 +576,13 @@ function dbRowToOrder(r){
   <div class="card">
     <div class="card-title">🚗 車馬費計算</div>
     <div style="margin-bottom:10px;"><a class="map-a" href="https://maps.google.com" target="_blank">🗺️ 開啟 Google Maps 查距離</a></div>
-    <div style="margin-bottom:12px;font-size:.76rem;color:var(--tl);line-height:2;">
-      <strong style="color:var(--p1);">📍 附近參考地標（可查詢至您家距離）：</strong><br>
-      🏥 小港醫院 ｜ 🪷 左營蓮池潭 ｜ 🌳 橋頭甲園公園 ｜ ⚖️ 楠梓少年法院 ｜ ⛩ 大社青雲宮
+    <div style="margin-bottom:8px;font-size:.76rem;color:var(--tl);">
+      <strong style="color:var(--p1);">📍 附近參考地標：</strong>
+    </div>
+    <div id="landmarkHints2" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <span style="font-size:.76rem;color:var(--tl);">🏥 小港醫院</span>
+      <span style="font-size:.76rem;color:var(--tl);">🪷 左營蓮池潭</span>
+      <span style="font-size:.76rem;color:var(--tl);">🌳 橋頭甲園公園</span>
     </div>
     <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
       <span style="font-size:.86rem;color:var(--tl);">單程距離</span>
@@ -626,20 +630,20 @@ function dbRowToOrder(r){
     <div class="card-title">🛁 服務項目一覽</div>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
       <div style="background:var(--p4);border-radius:16px;padding:18px;">
-        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">🏠 到府陪伴 $300/0.5H</div>
+        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableCompanion">🏠 到府陪伴 $300/0.5H</div>
         <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 餵食<br>✦ 環境清潔<br>✦ 陪玩互動<br>✦ 身體狀況觀察</div>
       </div>
       <div style="background:var(--p4);border-radius:16px;padding:18px;">
-        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">🦮 散步服務 $200/0.5H</div>
+        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableWalk">🦮 散步服務 $200/0.5H</div>
         <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 安全外出散步<br>✦ 適度運動消耗<br>✦ 社交互動觀察</div>
       </div>
       <div style="background:#FFF7E0;border-radius:16px;padding:18px;">
-        <div style="font-weight:900;color:#B8860B;margin-bottom:8px;font-family:'Nunito',sans-serif;">🏠🦮 到府＋遛狗 $500/45min</div>
+        <div style="font-weight:900;color:#B8860B;margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableBoth">🏠🦮 到府＋遛狗 $500/45min</div>
         <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 以上服務全包<br>✦ 超值組合方案</div>
       </div>
       <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
-        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前3隻免加收 ｜ 第4隻起 +$100/隻</div>
+        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);" id="svcTableAddon">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前3隻免加收 ｜ 第4隻起 +$100/隻</div>
       </div>
     </div>
     <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
@@ -1208,19 +1212,37 @@ function updateDropAddon(){
 // setLandmark removed - no dist
 
 
-function dcost(km){
+function dcostInfo(km){
   km=parseFloat(km)||0;
-  if(!km) return 0;
-  // 從後台設定讀取車馬費區間
-  var rates=TRANSPORT_RATES||[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
-  for(var i=0;i<rates.length;i++){
-    var r=rates[i];
-    var minKm=r.km_min!=null?r.km_min:(r.min||0);
-    var maxKm=r.km_max!=null?r.km_max:(r.max||999);
-    if(km>=minKm&&km<maxKm) return r.price||0;
-  }
-  return rates[rates.length-1].price||0;
+  if(!km) return {price:0,freeKm:0,chargeKm:0,perKm:0,label:''};
+  // 預設：5km 免費，超過每 km $50
+  var defaultRates=[
+    {km_min:0,km_max:5,price:0},
+    {km_min:5,km_max:999,price:50}
+  ];
+  var rates=(TRANSPORT_RATES&&TRANSPORT_RATES.length)?TRANSPORT_RATES:defaultRates;
+  // 找免費區間（price=0的最大 km_max）
+  var freeKm=0;
+  rates.forEach(function(r){
+    if((r.price||0)===0){
+      var mx=r.km_max!=null?r.km_max:(r.max||0);
+      if(mx>freeKm) freeKm=mx;
+    }
+  });
+  if(km<=freeKm) return {price:0,freeKm:freeKm,chargeKm:0,perKm:0,label:'🎉 '+freeKm+'km 內免收'};
+  var chargeKm=parseFloat((km-freeKm).toFixed(1));
+  // 找超出的費率（取超出部分所在的區間 price）
+  var perKm=50; // 預設每km
+  rates.forEach(function(r){
+    var mn=r.km_min!=null?r.km_min:(r.min||0);
+    var mx=r.km_max!=null?r.km_max:(r.max||999);
+    if(km>mn&&km<=mx&&(r.price||0)>0) perKm=r.price;
+  });
+  var price=Math.round(chargeKm*perKm);
+  var label=km+'km，超'+freeKm+'km，'+chargeKm+'km × $'+perKm+'/km = $'+price;
+  return {price,freeKm,chargeKm,perKm,label};
 }
+function dcost(km){ return dcostInfo(km).price; }
 
 function adj(k,d){
   const S_local=window._S||(window._S={cat:1,dog:0,tpd:1});
@@ -1260,12 +1282,12 @@ function calc(){
   }
 
   const km=parseFloat(document.getElementById('dist')?.value)||0;
-  const dc=dcost(km);
+  const dc=dcostInfo(km).price;
+  const dcInfo=dcostInfo(km);
   const dl=document.getElementById('distLabel');
   if(dl){
     if(!km) dl.textContent='';
-    else if(dc===0) dl.textContent='🎉 5km 內免收';
-    else dl.textContent=`每次車馬費 $${dc}`;
+    else dl.textContent=dcInfo.label;
   }
 
   const cards=document.querySelectorAll('.svc.on');
@@ -1356,7 +1378,11 @@ function calc(){
     const hasOther=dc>0||urg>0||disc>0;
     if(hasOther){
       html+=`<hr class="sum-divider">`;
-      if(dc>0)   html+=R(`🚗 車馬費`,`$${dc}/次 × ${totalSess}次 = $${transportTotal}`);
+      if(dc>0){
+        var _dci=dcostInfo(km);
+        var _tcLabel='🚗 車馬費（'+km+'km，超'+_dci.freeKm+'km × $'+_dci.perKm+'/km）';
+        html+=R(_tcLabel,`$${dc}/次 × ${totalSess}次 = $${transportTotal}`);
+      }
       if(urg>0)  html+=R(`⚡ 急件加收`,`$${urg}`,'','color:#FF6B00;font-weight:800;');
       if(disc>0) html+=R(`🎫 優惠券折抵`,`-$${disc}`,'','color:#06C755;font-weight:800;');
     }
@@ -1372,7 +1398,10 @@ function calc(){
     html+=R(`${svcLabel2}（春節過年）`,`$${svcKeys.reduce((s,k)=>s+(CNY_PRICES[k]||0),0)} / 次`);
     if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon} / 次`);
     if(extra>0) html+=R(`第4隻起加收`,`$${extra} / 次`);
-    if(dc>0)    html+=R(`🚗 車馬費`,`$${dc} / 次`);
+    if(dc>0){
+      var _dci2=dcostInfo(km);
+      html+=R(`🚗 車馬費（${km}km，超${_dci2.freeKm}km×$${_dci2.perKm}/km）`,`$${dc} / 次`);
+    }
     html+=`</div>`;
     html+=`<div class="sum-total"><span>💕 照護總計為</span><span style="font-size:.88rem;color:var(--tl);">選擇時段後自動計算</span></div>`;
   }
@@ -1408,7 +1437,7 @@ async function submitBook(){
   if(!name||!phone||!addr){alert('請填寫飼主姓名、電話與地址 🐾');return;}
   if(getTotalSessions()===0){alert('請選擇日期並勾選至少一個時段 📅');return;}
   const km=parseFloat(document.getElementById('dist')?.value)||0;
-  const dc=dcost(km);
+  const dc=dcostInfo(km).price;
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
   const cards=document.querySelectorAll('.svc.on');
   let base=0; cards.forEach(card=>{base+=svcPrice(card.dataset.key);});
@@ -1676,6 +1705,34 @@ async function initFromSiteSettings(){
       }
     }
 
+    // 更新服務價目表顯示
+    var st1=document.getElementById('svcTableCompanion');
+    var st2=document.getElementById('svcTableWalk');
+    var st3=document.getElementById('svcTableBoth');
+    if(st1) st1.textContent='🏠 到府陪伴 $'+SVCBASE.companion+'/0.5H';
+    if(st2) st2.textContent='🦮 散步服務 $'+SVCBASE.walk+'/0.5H';
+    if(st3) st3.textContent='🏠🦮 到府＋遛狗 $'+SVCBASE.both+'/45min';
+    // 更新附加服務價目表
+    if(settings.addon_prices&&Array.isArray(settings.addon_prices)){
+      var addonTableEl=document.getElementById('svcTableAddon');
+      if(addonTableEl){
+        var addonLines=settings.addon_prices.map(function(a){
+          var em=a.emoji||'🐾';
+          return em+' '+a.key+' +$'+a.price;
+        });
+        addonLines.push('🐾 前3隻免加收 ｜ 第4隻起 +$100/隻');
+        addonTableEl.innerHTML=addonLines.join(' ｜ ');
+      }
+    }
+    // 更新地標2
+    if(settings.landmarks&&Array.isArray(settings.landmarks)){
+      var lDiv2=document.getElementById('landmarkHints2');
+      if(lDiv2){
+        lDiv2.innerHTML=settings.landmarks.map(function(lm){
+          return '<span style="font-size:.76rem;color:var(--tl);">'+(lm.emoji||'📍')+' '+lm.name+'</span>';
+        }).join('');
+      }
+    }
     calc();
     console.log('[settings] 載入完成', Object.keys(settings));
   }catch(e){

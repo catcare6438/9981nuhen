@@ -696,6 +696,12 @@ function dbRowToOrder(r){
 </div>
 
 <script>
+// ── 全域費用設定（由後台 site_settings 動態更新）──
+var BASES={companion:300,walk:200,both:500};
+var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
+
+
 
 // ── KAOHSIUNG DISTRICTS & STREETS ──
 const KH_DISTRICTS=['鹽埕區','鼓山區','左營區','楠梓區','三民區','新興區','前金區','苓雅區','前鎮區','旗津區','小港區','鳳山區','林園區','大寮區','大樹區','大社區','仁武區','鳥松區','岡山區','橋頭區','燕巢區','田寮區','阿蓮區','路竹區','湖內區','茄萣區','永安區','彌陀區','梓官區','旗山區','美濃區','六龜區','甲仙區','杉林區','內門區','茂林區','桃源區','那瑪夏區'];
@@ -969,9 +975,9 @@ function renderDateSlots(){
 
 
 // ── 服務價格 ──
-const SVCBASE        = {companion:300,walk:200,both:500};       // 平日
-const HOLIDAY_PRICES = {companion:450,walk:350,both:750};       // 一般連假
-const CNY_PRICES     = {companion:600,walk:500,both:1000};      // 春節過年
+var SVCBASE          = {companion:300,walk:200,both:500};       // 平日（由後台動態更新）
+var HOLIDAY_PRICES   = {companion:450,walk:350,both:750};       // 連假（由後台動態更新）
+var CNY_PRICES       = {companion:600,walk:500,both:1000};      // 春節（由後台動態更新）
 
 // ── 連假日期 ──
 const CNY_HOLIDAYS   = new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);   // 春節 2/14~2/22
@@ -1010,10 +1016,7 @@ function updateHolidayUI(){
   if(banner) banner.style.display=isHoliday?'block':'none';
   if(note) note.classList.toggle('show',isHoliday);
 
-  // 從後台讀取費用設定（動態）
-  var BASES={companion:300,walk:200,both:500};
-  var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
-  var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
+  // 費用設定由全域 BASES/ADDON_PRICES/TRANSPORT_RATES 提供
   const NAMES={companion:'priceCompanion',walk:'priceWalk',both:'priceBoth'};
   const ORIGS={companion:'origCompanion',walk:'origWalk',both:'origBoth'};
   const LABELS={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
@@ -1564,21 +1567,37 @@ async function initFromSiteSettings(){
     rows.forEach(function(r){settings[r.key]=r.value;});
 
     if(settings.svc_prices&&Array.isArray(settings.svc_prices)){
-      var normal=settings.svc_prices.find(function(p){return p.label==='平日';});
-      if(normal){
-        BASES.companion=normal.companion||300;
-        BASES.walk=normal.walk||200;
-        BASES.both=normal.both||500;
-      }
+      // 更新三組價格
+      settings.svc_prices.forEach(function(tier){
+        var label=tier.label||'';
+        var obj={companion:tier.companion||0,walk:tier.walk||0,both:tier.both||0};
+        if(label.includes('平日')||label.includes('weekday')){
+          SVCBASE.companion=obj.companion||SVCBASE.companion;
+          SVCBASE.walk=obj.walk||SVCBASE.walk;
+          SVCBASE.both=obj.both||SVCBASE.both;
+        } else if(label.includes('春節')||label.includes('cny')){
+          CNY_PRICES.companion=obj.companion||CNY_PRICES.companion;
+          CNY_PRICES.walk=obj.walk||CNY_PRICES.walk;
+          CNY_PRICES.both=obj.both||CNY_PRICES.both;
+        } else if(label.includes('連假')||label.includes('holiday')){
+          HOLIDAY_PRICES.companion=obj.companion||HOLIDAY_PRICES.companion;
+          HOLIDAY_PRICES.walk=obj.walk||HOLIDAY_PRICES.walk;
+          HOLIDAY_PRICES.both=obj.both||HOLIDAY_PRICES.both;
+        }
+      });
+
+      // 更新按鈕顯示
       var cpEl=document.getElementById('priceCompanion');
       var wkEl=document.getElementById('priceWalk');
       var btEl=document.getElementById('priceBoth');
-      if(cpEl) cpEl.textContent='$'+BASES.companion+' / 0.5H';
-      if(wkEl) wkEl.textContent='$'+BASES.walk+' / 0.5H';
-      if(btEl) btEl.textContent='$'+BASES.both+' / 0.5H';
-      document.querySelectorAll('[data-key="companion"]').forEach(function(el){el.dataset.base=BASES.companion;});
-      document.querySelectorAll('[data-key="walk"]').forEach(function(el){el.dataset.base=BASES.walk;});
-      document.querySelectorAll('[data-key="both"]').forEach(function(el){el.dataset.base=BASES.both;});
+      if(cpEl) cpEl.textContent='$'+SVCBASE.companion+' / 0.5H';
+      if(wkEl) wkEl.textContent='$'+SVCBASE.walk+' / 0.5H';
+      if(btEl) btEl.textContent='$'+SVCBASE.both+' / 0.5H';
+      // 更新 data-base 屬性
+      document.querySelectorAll('[data-key="companion"]').forEach(function(el){el.dataset.base=SVCBASE.companion;});
+      document.querySelectorAll('[data-key="walk"]').forEach(function(el){el.dataset.base=SVCBASE.walk;});
+      document.querySelectorAll('[data-key="both"]').forEach(function(el){el.dataset.base=SVCBASE.both;});
+      console.log('[settings] 平日價格：',SVCBASE);
     }
     if(settings.addon_prices&&Array.isArray(settings.addon_prices)){
       settings.addon_prices.forEach(function(a){if(a.key&&a.price) ADDON_PRICES[a.key]=a.price;});

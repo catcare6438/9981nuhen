@@ -1203,7 +1203,16 @@ function updateDropAddon(){
 }
 function dcost(km){
   km=parseFloat(km)||0;
-  return km<=5?0:Math.ceil(km-5)*50;
+  if(!km) return 0;
+  // 從後台設定讀取車馬費區間
+  var rates=TRANSPORT_RATES||[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
+  for(var i=0;i<rates.length;i++){
+    var r=rates[i];
+    var minKm=r.km_min!=null?r.km_min:(r.min||0);
+    var maxKm=r.km_max!=null?r.km_max:(r.max||999);
+    if(km>=minKm&&km<maxKm) return r.price||0;
+  }
+  return rates[rates.length-1].price||0;
 }
 
 function adj(k,d){

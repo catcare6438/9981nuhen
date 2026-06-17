@@ -563,15 +563,14 @@ function dbRowToOrder(r){
     </div>
 
     <div style="margin-top:20px;padding-top:16px;border-top:1.5px dashed var(--p3);">
-      <!-- 急件自動判斷（隱藏 radio，value 由 checkUrgent() 自動設定） -->
+      <!-- 急件自動判斷（系統自動加計，備註顯示） -->
       <input type="radio" name="urgent" value="0" checked style="display:none;">
       <input type="radio" name="urgent" value="100" style="display:none;">
       <input type="radio" name="urgent" value="200" style="display:none;">
-      <div id="urgentInfo" style="display:none;background:#FFF3CD;border:2px solid #FFB300;border-radius:10px;padding:12px 16px;font-size:.88rem;color:#7A5C00;font-weight:800;margin-top:8px;">
-        ⚡ <span id="urgentInfoText"></span><br>
-        <span style="font-size:.76rem;font-weight:600;color:#A07000;">急件費用已自動加入費用試算明細</span>
+      <div id="urgentInfo" style="display:none;background:#FFF3CD;border:2px solid #FFB300;border-radius:10px;padding:10px 14px;font-size:.84rem;color:#7A5C00;font-weight:800;margin-top:8px;">
+        ⚡ <span id="urgentInfoText"></span>
+        <div style="font-size:.74rem;font-weight:600;margin-top:3px;color:#A07000;">費用已自動加入下方試算明細 👇</div>
       </div>
-    </div>
   </div>
 
   <div class="card">
@@ -1677,29 +1676,47 @@ async function initFromSiteSettings(){
 
       var pillsDiv=document.getElementById('addonPills');
       if(pillsDiv){
+        // 分組：每日 / 單次
+        var dailyItems=settings.addon_prices.filter(function(a){return (!a.billing||a.billing==='每日');});
+        var onceItems=settings.addon_prices.filter(function(a){return a.billing==='單次';});
+
+        function buildPillsHtml(items){
+          var h='';
+          items.forEach(function(a){
+            if(!a.key) return;
+            var price=Number(a.price)||0;
+            ADDON_PRICES[a.key]=price;
+            var em=a.emoji||emojiMap[a.key]||'🐾';
+            if(hasQtyMap[a.key]){
+              var cbId=cbIdMap[a.key]||('addon-'+a.key);
+              var qtyId=qtyIdMap[a.key]||('qty-'+a.key);
+              var fn=fnMap[a.key]||'calc';
+              h+='<div class="pill-qty">'
+                +'<input type="checkbox" id="'+cbId+'" value="'+price+'" data-name="'+a.key+'" data-billing="'+(a.billing||'每日')+'" onchange="'+fn+'()">'
+                +'<label for="'+cbId+'" style="cursor:pointer;">'+em+' '+a.key+' <strong>+$'+price+'</strong>/隻</label>'
+                +'<span class="pill-qty-label">需'+a.key+'</span>'
+                +'<input type="number" class="pill-qty-num" id="'+qtyId+'" min="1" max="10" value="1" oninput="'+fn+'()">'
+                +'<span class="pill-qty-label">隻</span>'
+                +'</div>';
+            } else {
+              h+='<label class="pill" onclick="calc()">'
+                +'<input type="checkbox" value="'+price+'" data-name="'+a.key+'" data-billing="'+(a.billing||'每日')+'">'+em+' '+a.key+' <strong>+$'+price+'</strong>'
+                +'</label>';
+            }
+          });
+          return h;
+        }
+
         var html='';
-        settings.addon_prices.forEach(function(a){
-          if(!a.key) return;
-          var price=Number(a.price)||0;
-          ADDON_PRICES[a.key]=price;
-          var em=a.emoji||emojiMap[a.key]||'🐾';
-          if(hasQtyMap[a.key]){
-            var cbId=cbIdMap[a.key]||('addon-'+a.key);
-            var qtyId=qtyIdMap[a.key]||('qty-'+a.key);
-            var fn=fnMap[a.key]||'calc';
-            html+='<div class="pill-qty">'
-              +'<input type="checkbox" id="'+cbId+'" value="'+price+'" data-name="'+a.key+'" onchange="'+fn+'()">'
-              +'<label for="'+cbId+'" style="cursor:pointer;">'+em+' '+a.key+' <strong>+$'+price+'</strong>/隻</label>'
-              +'<span class="pill-qty-label">需'+a.key+'</span>'
-              +'<input type="number" class="pill-qty-num" id="'+qtyId+'" min="1" max="10" value="1" oninput="'+fn+'()">'
-              +'<span class="pill-qty-label">隻</span>'
-              +'</div>';
-          } else {
-            html+='<label class="pill" onclick="calc()">'
-              +'<input type="checkbox" value="'+price+'" data-name="'+a.key+'">'+em+' '+a.key+' <strong>+$'+price+'</strong>'
-              +'</label>';
-          }
-        });
+        if(dailyItems.length){
+          html+='<div style="width:100%;font-size:.74rem;font-weight:800;color:var(--p1);margin:4px 0 6px;letter-spacing:.05em;">📅 每日計費</div>';
+          html+=buildPillsHtml(dailyItems);
+        }
+        if(onceItems.length){
+          html+='<div style="width:100%;font-size:.74rem;font-weight:800;color:#8B6000;margin:8px 0 6px;letter-spacing:.05em;">✂️ 單次計費</div>';
+          html+=buildPillsHtml(onceItems);
+        }
+        if(!dailyItems.length&&!onceItems.length) html=buildPillsHtml(settings.addon_prices);
         pillsDiv.innerHTML=html;
       }
     }
@@ -1714,13 +1731,16 @@ async function initFromSiteSettings(){
 
     // ── 地標（純名稱，無距離）──
     if(settings.landmarks&&Array.isArray(settings.landmarks)){
+      var lmSpans=settings.landmarks.map(function(lm){
+        return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;">'
+          +(lm.emoji||'📍')+' '+lm.name+'</span>';
+      }).join('');
       var lDiv=document.getElementById('landmarkHints');
-      if(lDiv){
-        lDiv.innerHTML=settings.landmarks.map(function(lm){
-          return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:#fff;border:1.5px solid var(--p3);border-radius:20px;font-size:.76rem;">'
-            +(lm.emoji||'📍')+' '+lm.name+'</span>';
-        }).join('');
-      }
+      if(lDiv) lDiv.innerHTML=lmSpans;
+      var lDiv2=document.getElementById('landmarkHints2');
+      if(lDiv2) lDiv2.innerHTML=settings.landmarks.map(function(lm){
+        return '<span style="font-size:.76rem;color:var(--tl);">'+(lm.emoji||'📍')+' '+lm.name+'</span>';
+      }).join('');
     }
 
     // 更新服務價目表顯示
@@ -1742,15 +1762,7 @@ async function initFromSiteSettings(){
         addonTableEl.innerHTML=addonLines.join(' ｜ ');
       }
     }
-    // 更新地標2
-    if(settings.landmarks&&Array.isArray(settings.landmarks)){
-      var lDiv2=document.getElementById('landmarkHints2');
-      if(lDiv2){
-        lDiv2.innerHTML=settings.landmarks.map(function(lm){
-          return '<span style="font-size:.76rem;color:var(--tl);">'+(lm.emoji||'📍')+' '+lm.name+'</span>';
-        }).join('');
-      }
-    }
+
     calc();
     console.log('[settings] 載入完成', Object.keys(settings));
   }catch(e){

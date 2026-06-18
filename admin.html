@@ -2596,16 +2596,18 @@ async function initDefaultSiteSettings(){
   console.log('[settings] defaults initialized');
 }
 async function saveSiteSetting(key,value){
-  var valStr=typeof value==='object'?JSON.stringify(value):String(value);
   var ts=new Date().toISOString();
   try{
+    // 直接傳 object，讓 Worker 直接寫入 jsonb
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?_upsert=1&_conflict=key',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({key:key,value:valStr,updated_at:ts})
+      body:JSON.stringify({key:key,value:value,updated_at:ts})
     });
-    var j=await res.json();
-    if(j&&j.error) throw new Error(j.error);
+    if(!res.ok){
+      var err=await res.text();
+      throw new Error(err.substring(0,200));
+    }
     if(!_siteSettings) _siteSettings={};
     _siteSettings[key]=value;
     console.log('[saveSiteSetting] ✅',key);

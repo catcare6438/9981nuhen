@@ -639,21 +639,14 @@ async function dbGetOwnerPws(){
 async function dbSetOwnerPw(bookId,pw){
   var bidStr=String(bookId);
   try{
-    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(bidStr),{
-      method:'PUT',
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?_upsert=1&_conflict=book_id',{
+      method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({password:pw})
+      body:JSON.stringify({book_id:bidStr,password:pw})
     });
-    var j1=await r1.json();
-    var updated=Array.isArray(j1)?j1.length:0;
-    if(!updated){
-      await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({book_id:bidStr,password:pw})
-      });
-    }
-    console.log('[dbSetOwnerPw] ✅ bid='+bidStr+' pw='+pw);
+    var j=await res.json();
+    if(j&&j.error) throw new Error(j.error);
+    console.log('[dbSetOwnerPw] ✅ bid='+bidStr);
   }catch(e){
     console.error('[dbSetOwnerPw] ❌',e.message);
     throw e;
@@ -2606,27 +2599,18 @@ async function saveSiteSetting(key,value){
   var valStr=typeof value==='object'?JSON.stringify(value):String(value);
   var ts=new Date().toISOString();
   try{
-    // 先 PUT（update）
-    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key='+encodeURIComponent(key),{
-      method:'PUT',
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?_upsert=1&_conflict=key',{
+      method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({value:valStr,updated_at:ts})
+      body:JSON.stringify({key:key,value:valStr,updated_at:ts})
     });
-    var j1=await r1.json();
-    // 若 update 到 0 rows，改用 POST（insert）
-    var updated=Array.isArray(j1)?j1.length:(j1&&j1.rowCount?j1.rowCount:1);
-    if(!updated||updated===0){
-      await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({key:key,value:valStr,updated_at:ts})
-      });
-    }
+    var j=await res.json();
+    if(j&&j.error) throw new Error(j.error);
     if(!_siteSettings) _siteSettings={};
     _siteSettings[key]=value;
-    console.log('[saveSiteSetting] ✅',key,'=',valStr.substring(0,50));
+    console.log('[saveSiteSetting] ✅',key);
   }catch(e){
-    console.error('[saveSiteSetting] ❌',e.message);
+    console.error('[saveSiteSetting] ❌',key,e.message);
     throw e;
   }
 }

@@ -3466,289 +3466,395 @@ async function exportOrderPDF(bookId){
   if(btn){btn.textContent='⏳ 產生中...';btn.disabled=true;}
 
   try{
+    // 取回報
     var reports=[];
     try{
-      var rres=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
-      var rraw=await rres.json();
-      reports=Array.isArray(rraw)?rraw:[];
-      reports.sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+      var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
+      var rd=await repRes.json();
+      reports=(Array.isArray(rd)?rd:[]).sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
     }catch(e){}
 
+    // ── 建立一個隱藏的 HTML 容器，讓瀏覽器渲染再截圖 ──
     const {jsPDF}=window.jspdf;
-    var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
-    var PW=595,PH=842,CONTENT_H=PH-100; // 去掉頁首頁腳
+    var doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    var PW_MM=210,PH_MM=297;
+    var SCALE=3; // 高解析度
+    var PW_PX=794*SCALE, PH_PX=1123*SCALE;
 
+    // 預載圖片
     async function loadImg(url){
       return new Promise(function(res){
         if(!url||!url.startsWith('http')){res(null);return;}
         var img=new Image();img.crossOrigin='anonymous';
-        img.onload=function(){res(img);};
-        img.onerror=function(){res(null);};
+        img.onload=function(){res(img);};img.onerror=function(){res(null);};
         img.src=url;
       });
     }
 
-    // 繪製一頁並加入 PDF
-    async function addPage(drawFn, isFirst){
-      if(!isFirst) doc.addPage();
+    // 把 HTML 字串渲染成 Canvas 圖片
+    async function htmlToCanvas(htmlStr){
+      var wrap=document.createElement('div');
+      wrap.style.cssText='position:fixed;left:-9999px;top:0;width:'+(PW_PX/SCALE)+'px;background:#fff;font-family:"Noto Sans TC",sans-serif;';
+      wrap.innerHTML=htmlStr;
+      document.body.appendChild(wrap);
+      await new Promise(function(r){setTimeout(r,50);});
+
       var cv=document.createElement('canvas');
-      cv.width=PW*2;cv.height=PH*2;
+      cv.width=PW_PX;cv.height=PH_PX;
       var ctx=cv.getContext('2d');
-      ctx.scale(2,2);
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,PW,PH);
-      await drawFn(ctx);
-      doc.addImage(cv.toDataURL('image/jpeg',0.93),'JPEG',0,0,PW,PH);
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,PW_PX,PH_PX);
+
+      // 用 html2canvas-like approach: foreignObject in SVG
+      var data='<svg xmlns="http://www.w3.org/2000/svg" width="'+PW_PX+'" height="'+PH_PX+'">'+
+        '<foreignObject width="'+(PW_PX/SCALE)+'" height="'+(PH_PX/SCALE)+'" transform="scale('+SCALE+')">'+
+        '<body xmlns="http://www.w3.org/1999/xhtml" style="margin:0;padding:0;font-family:sans-serif;">'+
+        wrap.innerHTML+
+        '</body></foreignObject></svg>';
+
+      // Fallback: 直接 canvas 繪圖
+      document.body.removeChild(wrap);
+      return cv;
     }
 
-    function rr(ctx,x,y,w,h,r,fill,stroke,lw){
-      ctx.beginPath();
-      ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
-      ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
-      ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
-      ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);
-      ctx.closePath();
+    // ── 核心：用 Canvas 直接繪製（避免 SVG 限制）──
+    // 每頁建立一個 offscreen canvas，用 Canvas 2D API 繪製中文
+    function newCanvas(){
+      var cv=document.createElement('canvas');
+      cv.width=PW_PX;cv.height=PH_PX;
+      var ctx=cv.getContext('2d');
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,PW_PX,PH_PX);
+      ctx.scale(SCALE,SCALE); // 後續座標用 pt（794×1123 邏輯空間）
+      return {cv,ctx};
+    }
+
+    var PW=794,PH=1123; // 邏輯像素（A4 @96dpi）
+
+    function rr(ctx,x,y,w,h,r2,fill,stroke,lw){
+      ctx.beginPath();ctx.moveTo(x+r2,y);ctx.lineTo(x+w-r2,y);ctx.arcTo(x+w,y,x+w,y+r2,r2);
+      ctx.lineTo(x+w,y+h-r2);ctx.arcTo(x+w,y+h,x+w-r2,y+h,r2);ctx.lineTo(x+r2,y+h);
+      ctx.arcTo(x,y+h,x,y+h-r2,r2);ctx.lineTo(x,y+r2);ctx.arcTo(x,y,x+r2,y,r2);ctx.closePath();
       if(fill){ctx.fillStyle=fill;ctx.fill();}
       if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}
     }
 
-    function wt(ctx,txt,x,y,maxW,lh){
-      var w=txt.split('');var line='';var cy=y;
-      for(var i=0;i<w.length;i++){
-        var t=line+w[i];
-        if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,cy);line=w[i];cy+=lh;}
-        else line=t;
-      }
-      if(line) ctx.fillText(line,x,cy);
-      return cy+lh;
+    function txt(ctx,t,x,y,color,font){
+      ctx.fillStyle=color||'#333';
+      ctx.font=font||'14px "Noto Sans TC",sans-serif';
+      ctx.fillText(String(t||''),x,y);
     }
 
-    function drawFooter(ctx,txt){
-      ctx.fillStyle='#FF5C7D';ctx.fillRect(0,PH-36,PW,36);
-      ctx.fillStyle='#fff';ctx.font='10px "Noto Sans TC",sans-serif';
-      ctx.textAlign='center';ctx.fillText(txt,PW/2,PH-14);ctx.textAlign='left';
+    function wrapTxt(ctx,t,x,y,maxW,lh,color,font){
+      ctx.fillStyle=color||'#333';
+      ctx.font=font||'13px "Noto Sans TC",sans-serif';
+      var chars=String(t||'').split('');var line='';var cy=y;
+      for(var i=0;i<chars.length;i++){
+        var test=line+chars[i];
+        if(ctx.measureText(test).width>maxW&&line){ctx.fillText(line,x,cy);line=chars[i];cy+=lh;}
+        else line=test;
+      }
+      if(line){ctx.fillText(line,x,cy);cy+=lh;}
+      return cy;
     }
 
-    // ── 封面 ──
-    await addPage(async function(ctx){
-      var bg=ctx.createLinearGradient(0,0,0,PH);
-      bg.addColorStop(0,'#FFF0F5');bg.addColorStop(1,'#FFF8F0');
-      ctx.fillStyle=bg;ctx.fillRect(0,0,PW,PH);
-      var tg=ctx.createLinearGradient(0,0,PW,0);
-      tg.addColorStop(0,'#FF5C7D');tg.addColorStop(1,'#FFADC0');
-      ctx.fillStyle=tg;ctx.fillRect(0,0,PW,200);
-      ctx.fillStyle='rgba(255,255,255,.12)';
-      ctx.beginPath();ctx.arc(PW-60,36,70,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(40,140,44,0,Math.PI*2);ctx.fill();
+    function gradient(ctx,x1,y1,x2,y2,c1,c2){
+      var g=ctx.createLinearGradient(x1,y1,x2,y2);g.addColorStop(0,c1);g.addColorStop(1,c2);return g;
+    }
 
-      ctx.fillStyle='#fff';ctx.textAlign='center';
-      ctx.font='bold 28px "Noto Sans TC",sans-serif';ctx.fillText('貓窩裏 🐾 到府寵物保母',PW/2,64);
-      ctx.font='16px "Noto Sans TC",sans-serif';ctx.fillText('寵物照護完整紀錄',PW/2,96);
-      ctx.font='bold 18px "Noto Sans TC",sans-serif';ctx.fillText('PET CARE REPORT',PW/2,126);
-      ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillStyle='rgba(255,255,255,.8)';
-      ctx.fillText(new Date().toLocaleDateString('zh-TW'),PW/2,152);
-      ctx.textAlign='left';
+    function pageHeader(ctx,line1,line2){
+      ctx.fillStyle=gradient(ctx,0,0,PW,0,'#FF5C7D','#FFADC0');ctx.fillRect(0,0,PW,88);
+      txt(ctx,line1,30,36,'#fff','bold 20px "Noto Sans TC",sans-serif');
+      if(line2) txt(ctx,line2,30,62,'rgba(255,255,255,.9)','14px "Noto Sans TC",sans-serif');
+      // 裝飾圓
+      ctx.fillStyle='rgba(255,255,255,.1)';
+      ctx.beginPath();ctx.arc(PW-60,44,55,0,Math.PI*2);ctx.fill();
+    }
 
-      // 飼主資訊
-      rr(ctx,30,218,PW-60,110,12,'#fff','#FFD6E0',1.5);
-      ctx.fillStyle='#FF5C7D';ctx.font='bold 13px "Noto Sans TC",sans-serif';
-      ctx.fillText('👤 飼主資訊',50,240);
-      ctx.strokeStyle='#FFE4EC';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(50,248);ctx.lineTo(PW-50,248);ctx.stroke();
-      [['🏠 姓名',bk.ownerName||''],['📞 電話',bk.ownerPhone||''],['📍 地址',(bk.ownerAddr||'').substring(0,30)||'未填']
-      ].forEach(function(row,i){
-        ctx.fillStyle='#aaa';ctx.font='11px "Noto Sans TC",sans-serif';ctx.fillText(row[0],52,266+i*26);
-        ctx.fillStyle='#333';ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(String(row[1]),142,266+i*26);
-      });
+    function pageFooter(ctx,t){
+      ctx.fillStyle='#FF5C7D';ctx.fillRect(0,PH-48,PW,48);
+      ctx.fillStyle='#fff';ctx.font='13px "Noto Sans TC",sans-serif';
+      ctx.textAlign='center';ctx.fillText(t,PW/2,PH-18);ctx.textAlign='left';
+    }
 
-      // 服務期間
-      rr(ctx,30,342,PW-60,40,8,'#FFF0F5','#FFD6E0',1);
-      ctx.fillStyle='#FF5C7D';ctx.font='11px "Noto Sans TC",sans-serif';ctx.textAlign='center';
-      ctx.fillText('📅 '+(bk.startDate||'')+'～'+(bk.endDate||'')+'　｜　👩 '+(bk.assignedTo||''),PW/2,358);
-      ctx.fillText('🐾 毛孩：'+( (bk.petData||[]).map(function(p){return p.name||'';}).filter(Boolean).join('、')||''),PW/2,376);
-      ctx.textAlign='left';
+    function canvasToPage(cv,isFirst){
+      if(!isFirst) doc.addPage();
+      doc.addImage(cv.toDataURL('image/jpeg',0.92),'JPEG',0,0,PW_MM,PH_MM);
+    }
 
-      // 毛孩資訊
-      var pets=bk.petData||[];
-      var py=402;
-      if(pets.length){
-        rr(ctx,30,py,PW-60,20+pets.length*50+14,12,'#FFF5F8','#FFD6E0',1.5);
-        ctx.fillStyle='#FF5C7D';ctx.font='bold 13px "Noto Sans TC",sans-serif';ctx.fillText('🐾 毛孩資訊',50,py+16);
-        py+=30;
-        pets.forEach(function(p){
-          rr(ctx,44,py,PW-88,38,8,'#FFF0F5',null,0);
-          ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-          ctx.fillText((p.type==='cat'?'🐱':'🐶')+' '+(p.name||'未命名')+'　'+(p.gender||''),58,py+14);
-          ctx.fillStyle='#666';ctx.font='10px "Noto Sans TC",sans-serif';
-          ctx.fillText(((p.health&&p.health.length)?'健康注意：'+p.health.join('、'):'健康良好 ✓').substring(0,42),58,py+30);
-          py+=48;
-        });
-        py+=8;
-      }
+    // ══════════════ 封面頁 ══════════════
+    var {cv:cv0,ctx:ctx0}=newCanvas();
+    // 背景
+    ctx0.fillStyle=gradient(ctx0,0,0,0,PH,'#FFF0F5','#FFF5EE');ctx0.fillRect(0,0,PW,PH);
+    // 頂部大橫幅
+    ctx0.fillStyle=gradient(ctx0,0,0,PW,0,'#FF5C7D','#FFADC0');ctx0.fillRect(0,0,PW,280);
+    ctx0.fillStyle='rgba(255,255,255,.08)';
+    ctx0.beginPath();ctx0.arc(PW-80,60,100,0,Math.PI*2);ctx0.fill();
+    ctx0.beginPath();ctx0.arc(50,200,60,0,Math.PI*2);ctx0.fill();
+    // 爪印裝飾
+    [600,200,720,100,180,350,650,420].forEach(function(x,i){
+      ctx0.fillStyle='rgba(255,255,255,0.06)';
+      ctx0.beginPath();ctx0.arc(x,i*40+80,20+i*3,0,Math.PI*2);ctx0.fill();
+    });
 
-      // 回報數
-      rr(ctx,30,py,PW-60,44,10,'#FF5C7D',null,0);
-      ctx.fillStyle='#fff';ctx.font='bold 14px "Noto Sans TC",sans-serif';
-      ctx.textAlign='center';ctx.fillText('📋 共 '+reports.length+' 天照護回報',PW/2,py+26);ctx.textAlign='left';
+    ctx0.textAlign='center';
+    txt(ctx0,'貓窩裏 🐾',PW/2,95,'#fff','bold 40px "Noto Sans TC",sans-serif');
+    txt(ctx0,'到府寵物保母',PW/2,140,'rgba(255,255,255,.95)','20px "Noto Sans TC",sans-serif');
+    txt(ctx0,'寵物照護完整紀錄',PW/2,185,'#fff','bold 28px "Noto Sans TC",sans-serif');
+    txt(ctx0,'PET CARE REPORT',PW/2,222,'rgba(255,255,255,.8)','15px "Noto Sans TC",sans-serif');
+    txt(ctx0,'產製日期：'+new Date().toLocaleDateString('zh-TW'),PW/2,255,'rgba(255,255,255,.7)','13px "Noto Sans TC",sans-serif');
+    ctx0.textAlign='left';
 
-      drawFooter(ctx,'貓窩裏 到府寵物保母　｜　LINE @099nuhen　｜　感謝您的信任與托付 🐾');
-    }, true);
+    // 飼主資訊卡
+    var oy=308;
+    rr(ctx0,40,oy,PW-80,170,16,'#fff','#FFD6E0',2);
+    // 左粉條
+    ctx0.fillStyle='#FF5C7D';ctx0.fillRect(40,oy,8,170);
+    ctx0.fillStyle='#FF5C7D';ctx0.font='bold 17px "Noto Sans TC",sans-serif';
+    ctx0.fillText('👤 飼主資訊',62,oy+30);
+    ctx0.strokeStyle='#FFE4EC';ctx0.lineWidth=1;
+    ctx0.beginPath();ctx0.moveTo(62,oy+38);ctx0.lineTo(PW-60,oy+38);ctx0.stroke();
 
-    // ── 每日回報 ──
+    var infoItems=[
+      ['🏠 姓名',bk.ownerName||'（未填）'],
+      ['📞 電話',bk.ownerPhone||'（未填）'],
+      ['📍 地址',(bk.ownerAddr||'（未填）').substring(0,36)],
+    ];
+    infoItems.forEach(function(row,i){
+      txt(ctx0,row[0],62,oy+60+i*36,'#999','14px "Noto Sans TC",sans-serif');
+      txt(ctx0,row[1],170,oy+60+i*36,'#222','bold 14px "Noto Sans TC",sans-serif');
+    });
+
+    // 服務資訊橫條
+    oy+=186;
+    rr(ctx0,40,oy,PW-80,62,10,'#FFF0F5','#FFD6E0',1.5);
+    ctx0.textAlign='center';
+    txt(ctx0,'📅 '+(bk.startDate||'')+'～'+(bk.endDate||'')+'　｜　👩 保母：'+(bk.assignedTo||''),PW/2,oy+26,'#FF5C7D','bold 14px "Noto Sans TC",sans-serif');
+    txt(ctx0,'🐾 毛孩：'+((bk.petData||[]).map(function(p){return p.name||'';}).filter(Boolean).join('、')||'（未填）'),PW/2,oy+50,'#555','13px "Noto Sans TC",sans-serif');
+    ctx0.textAlign='left';
+
+    // 毛孩資訊表格
+    oy+=78;
+    var pets=bk.petData||[];
+    rr(ctx0,40,oy,PW-80,24+pets.length*76+14,14,'#FFF5F8','#FFD6E0',2);
+    ctx0.fillStyle='#FF5C7D';ctx0.fillRect(40,oy,8,24+pets.length*76+14);
+    txt(ctx0,'🐾 毛孩詳細資訊',62,oy+22,'#FF5C7D','bold 17px "Noto Sans TC",sans-serif');
+    oy+=36;
+    pets.forEach(function(p,pi2){
+      // 每隻底色交替
+      rr(ctx0,52,oy,PW-104,68,8,pi2%2===0?'#FFF0F5':'#fff','#FFE4EC',1);
+      // 名字 + 種類
+      var em=p.type==='cat'?'🐱':'🐶';
+      txt(ctx0,em+' '+(p.name||'未命名'),68,oy+20,'#FF5C7D','bold 16px "Noto Sans TC",sans-serif');
+      txt(ctx0,(p.gender||'')+(p.color?' · '+p.color:''),200,oy+20,'#888','13px "Noto Sans TC",sans-serif');
+      // 健康狀況
+      var health=(p.health&&p.health.length)?p.health.join('、'):'健康良好 ✓';
+      txt(ctx0,'健康：'+health.substring(0,30),68,oy+46,'#666','13px "Noto Sans TC",sans-serif');
+      // 備注
+      if(p.notes) txt(ctx0,'備：'+p.notes.substring(0,28),320,oy+46,'#C05000','12px "Noto Sans TC",sans-serif');
+      oy+=74;
+    });
+    oy+=14;
+
+    // 回報天數 badge
+    rr(ctx0,40,oy,PW-80,58,10,'#FF5C7D',null,0);
+    ctx0.textAlign='center';
+    txt(ctx0,'📋 共 '+reports.length+' 天照護回報 · '+((bk.petData||[]).length)+' 隻毛孩',PW/2,oy+34,'#fff','bold 18px "Noto Sans TC",sans-serif');
+    ctx0.textAlign='left';
+
+    pageFooter(ctx0,'貓窩裏 到府寵物保母　｜　LINE @099nuhen　｜　感謝您的信任與托付 🐾');
+    canvasToPage(cv0, true);
+
+    // ══════════════ 每日回報 ══════════════
     for(var ri=0;ri<reports.length;ri++){
-      var r=reports[ri];
-      var dateStr=r.date||(r.ts?new Date(parseInt(r.ts)).toLocaleDateString('zh-TW'):'');
-      var sitter=r.sitter||'';
-      var tStart=r.time_start||r.timeStart||'';
-      var tEnd=r.time_end||r.timeEnd||'';
-      var petReps=r.pet_reports||r.petReports||[];
-      var diary=r.diary||r.note||'';
+      var rep=reports[ri];
+      var dateStr=rep.date||(rep.ts?new Date(parseInt(rep.ts)).toLocaleDateString('zh-TW'):'');
+      var sitter=rep.sitter||'';
+      var tS=rep.time_start||rep.timeStart||'';
+      var tE=rep.time_end||rep.timeEnd||'';
+      var petReps=rep.pet_reports||rep.petReports||[];
+      var diary=rep.diary||rep.note||'';
       var photos=[];
-      (r.pet_photos||r.petPhotos||[]).forEach(function(p){
-        var url=typeof p==='string'?p:(p.dataUrl||p.url||'');
-        if(url&&url.startsWith('http')) photos.push(url);
+      (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){
+        var u=typeof p==='string'?p:(p.dataUrl||p.url||'');
+        if(u&&u.startsWith('http')) photos.push(u);
       });
 
       // 預載所有照片
-      var loadedImgs=[];
-      for(var pi=0;pi<photos.length;pi++){
-        loadedImgs.push(await loadImg(photos[pi]));
-      }
+      var imgs=[];
+      for(var pi=0;pi<photos.length;pi++) imgs.push(await loadImg(photos[pi]));
 
-      // ── 計算每頁放什麼（先計算高度，再分頁）──
-      // 用試算 canvas 量高度
-      var COLS3=3, IMG_W=(PW-52)/COLS3-6, IMG_H=IMG_W*0.72;
-      var HEADER_H=70, FOOTER_H=36, PAD=8;
+      // 用 segments + 自動換頁
+      var COLS=3,IW=Math.floor((PW-80)/COLS)-8,IH=Math.floor(IW*0.72);
+      var MARGIN_TOP=100,MARGIN_BOT=58,CONTENT_MAX=PH-MARGIN_TOP-MARGIN_BOT;
 
-      function calcPetH(pr){
-        var flds=[pr.spirit,pr.eyes,pr.food||pr.eating,pr.water||pr.drinking,pr.poop,pr.urine].filter(Boolean);
-        return 28+Math.ceil(flds.length/2)*22+((pr.emotions&&pr.emotions.length)?24:0)+(pr.notes?22:0)+PAD*2;
-      }
-      function calcDiaryH(){ return 90+PAD; }
-      function calcPhotoH(n){ return 24+Math.ceil(n/COLS3)*(IMG_H+8)+PAD; }
-      function calcTagH(items){ return items.length?32+Math.ceil(items.length/3)*18+PAD+6:0; }
-
-      // 建立 segment list（帶高度）
+      // 一筆 segment = {type, data, height}
       var segs=[];
-      var tags=[
-        {type:'tags',title:'🧴 消毒準備',items:r.disinfect||[],bg:'#EFF6FF',tc:'#1D4ED8'},
-        {type:'tags',title:'🔒 安全確認',items:r.safety||[],bg:'#F0FDF4',tc:'#15803D'},
-        {type:'tags',title:'🧹 今日服務',items:r.services||[],bg:'#FFFBEB',tc:'#B45309'},
+
+      // 服務標籤
+      var tagGroups=[
+        {title:'🧴 進門前消毒',items:rep.disinfect||[],bg:'#EFF6FF',tc:'#1E40AF'},
+        {title:'🔒 安全確認',items:rep.safety||[],bg:'#F0FDF4',tc:'#15803D'},
+        {title:'🧹 今日服務',items:rep.services||[],bg:'#FFFBEB',tc:'#92400E'},
       ];
-      tags.forEach(function(t){if(t.items.length) segs.push({...t,h:calcTagH(t.items)});});
-      petReps.forEach(function(pr){ segs.push({type:'pet',data:pr,h:calcPetH(pr)}); });
-      if(diary) segs.push({type:'diary',data:diary,h:calcDiaryH()});
-      if(loadedImgs.length){
-        for(var g=0;g<loadedImgs.length;g+=COLS3*2){
-          var batch=loadedImgs.slice(g,g+COLS3*2);
-          segs.push({type:'photos',imgs:batch,h:calcPhotoH(batch.length)});
-        }
+      tagGroups.forEach(function(tg){
+        if(!tg.items.length) return;
+        var rows=Math.ceil(tg.items.length/3);
+        segs.push({type:'tags',d:tg,h:36+rows*22+16});
+      });
+
+      // 每隻寵物
+      petReps.forEach(function(pr){
+        var flds=[pr.spirit,pr.eyes,pr.food||pr.eating,pr.water||pr.drinking,pr.poop,pr.urine].filter(Boolean);
+        var rows=Math.ceil(flds.length/2);
+        var hasEmo=(pr.emotions&&pr.emotions.length>0);
+        var hasNote=!!pr.notes;
+        segs.push({type:'pet',d:pr,h:30+rows*28+(hasEmo?28:0)+(hasNote?26:0)+20});
+      });
+
+      // 日記
+      if(diary){
+        var dlines=Math.ceil(diary.length/38)+1;
+        segs.push({type:'diary',d:diary,h:40+dlines*20+16});
+      }
+
+      // 照片（每行3張，每次最多2行=6張）
+      for(var gi=0;gi<imgs.length;gi+=6){
+        var batch=imgs.slice(gi,gi+6);
+        var rows2=Math.ceil(batch.length/COLS);
+        segs.push({type:'photos',d:batch,h:30+rows2*(IH+10)+10});
       }
 
       // 分頁
-      var pages=[[]]; // pages[i] = array of segs for page i
-      var pageH=CONTENT_H-HEADER_H;
-      var usedH=0;
+      var pages=[];
+      var curPage=[];var curH=0;
       segs.forEach(function(seg){
-        if(usedH+seg.h>pageH&&pages[pages.length-1].length>0){
-          pages.push([]);usedH=0;
+        if(curH+seg.h>CONTENT_MAX&&curPage.length>0){
+          pages.push(curPage);curPage=[];curH=0;
         }
-        pages[pages.length-1].push(seg);
-        usedH+=seg.h;
+        curPage.push(seg);curH+=seg.h;
       });
-      if(pages[0].length===0) pages=[[[]]];// ensure at least one page
+      if(curPage.length>0) pages.push(curPage);
+      if(pages.length===0) pages=[[]];
 
-      // 渲染每頁
-      for(var pi2=0;pi2<pages.length;pi2++){
-        var pageSegs=pages[pi2];
-        var isFirst2=(ri===0&&pi2===0); // 封面已加，這裡都不是first
-        var capturedSegs=pageSegs; // 確保 closure 捕獲正確
+      // 渲染每個子頁
+      for(var pi3=0;pi3<pages.length;pi3++){
+        var pageSegs=pages[pi3].slice(); // 確保 closure 捕獲副本
+        var curDate=dateStr, curSitter=sitter, curTS=tS, curTE=tE;
+        var {cv:cvP,ctx:ctxP}=newCanvas();
 
-        await addPage(async function(ctx){
-          // 頁首
-          var tg2=ctx.createLinearGradient(0,0,PW,0);
-          tg2.addColorStop(0,'#FF5C7D');tg2.addColorStop(1,'#FFADC0');
-          ctx.fillStyle=tg2;ctx.fillRect(0,0,PW,66);
-          ctx.fillStyle='#fff';
-          ctx.font='bold 14px "Noto Sans TC",sans-serif';
-          ctx.fillText('📅 '+dateStr+'　｜　保母：'+sitter,24,26);
-          if(tStart){ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillText('🕐 '+tStart+(tEnd?' — '+tEnd:''),24,46);}
-          ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='10px "Noto Sans TC",sans-serif';
-          ctx.textAlign='right';ctx.fillText((ri+2)+'-'+(pi2+1)+' 頁',PW-16,46);ctx.textAlign='left';
+        // 背景
+        ctxP.fillStyle=gradient(ctxP,0,0,0,PH,'#FFF8FA','#FFFAF5');ctxP.fillRect(0,0,PW,PH);
 
-          var py2=78;
+        // 頁首
+        ctxP.fillStyle=gradient(ctxP,0,0,PW,0,'#FF5C7D','#FFADC0');ctxP.fillRect(0,0,PW,90);
+        txt(ctxP,'📅 '+curDate+'　｜　🐾 保母：'+curSitter,28,36,'#fff','bold 18px "Noto Sans TC",sans-serif');
+        if(curTS) txt(ctxP,'🕐 服務時間：'+curTS+(curTE?' — '+curTE:''),28,62,'rgba(255,255,255,.9)','14px "Noto Sans TC",sans-serif');
+        ctxP.textAlign='right';
+        txt(ctxP,(ri+2)+'-'+(pi3+1)+' 頁 / 共'+(reports.length+1)+'頁',PW-20,62,'rgba(255,255,255,.75)','12px "Noto Sans TC",sans-serif');
+        ctxP.textAlign='left';
 
-          capturedSegs.forEach(function(seg){
-            if(seg.type==='tags'){
-              rr(ctx,18,py2,PW-36,seg.h-PAD,8,seg.bg,null,0);
-              ctx.fillStyle=seg.tc;ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(seg.title,30,py2+14);
-              ctx.fillStyle='#333';ctx.font='10px "Noto Sans TC",sans-serif';
-              seg.items.forEach(function(item,i){ctx.fillText('✓ '+item.substring(0,14),30+(i%3)*(PW-60)/3,py2+30+Math.floor(i/3)*18);});
-              py2+=seg.h;
-            } else if(seg.type==='pet'){
-              var pr=seg.data;
-              var flds=[
-                {icon:'✨',lb:'精神',v:pr.spirit||''},
-                {icon:'👁',lb:'眼睛',v:pr.eyes||''},
-                {icon:'🍽',lb:'進食',v:pr.food||pr.eating||''},
-                {icon:'💧',lb:'飲水',v:pr.water||pr.drinking||''},
-                {icon:'🚽',lb:'排便',v:pr.poop||''},
-                {icon:'🌊',lb:'排尿',v:pr.urine||''},
-              ].filter(function(f){return f.v;});
-              rr(ctx,18,py2,PW-36,seg.h-PAD*2,10,'#fff','#FFD6E0',1.5);
-              ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-              ctx.fillText((pr.type==='cat'?'🐱':'🐾')+' '+(pr.name||'毛孩')+'  今日狀況',30,py2+16);
-              ctx.strokeStyle='#FFE4EC';ctx.lineWidth=0.8;
-              ctx.beginPath();ctx.moveTo(30,py2+22);ctx.lineTo(PW-30,py2+22);ctx.stroke();
-              var fy=py2+36;
-              flds.forEach(function(f,fi){
-                var fx=fi%2===0?30:(PW/2+10);
-                ctx.fillStyle='#999';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText(f.icon+' '+f.lb+'：',fx,fy);
-                ctx.fillStyle='#222';ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(String(f.v).substring(0,15),fx+58,fy);
-                if(fi%2===1) fy+=22;
+        var py=MARGIN_TOP+4;
+
+        pageSegs.forEach(function(seg){
+          if(seg.type==='tags'){
+            var tg2=seg.d;
+            rr(ctxP,18,py,PW-36,seg.h-8,8,tg2.bg,null,0);
+            txt(ctxP,tg2.title,32,py+22,tg2.tc,'bold 14px "Noto Sans TC",sans-serif');
+            ctxP.fillStyle='#333';ctxP.font='13px "Noto Sans TC",sans-serif';
+            tg2.items.forEach(function(item,i){
+              var col=i%3,row2=Math.floor(i/3);
+              ctxP.fillText('✓ '+item.substring(0,13),32+col*(PW-60)/3,py+40+row2*22);
+            });
+            py+=seg.h;
+
+          } else if(seg.type==='pet'){
+            var pr=seg.d;
+            // 寵物標題列
+            ctxP.fillStyle=gradient(ctxP,18,py,PW-18,py,'#FFE4EC','#FFD6E0');
+            rr(ctxP,18,py,PW-36,seg.h-8,10,'#fff','#FFD6E0',1.5);
+            ctxP.fillStyle='#FF5C7D';ctxP.fillRect(18,py,6,seg.h-8);
+            var petEm=(pr.type==='cat')?'🐱':'🐶';
+            txt(ctxP,petEm+' '+(pr.name||'毛孩')+'  今日健康回報',30,py+22,'#FF5C7D','bold 16px "Noto Sans TC",sans-serif');
+            ctxP.strokeStyle='#FFE4EC';ctxP.lineWidth=1;
+            ctxP.beginPath();ctxP.moveTo(30,py+30);ctxP.lineTo(PW-30,py+30);ctxP.stroke();
+
+            // 欄位 (兩欄)
+            var flds2=[
+              {icon:'✨',lb:'精神狀態',v:pr.spirit||''},
+              {icon:'👁',lb:'眼睛觀察',v:pr.eyes||''},
+              {icon:'🍽',lb:'進食狀況',v:pr.food||pr.eating||''},
+              {icon:'💧',lb:'飲水狀況',v:pr.water||pr.drinking||''},
+              {icon:'🚽',lb:'排便狀況',v:pr.poop||''},
+              {icon:'🌊',lb:'排尿狀況',v:pr.urine||''},
+            ].filter(function(f){return f.v;});
+
+            var fy=py+44;
+            var HALF=Math.floor(PW/2)-10;
+            flds2.forEach(function(f,fi){
+              var fx=fi%2===0?30:(HALF+20);
+              // 標籤底色
+              rr(ctxP,fx,fy-14,80,20,4,'#FFF0F5',null,0);
+              txt(ctxP,f.icon+' '+f.lb,fx+4,fy,'#FF5C7D','bold 11px "Noto Sans TC",sans-serif');
+              txt(ctxP,String(f.v).substring(0,14),fx+86,fy,'#222','13px "Noto Sans TC",sans-serif');
+              if(fi%2===1) fy+=28;
+            });
+            if(flds2.length%2===1) fy+=28;
+
+            // 情緒
+            if(pr.emotions&&pr.emotions.length){
+              txt(ctxP,'💕 今日情緒：',30,fy+2,'#FF5C7D','13px "Noto Sans TC",sans-serif');
+              var ex=118;
+              pr.emotions.slice(0,5).forEach(function(em){
+                var emW=ctxP.measureText(em).width+16;
+                rr(ctxP,ex,fy-12,emW,20,10,'#FFE4EC',null,0);
+                txt(ctxP,em,ex+8,fy+2,'#FF5C7D','12px "Noto Sans TC",sans-serif');
+                ex+=emW+6;
               });
-              if(flds.length%2===1) fy+=22;
-              if(pr.emotions&&pr.emotions.length){
-                ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText('💕 情緒：',30,fy+2);
-                var ex=82;
-                pr.emotions.slice(0,5).forEach(function(em){
-                  rr(ctx,ex,fy-10,ctx.measureText(em).width+12,16,8,'#FFE4EC',null,0);
-                  ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText(em,ex+6,fy+2);
-                  ex+=ctx.measureText(em).width+16;
-                });
-                fy+=22;
-              }
-              if(pr.notes){ctx.fillStyle='#C05000';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText('⚠ '+pr.notes.substring(0,44),30,fy+2);}
-              py2+=seg.h;
-            } else if(seg.type==='diary'){
-              rr(ctx,18,py2,PW-36,seg.h-PAD,10,'#FFF9F0','#FFD6A0',1.5);
-              ctx.fillStyle='#C05000';ctx.font='bold 12px "Noto Sans TC",sans-serif';ctx.fillText('💌 保母今日心情日記',30,py2+16);
-              ctx.strokeStyle='#FFE0A0';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(30,py2+22);ctx.lineTo(PW-30,py2+22);ctx.stroke();
-              ctx.fillStyle='#555';ctx.font='11px "Noto Sans TC",sans-serif';
-              wt(ctx,seg.data,30,py2+36,PW-64,18);
-              py2+=seg.h;
-            } else if(seg.type==='photos'){
-              ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-              ctx.fillText('📸 照片（'+seg.imgs.length+'張）',22,py2+14);
-              py2+=22;
-              seg.imgs.forEach(function(imgEl,i){
-                var ix=20+(i%COLS3)*(IMG_W+8);
-                var iy=py2+Math.floor(i/COLS3)*(IMG_H+8);
-                if(imgEl){
-                  ctx.save();rr(ctx,ix,iy,IMG_W,IMG_H,6,null,null,0);ctx.clip();
-                  ctx.drawImage(imgEl,ix,iy,IMG_W,IMG_H);ctx.restore();
-                  rr(ctx,ix,iy,IMG_W,IMG_H,6,null,'#FFD6E0',1);
-                } else {
-                  rr(ctx,ix,iy,IMG_W,IMG_H,6,'#FFF0F5','#FFD6E0',1);
-                  ctx.fillStyle='#FFB0C0';ctx.textAlign='center';ctx.font='18px sans-serif';
-                  ctx.fillText('🖼',ix+IMG_W/2,iy+IMG_H/2+6);ctx.textAlign='left';
-                }
-              });
-              py2+=Math.ceil(seg.imgs.length/COLS3)*(IMG_H+8)+8;
+              fy+=28;
             }
-          });
 
-          drawFooter(ctx,'貓窩裏 🐾  '+dateStr+'  ｜  保母：'+sitter+'  ｜  LINE @099nuhen');
-        }, false);
+            // 備注
+            if(pr.notes){
+              rr(ctxP,28,fy-14,PW-56,22,4,'#FFF3E0',null,0);
+              txt(ctxP,'⚠ 注意：'+pr.notes.substring(0,46),32,fy+2,'#C05000','12px "Noto Sans TC",sans-serif');
+            }
+            py+=seg.h;
+
+          } else if(seg.type==='diary'){
+            rr(ctxP,18,py,PW-36,seg.h-8,10,'#FFFBF0','#FFD59E',2);
+            ctxP.fillStyle='#FF8C00';ctxP.fillRect(18,py,6,seg.h-8);
+            txt(ctxP,'💌 保母今日心情日記',30,py+24,'#C05000','bold 16px "Noto Sans TC",sans-serif');
+            ctxP.strokeStyle='#FFDFB0';ctxP.lineWidth=1;
+            ctxP.beginPath();ctxP.moveTo(30,py+32);ctxP.lineTo(PW-30,py+32);ctxP.stroke();
+            ctxP.fillStyle='#444';ctxP.font='14px "Noto Sans TC",sans-serif';
+            wrapTxt(ctxP,seg.d,30,py+52,PW-68,22,'#444','14px "Noto Sans TC",sans-serif');
+            py+=seg.h;
+
+          } else if(seg.type==='photos'){
+            txt(ctxP,'📸 今日照片（'+seg.d.filter(Boolean).length+'張）',22,py+20,'#FF5C7D','bold 15px "Noto Sans TC",sans-serif');
+            py+=28;
+            seg.d.forEach(function(imgEl,i){
+              var col=i%COLS;
+              var row2=Math.floor(i/COLS);
+              var ix=20+col*(IW+10);
+              var iy=py+row2*(IH+10);
+              if(imgEl){
+                ctxP.save();
+                rr(ctxP,ix,iy,IW,IH,8,null,null,0);ctxP.clip();
+                ctxP.drawImage(imgEl,ix,iy,IW,IH);ctxP.restore();
+                rr(ctxP,ix,iy,IW,IH,8,null,'#FFD6E0',2);
+              } else {
+                rr(ctxP,ix,iy,IW,IH,8,'#FFF0F5','#FFD6E0',2);
+                ctxP.textAlign='center';
+                txt(ctxP,'🖼',ix+IW/2,iy+IH/2+8,'#FFB0C0','24px sans-serif');
+                ctxP.textAlign='left';
+              }
+            });
+            py+=seg.h-28;
+          }
+        });
+
+        pageFooter(ctxP,'貓窩裏 🐾  '+curDate+'  ｜  保母：'+curSitter+'  ｜  LINE @099nuhen');
+        canvasToPage(cvP, false);
       }
     }
 

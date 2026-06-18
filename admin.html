@@ -3476,18 +3476,7 @@ async function exportOrderPDF(bookId){
 
     const {jsPDF}=window.jspdf;
     var doc=new jsPDF({orientation:'portrait',unit:'pt',format:'a4'});
-    var PW=595,PH=842;
-
-    // ── 共用工具 ──
-    async function makeCanvas(drawFn){
-      var cv=document.createElement('canvas');
-      cv.width=PW*2;cv.height=PH*2;
-      var ctx=cv.getContext('2d');
-      ctx.scale(2,2);
-      ctx.fillStyle='#fff';ctx.fillRect(0,0,PW,PH);
-      await drawFn(ctx);
-      return cv.toDataURL('image/jpeg',0.93);
-    }
+    var PW=595,PH=842,CONTENT_H=PH-100; // 去掉頁首頁腳
 
     async function loadImg(url){
       return new Promise(function(res){
@@ -3495,8 +3484,20 @@ async function exportOrderPDF(bookId){
         var img=new Image();img.crossOrigin='anonymous';
         img.onload=function(){res(img);};
         img.onerror=function(){res(null);};
-        img.src=url+'?t='+Date.now();
+        img.src=url;
       });
+    }
+
+    // 繪製一頁並加入 PDF
+    async function addPage(drawFn, isFirst){
+      if(!isFirst) doc.addPage();
+      var cv=document.createElement('canvas');
+      cv.width=PW*2;cv.height=PH*2;
+      var ctx=cv.getContext('2d');
+      ctx.scale(2,2);
+      ctx.fillStyle='#fff';ctx.fillRect(0,0,PW,PH);
+      await drawFn(ctx);
+      doc.addImage(cv.toDataURL('image/jpeg',0.93),'JPEG',0,0,PW,PH);
     }
 
     function rr(ctx,x,y,w,h,r,fill,stroke,lw){
@@ -3510,114 +3511,89 @@ async function exportOrderPDF(bookId){
       if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=lw||1;ctx.stroke();}
     }
 
-    function wrapTxt(ctx,txt,x,y,maxW,lh){
-      txt=String(txt||'');
-      var words=txt.split('');var line='';var cy=y;
-      for(var i=0;i<words.length;i++){
-        var t=line+words[i];
-        if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,cy);line=words[i];cy+=lh;}
+    function wt(ctx,txt,x,y,maxW,lh){
+      var w=txt.split('');var line='';var cy=y;
+      for(var i=0;i<w.length;i++){
+        var t=line+w[i];
+        if(ctx.measureText(t).width>maxW&&line){ctx.fillText(line,x,cy);line=w[i];cy+=lh;}
         else line=t;
       }
       if(line) ctx.fillText(line,x,cy);
-      return cy;
+      return cy+lh;
     }
 
-    function footer(ctx,txt){
+    function drawFooter(ctx,txt){
       ctx.fillStyle='#FF5C7D';ctx.fillRect(0,PH-36,PW,36);
       ctx.fillStyle='#fff';ctx.font='10px "Noto Sans TC",sans-serif';
       ctx.textAlign='center';ctx.fillText(txt,PW/2,PH-14);ctx.textAlign='left';
     }
 
-    function header(ctx,txt,sub){
-      var g=ctx.createLinearGradient(0,0,PW,0);
-      g.addColorStop(0,'#FF5C7D');g.addColorStop(1,'#FFADC0');
-      ctx.fillStyle=g;ctx.fillRect(0,0,PW,sub?70:56);
-      ctx.fillStyle='#fff';
-      ctx.font='bold 15px "Noto Sans TC",sans-serif';
-      ctx.fillText(txt,26,30);
-      if(sub){ctx.font='11px "Noto Sans TC",sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillText(sub,26,52);}
-    }
-
-    // ══════════════ 封面頁 ══════════════
-    var coverImg=await makeCanvas(async function(ctx){
+    // ── 封面 ──
+    await addPage(async function(ctx){
       var bg=ctx.createLinearGradient(0,0,0,PH);
       bg.addColorStop(0,'#FFF0F5');bg.addColorStop(1,'#FFF8F0');
       ctx.fillStyle=bg;ctx.fillRect(0,0,PW,PH);
-
-      // 頂部漸層
       var tg=ctx.createLinearGradient(0,0,PW,0);
       tg.addColorStop(0,'#FF5C7D');tg.addColorStop(1,'#FFADC0');
-      ctx.fillStyle=tg;ctx.fillRect(0,0,PW,210);
+      ctx.fillStyle=tg;ctx.fillRect(0,0,PW,200);
       ctx.fillStyle='rgba(255,255,255,.12)';
-      ctx.beginPath();ctx.arc(PW-70,40,75,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(50,150,45,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(PW-60,36,70,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(40,140,44,0,Math.PI*2);ctx.fill();
 
       ctx.fillStyle='#fff';ctx.textAlign='center';
-      ctx.font='bold 28px "Noto Sans TC",sans-serif';ctx.fillText('貓窩裏 🐾 到府寵物保母',PW/2,68);
-      ctx.font='16px "Noto Sans TC",sans-serif';ctx.fillText('寵物照護完整紀錄',PW/2,100);
-      ctx.font='bold 20px "Noto Sans TC",sans-serif';ctx.fillText('PET CARE REPORT',PW/2,132);
+      ctx.font='bold 28px "Noto Sans TC",sans-serif';ctx.fillText('貓窩裏 🐾 到府寵物保母',PW/2,64);
+      ctx.font='16px "Noto Sans TC",sans-serif';ctx.fillText('寵物照護完整紀錄',PW/2,96);
+      ctx.font='bold 18px "Noto Sans TC",sans-serif';ctx.fillText('PET CARE REPORT',PW/2,126);
       ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillStyle='rgba(255,255,255,.8)';
-      ctx.fillText(new Date().toLocaleDateString('zh-TW'),PW/2,158);
+      ctx.fillText(new Date().toLocaleDateString('zh-TW'),PW/2,152);
       ctx.textAlign='left';
 
       // 飼主資訊
-      rr(ctx,30,228,PW-60,122,12,'#fff','#FFD6E0',1.5);
+      rr(ctx,30,218,PW-60,110,12,'#fff','#FFD6E0',1.5);
       ctx.fillStyle='#FF5C7D';ctx.font='bold 13px "Noto Sans TC",sans-serif';
-      ctx.fillText('👤 飼主資訊',50,252);
+      ctx.fillText('👤 飼主資訊',50,240);
       ctx.strokeStyle='#FFE4EC';ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(50,260);ctx.lineTo(PW-50,260);ctx.stroke();
-
-      var infoRows=[
-        ['🏠 姓名',bk.ownerName||''],
-        ['📞 電話',bk.ownerPhone||''],
-        ['📍 地址',(bk.ownerAddr||'').substring(0,32)||'未填'],
-      ];
-      infoRows.forEach(function(row,i){
-        ctx.fillStyle='#aaa';ctx.font='11px "Noto Sans TC",sans-serif';
-        ctx.fillText(row[0],52,280+i*26);
-        ctx.fillStyle='#333';ctx.font='bold 11px "Noto Sans TC",sans-serif';
-        ctx.fillText(String(row[1]),140,280+i*26);
+      ctx.beginPath();ctx.moveTo(50,248);ctx.lineTo(PW-50,248);ctx.stroke();
+      [['🏠 姓名',bk.ownerName||''],['📞 電話',bk.ownerPhone||''],['📍 地址',(bk.ownerAddr||'').substring(0,30)||'未填']
+      ].forEach(function(row,i){
+        ctx.fillStyle='#aaa';ctx.font='11px "Noto Sans TC",sans-serif';ctx.fillText(row[0],52,266+i*26);
+        ctx.fillStyle='#333';ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(String(row[1]),142,266+i*26);
       });
 
       // 服務期間
-      rr(ctx,30,364,PW-60,42,8,'#FFF0F5','#FFD6E0',1);
-      ctx.fillStyle='#FF5C7D';ctx.font='11px "Noto Sans TC",sans-serif';
-      ctx.textAlign='center';
-      ctx.fillText('📅 '+( bk.startDate||'')+'～'+(bk.endDate||'')+'　｜　👩 '+(bk.assignedTo||''),PW/2,382);
-      ctx.fillText('🐾 毛孩：'+( (bk.petData||[]).map(function(p){return p.name||'';}).filter(Boolean).join('、')||''),PW/2,400);
+      rr(ctx,30,342,PW-60,40,8,'#FFF0F5','#FFD6E0',1);
+      ctx.fillStyle='#FF5C7D';ctx.font='11px "Noto Sans TC",sans-serif';ctx.textAlign='center';
+      ctx.fillText('📅 '+(bk.startDate||'')+'～'+(bk.endDate||'')+'　｜　👩 '+(bk.assignedTo||''),PW/2,358);
+      ctx.fillText('🐾 毛孩：'+( (bk.petData||[]).map(function(p){return p.name||'';}).filter(Boolean).join('、')||''),PW/2,376);
       ctx.textAlign='left';
 
-      // 毛孩資訊卡
+      // 毛孩資訊
       var pets=bk.petData||[];
-      var py=422;
+      var py=402;
       if(pets.length){
-        rr(ctx,30,py,PW-60,18+pets.length*52+14,12,'#FFF5F8','#FFD6E0',1.5);
-        ctx.fillStyle='#FF5C7D';ctx.font='bold 13px "Noto Sans TC",sans-serif';
-        ctx.fillText('🐾 毛孩資訊',50,py+16);
-        py+=32;
+        rr(ctx,30,py,PW-60,20+pets.length*50+14,12,'#FFF5F8','#FFD6E0',1.5);
+        ctx.fillStyle='#FF5C7D';ctx.font='bold 13px "Noto Sans TC",sans-serif';ctx.fillText('🐾 毛孩資訊',50,py+16);
+        py+=30;
         pets.forEach(function(p){
-          rr(ctx,44,py,PW-88,40,8,'#FFF0F5',null,0);
+          rr(ctx,44,py,PW-88,38,8,'#FFF0F5',null,0);
           ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-          var em=p.type==='cat'?'🐱':'🐶';
-          ctx.fillText(em+' '+(p.name||'未命名')+'　'+(p.gender||''),58,py+14);
+          ctx.fillText((p.type==='cat'?'🐱':'🐶')+' '+(p.name||'未命名')+'　'+(p.gender||''),58,py+14);
           ctx.fillStyle='#666';ctx.font='10px "Noto Sans TC",sans-serif';
-          var ht=(p.health&&p.health.length)?'健康注意：'+p.health.join('、'):'健康良好 ✓';
-          ctx.fillText(ht.substring(0,42),58,py+32);
-          py+=50;
+          ctx.fillText(((p.health&&p.health.length)?'健康注意：'+p.health.join('、'):'健康良好 ✓').substring(0,42),58,py+30);
+          py+=48;
         });
-        py+=10;
+        py+=8;
       }
 
       // 回報數
-      rr(ctx,30,py,PW-60,46,10,'#FF5C7D',null,0);
+      rr(ctx,30,py,PW-60,44,10,'#FF5C7D',null,0);
       ctx.fillStyle='#fff';ctx.font='bold 14px "Noto Sans TC",sans-serif';
-      ctx.textAlign='center';ctx.fillText('📋 共 '+reports.length+' 天照護回報',PW/2,py+28);ctx.textAlign='left';
+      ctx.textAlign='center';ctx.fillText('📋 共 '+reports.length+' 天照護回報',PW/2,py+26);ctx.textAlign='left';
 
-      footer(ctx,'貓窩裏 到府寵物保母　｜　LINE @099nuhen　｜　感謝您的信任與托付 🐾');
-    });
-    doc.addImage(coverImg,'JPEG',0,0,PW,PH);
+      drawFooter(ctx,'貓窩裏 到府寵物保母　｜　LINE @099nuhen　｜　感謝您的信任與托付 🐾');
+    }, true);
 
-    // ══════════════ 每日回報 ══════════════
+    // ── 每日回報 ──
     for(var ri=0;ri<reports.length;ri++){
       var r=reports[ri];
       var dateStr=r.date||(r.ts?new Date(parseInt(r.ts)).toLocaleDateString('zh-TW'):'');
@@ -3627,88 +3603,88 @@ async function exportOrderPDF(bookId){
       var petReps=r.pet_reports||r.petReports||[];
       var diary=r.diary||r.note||'';
       var photos=[];
-      var pp=r.pet_photos||r.petPhotos||[];
-      pp.forEach(function(p){
+      (r.pet_photos||r.petPhotos||[]).forEach(function(p){
         var url=typeof p==='string'?p:(p.dataUrl||p.url||'');
         if(url&&url.startsWith('http')) photos.push(url);
       });
 
       // 預載所有照片
       var loadedImgs=[];
-      for(var pi2=0;pi2<photos.length;pi2++){
-        loadedImgs.push(await loadImg(photos[pi2]));
+      for(var pi=0;pi<photos.length;pi++){
+        loadedImgs.push(await loadImg(photos[pi]));
       }
 
-      // ─ 頁面分段渲染 ─
-      // 段落資料
-      var segments=[];
+      // ── 計算每頁放什麼（先計算高度，再分頁）──
+      // 用試算 canvas 量高度
+      var COLS3=3, IMG_W=(PW-52)/COLS3-6, IMG_H=IMG_W*0.72;
+      var HEADER_H=70, FOOTER_H=36, PAD=8;
 
-      // 每隻寵物
-      petReps.forEach(function(pr){
-        segments.push({type:'pet',data:pr});
+      function calcPetH(pr){
+        var flds=[pr.spirit,pr.eyes,pr.food||pr.eating,pr.water||pr.drinking,pr.poop,pr.urine].filter(Boolean);
+        return 28+Math.ceil(flds.length/2)*22+((pr.emotions&&pr.emotions.length)?24:0)+(pr.notes?22:0)+PAD*2;
+      }
+      function calcDiaryH(){ return 90+PAD; }
+      function calcPhotoH(n){ return 24+Math.ceil(n/COLS3)*(IMG_H+8)+PAD; }
+      function calcTagH(items){ return items.length?32+Math.ceil(items.length/3)*18+PAD+6:0; }
+
+      // 建立 segment list（帶高度）
+      var segs=[];
+      var tags=[
+        {type:'tags',title:'🧴 消毒準備',items:r.disinfect||[],bg:'#EFF6FF',tc:'#1D4ED8'},
+        {type:'tags',title:'🔒 安全確認',items:r.safety||[],bg:'#F0FDF4',tc:'#15803D'},
+        {type:'tags',title:'🧹 今日服務',items:r.services||[],bg:'#FFFBEB',tc:'#B45309'},
+      ];
+      tags.forEach(function(t){if(t.items.length) segs.push({...t,h:calcTagH(t.items)});});
+      petReps.forEach(function(pr){ segs.push({type:'pet',data:pr,h:calcPetH(pr)}); });
+      if(diary) segs.push({type:'diary',data:diary,h:calcDiaryH()});
+      if(loadedImgs.length){
+        for(var g=0;g<loadedImgs.length;g+=COLS3*2){
+          var batch=loadedImgs.slice(g,g+COLS3*2);
+          segs.push({type:'photos',imgs:batch,h:calcPhotoH(batch.length)});
+        }
+      }
+
+      // 分頁
+      var pages=[[]]; // pages[i] = array of segs for page i
+      var pageH=CONTENT_H-HEADER_H;
+      var usedH=0;
+      segs.forEach(function(seg){
+        if(usedH+seg.h>pageH&&pages[pages.length-1].length>0){
+          pages.push([]);usedH=0;
+        }
+        pages[pages.length-1].push(seg);
+        usedH+=seg.h;
       });
+      if(pages[0].length===0) pages=[[[]]];// ensure at least one page
 
-      // 日記
-      if(diary) segments.push({type:'diary',data:diary});
+      // 渲染每頁
+      for(var pi2=0;pi2<pages.length;pi2++){
+        var pageSegs=pages[pi2];
+        var isFirst2=(ri===0&&pi2===0); // 封面已加，這裡都不是first
+        var capturedSegs=pageSegs; // 確保 closure 捕獲正確
 
-      // 照片（每6張一段）
-      for(var pi3=0;pi3<loadedImgs.length;pi3+=6){
-        segments.push({type:'photos',data:loadedImgs.slice(pi3,pi3+6),urls:photos.slice(pi3,pi3+6)});
-      }
-
-      // 渲染各段
-      var pageNum=0;
-      var segIdx=0;
-
-      while(segIdx<segments.length||pageNum===0){
-        doc.addPage();
-        pageNum++;
-
-        var pageImg=await makeCanvas(async function(ctx){
+        await addPage(async function(ctx){
           // 頁首
           var tg2=ctx.createLinearGradient(0,0,PW,0);
           tg2.addColorStop(0,'#FF5C7D');tg2.addColorStop(1,'#FFADC0');
           ctx.fillStyle=tg2;ctx.fillRect(0,0,PW,66);
           ctx.fillStyle='#fff';
           ctx.font='bold 14px "Noto Sans TC",sans-serif';
-          ctx.fillText('📅 '+dateStr+'　｜　保母：'+sitter,24,28);
-          if(tStart){
-            ctx.font='10px "Noto Sans TC",sans-serif';
-            ctx.fillStyle='rgba(255,255,255,.9)';
-            ctx.fillText('🕐 '+tStart+(tEnd?' — '+tEnd:''),24,48);
-          }
+          ctx.fillText('📅 '+dateStr+'　｜　保母：'+sitter,24,26);
+          if(tStart){ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillText('🕐 '+tStart+(tEnd?' — '+tEnd:''),24,46);}
           ctx.fillStyle='rgba(255,255,255,.75)';ctx.font='10px "Noto Sans TC",sans-serif';
-          ctx.textAlign='right';ctx.fillText((ri+2)+' / '+(reports.length+1)+' 頁',PW-16,48);ctx.textAlign='left';
+          ctx.textAlign='right';ctx.fillText((ri+2)+'-'+(pi2+1)+' 頁',PW-16,46);ctx.textAlign='left';
 
-          var py2=80;
+          var py2=78;
 
-          // 服務/消毒/安全 (only on first sub-page)
-          if(pageNum===1){
-            var tags=[
-              {title:'🧴 消毒準備',items:r.disinfect||[],bg:'#EFF6FF',tc:'#1D4ED8'},
-              {title:'🔒 安全確認',items:r.safety||[],bg:'#F0FDF4',tc:'#15803D'},
-              {title:'🧹 今日服務',items:r.services||[],bg:'#FFFBEB',tc:'#B45309'},
-            ];
-            tags.forEach(function(sec){
-              if(!sec.items.length) return;
-              var th=32+Math.ceil(sec.items.length/3)*18+8;
-              if(py2+th>PH-80) return;
-              rr(ctx,18,py2,PW-36,th,8,sec.bg,null,0);
-              ctx.fillStyle=sec.tc;ctx.font='bold 11px "Noto Sans TC",sans-serif';
-              ctx.fillText(sec.title,30,py2+14);
+          capturedSegs.forEach(function(seg){
+            if(seg.type==='tags'){
+              rr(ctx,18,py2,PW-36,seg.h-PAD,8,seg.bg,null,0);
+              ctx.fillStyle=seg.tc;ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(seg.title,30,py2+14);
               ctx.fillStyle='#333';ctx.font='10px "Noto Sans TC",sans-serif';
-              sec.items.forEach(function(item,i){
-                ctx.fillText('✓ '+item.substring(0,14),30+(i%3)*(PW-60)/3,py2+30+(Math.floor(i/3)*18));
-              });
-              py2+=th+6;
-            });
-          }
-
-          // 渲染段落直到頁面滿
-          while(segIdx<segments.length){
-            var seg=segments[segIdx];
-
-            if(seg.type==='pet'){
+              seg.items.forEach(function(item,i){ctx.fillText('✓ '+item.substring(0,14),30+(i%3)*(PW-60)/3,py2+30+Math.floor(i/3)*18);});
+              py2+=seg.h;
+            } else if(seg.type==='pet'){
               var pr=seg.data;
               var flds=[
                 {icon:'✨',lb:'精神',v:pr.spirit||''},
@@ -3718,96 +3694,61 @@ async function exportOrderPDF(bookId){
                 {icon:'🚽',lb:'排便',v:pr.poop||''},
                 {icon:'🌊',lb:'排尿',v:pr.urine||''},
               ].filter(function(f){return f.v;});
-              var emos=pr.emotions||[];
-              var petH=26+Math.ceil(flds.length/2)*22+(emos.length?24:0)+(pr.notes?22:0)+12;
-              if(py2+petH>PH-50){break;}
-
-              rr(ctx,18,py2,PW-36,petH,10,'#fff','#FFD6E0',1.5);
+              rr(ctx,18,py2,PW-36,seg.h-PAD*2,10,'#fff','#FFD6E0',1.5);
               ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-              var petEm=pr.type==='cat'?'🐱':'🐾';
-              ctx.fillText(petEm+' '+(pr.name||'毛孩')+'  今日狀況',30,py2+16);
+              ctx.fillText((pr.type==='cat'?'🐱':'🐾')+' '+(pr.name||'毛孩')+'  今日狀況',30,py2+16);
               ctx.strokeStyle='#FFE4EC';ctx.lineWidth=0.8;
               ctx.beginPath();ctx.moveTo(30,py2+22);ctx.lineTo(PW-30,py2+22);ctx.stroke();
               var fy=py2+36;
-              flds.forEach(function(f,i){
-                var fx=i%2===0?30:(PW/2+10);
-                ctx.fillStyle='#999';ctx.font='10px "Noto Sans TC",sans-serif';
-                ctx.fillText(f.icon+' '+f.lb+'：',fx,fy);
-                ctx.fillStyle='#222';ctx.font='bold 11px "Noto Sans TC",sans-serif';
-                ctx.fillText(String(f.v).substring(0,14),fx+58,fy);
-                if(i%2===1) fy+=22;
+              flds.forEach(function(f,fi){
+                var fx=fi%2===0?30:(PW/2+10);
+                ctx.fillStyle='#999';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText(f.icon+' '+f.lb+'：',fx,fy);
+                ctx.fillStyle='#222';ctx.font='bold 11px "Noto Sans TC",sans-serif';ctx.fillText(String(f.v).substring(0,15),fx+58,fy);
+                if(fi%2===1) fy+=22;
               });
               if(flds.length%2===1) fy+=22;
-              if(emos.length){
-                ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';
-                ctx.fillText('💕 情緒：',30,fy+2);
-                var ex=80;
-                emos.slice(0,5).forEach(function(em){
+              if(pr.emotions&&pr.emotions.length){
+                ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText('💕 情緒：',30,fy+2);
+                var ex=82;
+                pr.emotions.slice(0,5).forEach(function(em){
                   rr(ctx,ex,fy-10,ctx.measureText(em).width+12,16,8,'#FFE4EC',null,0);
-                  ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';
-                  ctx.fillText(em,ex+6,fy+2);
+                  ctx.fillStyle='#FF5C7D';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText(em,ex+6,fy+2);
                   ex+=ctx.measureText(em).width+16;
                 });
                 fy+=22;
               }
-              if(pr.notes){
-                ctx.fillStyle='#C05000';ctx.font='10px "Noto Sans TC",sans-serif';
-                ctx.fillText('⚠ '+pr.notes.substring(0,44),30,fy+2);
-              }
-              py2+=petH+8;
-              segIdx++;
-
+              if(pr.notes){ctx.fillStyle='#C05000';ctx.font='10px "Noto Sans TC",sans-serif';ctx.fillText('⚠ '+pr.notes.substring(0,44),30,fy+2);}
+              py2+=seg.h;
             } else if(seg.type==='diary'){
-              var dH=90;
-              if(py2+dH>PH-50) break;
-              rr(ctx,18,py2,PW-36,dH,10,'#FFF9F0','#FFD6A0',1.5);
-              ctx.fillStyle='#C05000';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-              ctx.fillText('💌 保母今日心情日記',30,py2+16);
-              ctx.strokeStyle='#FFE0A0';ctx.lineWidth=0.8;
-              ctx.beginPath();ctx.moveTo(30,py2+22);ctx.lineTo(PW-30,py2+22);ctx.stroke();
+              rr(ctx,18,py2,PW-36,seg.h-PAD,10,'#FFF9F0','#FFD6A0',1.5);
+              ctx.fillStyle='#C05000';ctx.font='bold 12px "Noto Sans TC",sans-serif';ctx.fillText('💌 保母今日心情日記',30,py2+16);
+              ctx.strokeStyle='#FFE0A0';ctx.lineWidth=0.8;ctx.beginPath();ctx.moveTo(30,py2+22);ctx.lineTo(PW-30,py2+22);ctx.stroke();
               ctx.fillStyle='#555';ctx.font='11px "Noto Sans TC",sans-serif';
-              wrapTxt(ctx,seg.data,30,py2+36,PW-64,18);
-              py2+=dH+8;
-              segIdx++;
-
+              wt(ctx,seg.data,30,py2+36,PW-64,18);
+              py2+=seg.h;
             } else if(seg.type==='photos'){
-              var phImgs=seg.data;
-              var cols3=3,imgW=(PW-52)/cols3-6,imgH=imgW*0.72;
-              var rows3=Math.ceil(phImgs.length/cols3);
-              var phH=28+rows3*(imgH+8)+8;
-              if(py2+phH>PH-50) break;
-
               ctx.fillStyle='#FF5C7D';ctx.font='bold 12px "Noto Sans TC",sans-serif';
-              ctx.fillText('📸 今日照片（'+phImgs.length+'張）',22,py2+14);
+              ctx.fillText('📸 照片（'+seg.imgs.length+'張）',22,py2+14);
               py2+=22;
-              phImgs.forEach(function(imgEl,i){
-                var ix=20+(i%cols3)*(imgW+8);
-                var iy=py2+(Math.floor(i/cols3))*(imgH+8);
+              seg.imgs.forEach(function(imgEl,i){
+                var ix=20+(i%COLS3)*(IMG_W+8);
+                var iy=py2+Math.floor(i/COLS3)*(IMG_H+8);
                 if(imgEl){
-                  ctx.save();
-                  rr(ctx,ix,iy,imgW,imgH,6,null,null,0);
-                  ctx.clip();
-                  ctx.drawImage(imgEl,ix,iy,imgW,imgH);
-                  ctx.restore();
-                  rr(ctx,ix,iy,imgW,imgH,6,null,'#FFD6E0',1);
+                  ctx.save();rr(ctx,ix,iy,IMG_W,IMG_H,6,null,null,0);ctx.clip();
+                  ctx.drawImage(imgEl,ix,iy,IMG_W,IMG_H);ctx.restore();
+                  rr(ctx,ix,iy,IMG_W,IMG_H,6,null,'#FFD6E0',1);
                 } else {
-                  rr(ctx,ix,iy,imgW,imgH,6,'#FFF0F5','#FFD6E0',1);
-                  ctx.fillStyle='#FFB0C0';ctx.textAlign='center';
-                  ctx.font='18px sans-serif';ctx.fillText('🖼',ix+imgW/2,iy+imgH/2+6);ctx.textAlign='left';
+                  rr(ctx,ix,iy,IMG_W,IMG_H,6,'#FFF0F5','#FFD6E0',1);
+                  ctx.fillStyle='#FFB0C0';ctx.textAlign='center';ctx.font='18px sans-serif';
+                  ctx.fillText('🖼',ix+IMG_W/2,iy+IMG_H/2+6);ctx.textAlign='left';
                 }
               });
-              py2+=rows3*(imgH+8)+8;
-              segIdx++;
+              py2+=Math.ceil(seg.imgs.length/COLS3)*(IMG_H+8)+8;
             }
-          }
+          });
 
-          footer(ctx,'貓窩裏 🐾  '+dateStr+'  ｜  保母：'+sitter+'  ｜  LINE @099nuhen');
-        });
-
-        doc.addImage(pageImg,'JPEG',0,0,PW,PH);
-
-        // 若所有段落都渲染完了，跳出頁面迴圈
-        if(segIdx>=segments.length) break;
+          drawFooter(ctx,'貓窩裏 🐾  '+dateStr+'  ｜  保母：'+sitter+'  ｜  LINE @099nuhen');
+        }, false);
       }
     }
 

@@ -3974,94 +3974,100 @@ async function clearOrderData(bookId){
 var ADDON_OPTS = ['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿'];
 var ADDON_PRICE_MAP = {餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80};
 
+// 儲存所有訂單的附加服務編輯狀態
+var _addonItemsEdit = {};
+
+// ── 從 DOM 讀取所有明細列的當前值 ──
+function readAddonItemsFromDOM(bookId){
+  var list=document.getElementById('addon-items-'+bookId);
+  if(!list) return _addonItemsEdit[bookId]||[];
+  var rows=list.querySelectorAll('.addon-item-row');
+  var items=[];
+  rows.forEach(function(row){
+    var nameEl=row.querySelector('[data-field="name"]');
+    var qtyEl=row.querySelector('[data-field="qty"]');
+    var petEl=row.querySelector('[data-field="petName"]');
+    var sdEl=row.querySelector('[data-field="startDate"]');
+    var edEl=row.querySelector('[data-field="endDate"]');
+    var slotEls=row.querySelectorAll('[data-field="slot"]:checked');
+    var name=nameEl?nameEl.value:'';
+    if(!name) return;
+    items.push({
+      name:name,
+      qty:qtyEl?parseInt(qtyEl.value)||1:1,
+      petName:petEl?petEl.value:'',
+      startDate:sdEl?sdEl.value:'',
+      endDate:edEl?edEl.value:'',
+      slots:slotEls.length?Array.from(slotEls).map(function(el){return el.value;}):['早','中','晚'],
+    });
+  });
+  return items;
+}
+
 function buildAddonItemRow(bookId, idx, item){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
-  var opts=ADDON_OPTS.map(function(o){
-    return '<option value="'+o+'"'+(o===(item.name||'')?' selected':'')+'>'+o+'</option>';
-  }).join('');
   var sd=item.startDate||(bk?bk.startDate:'')||'';
   var ed=item.endDate||(bk?bk.endDate:'')||'';
-  var curSlots=item.slots||['早','中','晚'];
-  var slotOpts=['早','中','晚'];
-  var slotHtml=slotOpts.map(function(s){
-    var checked=curSlots.includes(s)?'checked':'';
-    return '<label style="display:flex;align-items:center;gap:2px;font-size:.76rem;cursor:pointer;">'
-      +'<input type="checkbox" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="slot-'+s+'" onchange="updateAddonSlot(this)" '+checked+'>'+s+'</label>';
+  var curSlots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+  var petList=(bk&&bk.petData)?bk.petData.map(function(p,i){return '<option value="'+(p.name||'寵物'+(i+1))+'"'+(item.petName===p.name?' selected':'')+'>'+( p.name||'寵物'+(i+1))+'</option>';}).join(''):'';
+  petList='<option value="">全部</option>'+petList;
+
+  var opts=ADDON_OPTS.map(function(o){
+    return '<option value="'+o+'"'+(o===item.name?' selected':'')+'>'+o+'</option>';
   }).join('');
 
-  return '<div id="addon-row-'+bookId+'-'+idx+'" data-bid="'+bookId+'" data-idx="'+idx+'" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1.5px solid #FFE082;border-radius:10px;padding:8px 10px;margin-bottom:6px;">'
-    +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="name" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'+opts+'</select>'
-    +'<span style="font-size:.76rem;color:#888;">隻數：</span>'
-    +'<select data-bid="'+bookId+'" data-idx="'+idx+'" data-field="qty" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'
-    +[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+((item.qty||1)===n?' selected':'')+'>'+n+'隻</option>';}).join('')
+  var slotHtml=['早','中','晚'].map(function(s){
+    return '<label style="display:flex;align-items:center;gap:2px;font-size:.74rem;cursor:pointer;">'
+      +'<input type="checkbox" data-field="slot" value="'+s+'" '+(curSlots.includes(s)?'checked':'')+'>'+s
+      +'</label>';
+  }).join('');
+
+  return '<div class="addon-item-row" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:#fff;border:1.5px solid #FFE082;border-radius:10px;padding:8px 10px;margin-bottom:6px;">'
+    // 服務名稱
+    +'<select data-field="name" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'+opts+'</select>'
+    // 寵物名稱
+    +'<span style="font-size:.74rem;color:#888;">寵物：</span>'
+    +'<select data-field="petName" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;max-width:80px;">'+petList+'</select>'
+    // 隻數
+    +'<span style="font-size:.74rem;color:#888;">隻數：</span>'
+    +'<select data-field="qty" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.8rem;">'
+    +[1,2,3,4,5,6].map(function(n){return '<option value="'+n+'"'+(n===(item.qty||1)?' selected':'')+'>'+n+'隻</option>';}).join('')
     +'</select>'
-    +'<span style="font-size:.76rem;color:#888;">時段：</span>'
+    // 時段
     +'<div style="display:flex;gap:4px;padding:3px 6px;border:1px solid #FFD54F;border-radius:6px;background:#FFFDE7;">'+slotHtml+'</div>'
-    +'<span style="font-size:.76rem;color:#888;">開始：</span>'
-    +'<input type="date" value="'+sd+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="startDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
-    +'<span style="font-size:.76rem;color:#888;">結束：</span>'
-    +'<input type="date" value="'+ed+'" data-bid="'+bookId+'" data-idx="'+idx+'" data-field="endDate" onchange="updateAddonRowEl(this)" style="padding:4px 6px;border:1px solid #FFD54F;border-radius:6px;font-size:.78rem;">'
-    +'<button data-bid="'+bookId+'" data-idx="'+idx+'" onclick="removeAddonItem(this.dataset.bid,parseInt(this.dataset.idx))" style="padding:3px 8px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:6px;font-size:.74rem;cursor:pointer;">✕</button>'
+    // 開始日期
+    +'<input type="date" data-field="startDate" value="'+sd+'" style="padding:4px;border:1px solid #FFD54F;border-radius:6px;font-size:.76rem;width:118px;">'
+    +'<span style="color:#FFB300;font-weight:900;">～</span>'
+    // 結束日期
+    +'<input type="date" data-field="endDate" value="'+ed+'" style="padding:4px;border:1px solid #FFD54F;border-radius:6px;font-size:.76rem;width:118px;">'
+    // 刪除
+    +'<button onclick="removeThisAddonRow(this)" style="padding:3px 8px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:6px;font-size:.74rem;cursor:pointer;flex-shrink:0;">✕</button>'
     +'</div>';
 }
 
-function updateAddonSlot(cb){
-  var bookId=cb.dataset.bid;
-  var idx=parseInt(cb.dataset.idx);
-  var field=cb.dataset.field; // 'slot-早', 'slot-中', 'slot-晚'
-  var s=field.replace('slot-','');
-  if(!_addonItemsEdit[bookId]||!_addonItemsEdit[bookId][idx]) return;
-  var cur=_addonItemsEdit[bookId][idx].slots||['早','中','晚'];
-  if(cb.checked){
-    if(!cur.includes(s)) cur.push(s);
-  } else {
-    cur=cur.filter(function(x){return x!==s;});
-  }
-  _addonItemsEdit[bookId][idx].slots=cur;
-}
-
-function updateAddonRowEl(el){
-  var bookId=el.dataset.bid;
-  var idx=parseInt(el.dataset.idx);
-  var field=el.dataset.field;
-  var value=el.value;
-  if(field==='qty') value=parseInt(value);
-  updateAddonRow(bookId,idx,field,value);
-}
-
-// 暫存每個訂單的 addonItems 編輯狀態
-var _addonItemsEdit = {};
-
-function updateAddonRow(bookId, idx, field, value){
-  if(!_addonItemsEdit[bookId]) return;
-  if(_addonItemsEdit[bookId][idx]) _addonItemsEdit[bookId][idx][field]=value;
-}
+// updateAddonRow / updateAddonRowEl 已不需要（改從 DOM 讀取）
+function updateAddonRow(bookId,idx,field,value){}
+function updateAddonRowEl(el){}
 
 function addAddonItem(bookId){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
-  if(!_addonItemsEdit[bookId]) _addonItemsEdit[bookId]=[];
-  var newItem={name:'餵藥',qty:1,startDate:(bk?bk.startDate:''),endDate:(bk?bk.endDate:'')};
-  _addonItemsEdit[bookId].push(newItem);
   var list=document.getElementById('addon-items-'+bookId);
-  if(list){
-    var div=document.createElement('div');
-    div.innerHTML=buildAddonItemRow(bookId,_addonItemsEdit[bookId].length-1,newItem);
-    list.appendChild(div.firstChild);
-  }
+  if(!list) return;
+  var currentLen=list.querySelectorAll('.addon-item-row').length;
+  var newItem={name:'餵藥',qty:1,petName:'',startDate:(bk?bk.startDate:''),endDate:(bk?bk.endDate:''),slots:['早','中','晚']};
+  var div=document.createElement('div');
+  div.innerHTML=buildAddonItemRow(bookId,currentLen,newItem);
+  list.appendChild(div.firstChild);
 }
 
-function removeAddonItem(bookId, idx){
-  if(!_addonItemsEdit[bookId]) return;
-  _addonItemsEdit[bookId].splice(idx,1);
-  // Re-render the list
-  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
-  bk.addonItems=_addonItemsEdit[bookId].slice();
-  var list=document.getElementById('addon-items-'+bookId);
-  if(list){
-    list.innerHTML=_addonItemsEdit[bookId].map(function(item,i){
-      return buildAddonItemRow(bookId,i,item);
-    }).join('');
-  }
+function removeAddonItem(bookId,idx){
+  // 改用 onclick this.closest() 直接移除，此函式保留相容
+}
+
+
+function removeThisAddonRow(btn){
+  var row=btn.parentElement;
+  if(row) row.remove();
 }
 
 async function saveAddonItems(btn){
@@ -4069,31 +4075,31 @@ async function saveAddonItems(btn){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
 
-  var items=_addonItemsEdit[bookId]||bk.addonItems||[];
-  // 過濾空白
+  // 從 DOM 讀取所有列的最新值
+  var items=readAddonItemsFromDOM(bookId);
   items=items.filter(function(x){return x.name;});
 
-  // 同時更新舊格式 addons[] 相容保母端
+  // 同時更新舊格式 addons[]
   var legacyAddons=items.map(function(x){
-    var base=x.qty>1?x.name+'×'+x.qty+'隻':x.name;
-    if(x.slots&&x.slots.length&&x.slots.length<3) base+='（'+ x.slots.join('/')+')';
+    var base=x.name+(x.qty>1?'×'+x.qty+'隻':'');
+    if(x.petName) base+='('+x.petName+')';
+    if(x.slots&&x.slots.length<3) base+='（'+x.slots.join('/')+'）';
     return base;
   });
 
   var msg=document.getElementById('extra-addon-msg-'+bookId);
   try{
-    await dbUpdateOrder(bookId,{
-      addon_items: items,
-      addons: legacyAddons
-    });
-    bk.addonItems=items;
-    bk.addons=legacyAddons;
-    if(msg) msg.textContent='✅ 已儲存 '+items.length+' 筆附加服務';
+    await dbUpdateOrder(bookId,{addon_items:items,addons:legacyAddons});
+    bk.addonItems=items;bk.addons=legacyAddons;
+    _addonItemsEdit[bookId]=items.slice();
+    if(msg) msg.textContent='✅ 已儲存 '+items.length+' 筆';
     setTimeout(function(){showDetail(bookId);},800);
   }catch(e){
     if(msg) msg.textContent='❌ '+e.message;
   }
 }
+
+
 
 async function saveExtraAddons(btn){
   var bookId=btn.dataset.id;
@@ -4168,9 +4174,13 @@ function addExtraFeeRow(bookId, sitter){
   var uid=bookId+'-'+encodeURIComponent(sitter)+'-'+i;
   var d=document.createElement('div');
   d.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
-  d.innerHTML='<input type="text" id="ef-n-'+uid+'" style="flex:1;min-width:80px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
-    +'<span>$</span><input type="number" id="ef-p-'+uid+'" value="0" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:65px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
-    +'<span>×</span><input type="number" id="ef-t-'+uid+'" value="1" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:50px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+  d.innerHTML='<select id="ef-cat-'+uid+'" style="padding:4px 6px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.76rem;">'
+    +'<option value="保母服務費">🐾 保母服務費</option>'
+    +'<option value="代購">🛒 代購</option>'
+    +'</select>'
+    +'<input type="text" id="ef-n-'+uid+'" style="flex:1;min-width:70px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
+    +'<span>$</span><input type="number" id="ef-p-'+uid+'" value="0" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+    +'<span>×</span><input type="number" id="ef-t-'+uid+'" value="1" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:46px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
     +'<span>=$<b id="ef-s-'+uid+'">0</b></span>'
     +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.72rem;">✕</button>';
   list.appendChild(d);

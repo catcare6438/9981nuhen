@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781962181 -->
+<!-- build:1781964489 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -969,19 +969,37 @@ function calcSitterSalary(b){
   const sessions=mySess||(b.dateSlotData?.length?b.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1)));
   const svcRate=200;
   const svcTotal=svcRate*sessions;
-  // 加購費
-  const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};  // 統一價目
-  const addonPerSession=(b.addons||[]).reduce(function(s,a){
-    const m=a.match(/^(.+?)×(\d+)/);
-    const name=m?m[1]:a;
-    const qty=m?parseInt(m[2]):1;
-    return s+(ADDON_P[name]||50)*qty;
-  },0);
-  const addonTotal=addonPerSession*sessions;
+  // 加購費：優先用 addonItems（各自日期），否則舊格式
+  const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  var addonTotal=0;
+  var addonItems=b.addonItems||[];
+  if(addonItems.length){
+    addonItems.forEach(function(item){
+      if(!item.name) return;
+      var sd=item.startDate||b.startDate||'';
+      var ed=item.endDate||b.endDate||'';
+      var itemDays=1;
+      if(sd&&ed){
+        var d1=new Date(sd),d2=new Date(ed);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+      }
+      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*slots.length;
+      addonTotal+=(ADDON_P[item.name]||50)*(item.qty||1)*itemSessions;
+    });
+  } else {
+    const addonPerSession=(b.addons||[]).reduce(function(s,a){
+      const m=a.match(/^(.+?)×(\d+)/);
+      const name=m?m[1]:a;
+      const qty=m?parseInt(m[2]):1;
+      return s+(ADDON_P[name]||50)*qty;
+    },0);
+    addonTotal=addonPerSession*sessions;
+  }
   const myTransport=ME?.name?getMyTransport(b,ME.name):(b.transport||0);
   const transportTotal=myTransport*sessions;
   const total=svcTotal+addonTotal+transportTotal;
-  return{sessions,svcRate,svcTotal,addonPerSession,addonTotal,transport:myTransport,transportTotal,total};
+  return{sessions,svcRate,svcTotal,addonTotal,transport:myTransport,transportTotal,total};
 }
 const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 
@@ -1292,28 +1310,70 @@ async function renderCases(){
           +'<span style="color:var(--pk);">$'+careTotal.toLocaleString()+'</span></div>';
 
         // 附加服務
-        if(addons.length||myExtraFees.length){
-          row+='<div style="font-weight:800;color:#8B6000;margin-bottom:6px;font-size:.8rem;letter-spacing:.05em;">💊 附加服務費用</div>';
-
-          addons.forEach(function(a){
-            var m=a.match(/^(.+?)×(\d+)/);
-            var name=m?m[1]:a;
-            var qty=m?parseInt(m[2]):1;
-            var price=(ADDON_P[name]||50)*qty;
-            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFF3CD;"><span>💊 '+a+'</span><span style="font-family:Nunito;">$'+price+' × '+sal.sessions+'次 = <strong>$'+(price*sal.sessions).toLocaleString()+'</strong></span></div>';
-          });
-
-          if(myExtraFees.length){
-            row+='<div style="font-weight:800;color:#8B6000;margin:6px 0 4px;font-size:.78rem;">💸 附加費用（'+ME.name+'）</div>';
-            myExtraFees.forEach(function(f){
-              row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFF3CD;"><span style="color:#8B6000;">'+( f.name||'')+'</span><span style="font-family:Nunito;">$'+f.unitPrice+' × '+f.times+'次 = <strong>$'+(f.unitPrice*f.times)+'</strong></span></div>';
+        if(addonItems.length||myExtraFees.length){
+          // ── 附加服務（前台下單）──
+          if(addonItems.length){
+            row+='<div style="font-weight:800;color:#8B6000;margin-bottom:4px;font-size:.8rem;">💊 附加服務（前台）</div>';
+            addonItems.forEach(function(item){
+              if(!item.name) return;
+              var sd=item.startDate||b.startDate||'';
+              var ed=item.endDate||b.endDate||'';
+              var itemDays=1;
+              if(sd&&ed){
+                var d1=new Date(sd),d2=new Date(ed);
+                if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+              }
+              var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+              var itemSessions=itemDays*slots.length;
+              var unitP=(ADDON_P[item.name]||50)*(item.qty||1);
+              var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'');
+              row+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #FFE4EC;font-size:.78rem;">'
+                +'<span>'+label+' <span style="color:#bbb;">'+slots.join('/')+' '+itemDays+'天</span></span>'
+                +'<span style="font-family:Nunito;">$'+unitP+'×'+itemSessions+'次=<strong style="color:var(--pk);">$'+(unitP*itemSessions)+'</strong></span>'
+                +'</div>';
             });
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:.78rem;border-top:1px solid #FFD54F;margin:4px 0 8px;">'
+              +'<span style="color:#8B6000;">💊 附加服務合計</span>'
+              +'<span style="color:#FF6D00;">$'+addonTotal+'</span></div>';
           }
 
-          // 附加小計
-          row+='<div style="display:flex;justify-content:space-between;padding:6px 8px;background:#FFF8E1;border-radius:8px;font-weight:900;font-size:.88rem;font-family:Nunito;margin:6px 0 10px;">'
-            +'<span style="color:#8B6000;">💊 附加小計</span>'
-            +'<span style="color:#8B6000;">$'+(addonTotal+extraTotal).toLocaleString()+'</span></div>';
+          // ── 保母附加費：🐾 服務費 ──
+          var svcFees=myExtraFees.filter(function(f){return (f.category||'保母服務費')==='保母服務費';});
+          var purchFees=myExtraFees.filter(function(f){return f.category==='代購';});
+          var svcFeesTotal=svcFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+          var purchTotal=purchFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+
+          if(svcFees.length){
+            row+='<div style="font-weight:800;color:#BE185D;margin-bottom:4px;font-size:.8rem;">🐾 保母服務費</div>';
+            svcFees.forEach(function(f){
+              row+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #FFE4EC;font-size:.78rem;">'
+                +'<span>'+f.name+'</span>'
+                +'<span style="font-family:Nunito;">$'+f.unitPrice+'×'+f.times+'次=<strong style="color:var(--pk);">$'+(f.unitPrice*f.times)+'</strong></span>'
+                +'</div>';
+            });
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:.78rem;border-top:1px solid #FFD6E0;margin:4px 0 8px;">'
+              +'<span style="color:#BE185D;">🐾 服務費小計</span>'
+              +'<span style="color:#BE185D;">$'+svcFeesTotal+'</span></div>';
+          }
+
+          if(purchFees.length){
+            row+='<div style="font-weight:800;color:#1D4ED8;margin-bottom:4px;font-size:.8rem;">🛒 代購費用</div>';
+            purchFees.forEach(function(f){
+              row+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #DBEAFE;font-size:.78rem;">'
+                +'<span>'+f.name+'</span>'
+                +'<span style="font-family:Nunito;">$'+f.unitPrice+'×'+f.times+'次=<strong style="color:#1D4ED8;">$'+(f.unitPrice*f.times)+'</strong></span>'
+                +'</div>';
+            });
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:.78rem;border-top:1px solid #BFDBFE;margin:4px 0 8px;">'
+              +'<span style="color:#1D4ED8;">🛒 代購小計</span>'
+              +'<span style="color:#1D4ED8;">$'+purchTotal+'</span></div>';
+          }
+
+          if(myExtraFees.length){
+            row+='<div style="display:flex;justify-content:space-between;padding:5px 0;font-weight:900;font-size:.8rem;background:#FFF8F0;margin-top:4px;border-radius:6px;padding:6px 8px;">'
+              +'<span style="color:#C05000;">📋 後台附加費合計</span>'
+              +'<span style="color:#C05000;">$'+extraTotal+'</span></div>';
+          }
         }
 
         // 總收入

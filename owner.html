@@ -1593,13 +1593,34 @@ function ownerCalcDetail(bk){
     if(hol>0)  rows.push({label:sn+'（連假🎊）',price:HOL_P[k]||0,times:hol,sub:(HOL_P[k]||0)*hol});
     if(cny>0)  rows.push({label:sn+'（春節🧧）',price:CNY_P[k]||0,times:cny,sub:(CNY_P[k]||0)*cny});
   });
-  (bk.addons||[]).forEach(function(a){
-    var m2=a.match(/^(.+?)[×x](\d+)/);
-    var nm=m2?m2[1].trim():a;
-    var qty=m2?parseInt(m2[2]):1;
-    var p2=(ADDON_P[nm]||50)*qty;
-    rows.push({label:a,price:p2,times:total,sub:p2*total});
-  });
+  // 優先用 addonItems（各自日期），否則 fallback addons[]
+  var addonItems2=bk.addonItems||[];
+  if(addonItems2.length){
+    addonItems2.forEach(function(item){
+      if(!item.name) return;
+      var sd=item.startDate||bk.startDate||'';
+      var ed=item.endDate||bk.endDate||'';
+      var itemDays=1;
+      if(sd&&ed){
+        var d1=new Date(sd),d2=new Date(ed);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+      }
+      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*slots.length;
+      var unitP=(ADDON_P[item.name]||50)*(item.qty||1);
+      var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'')
+        +' ('+slots.join('/')+' '+itemDays+'天)';
+      rows.push({label:label,price:unitP,times:itemSessions,sub:unitP*itemSessions});
+    });
+  } else {
+    (bk.addons||[]).forEach(function(a){
+      var m2=a.match(/^(.+?)[×x](\d+)/);
+      var nm=m2?m2[1].trim():a;
+      var qty=m2?parseInt(m2[2]):1;
+      var p2=(ADDON_P[nm]||50)*qty;
+      rows.push({label:a,price:p2,times:total,sub:p2*total});
+    });
+  }
   var tp=(bk.catCount||0)+(bk.dogCount||0);
   if(tp>3){var eu=50*(tp-3);rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});}
   if(bk.urgent>0) rows.push({label:'急件加收',price:bk.urgent,times:1,sub:bk.urgent});

@@ -1978,14 +1978,33 @@ function showDetail(bookId){
     if(holSessions>0)  rows+=R(sn+'（連假🎊）',HOL_PRICE[k]||0,'× '+holSessions+'次',(HOL_PRICE[k]||0)*holSessions);
     if(cnySessions>0)  rows+=R(sn+'（春節🧧）',CNY_PRICE[k]||0,'× '+cnySessions+'次',(CNY_PRICE[k]||0)*cnySessions);
   });
-  (bk.addons||[]).forEach(function(a){
-    // 支援 "餵藥×3隻" 格式
-    var m2=a.match(/^(.+?)[×x\*×](\d+)/);
-    var aName=m2?m2[1].trim():a;
-    var aQty=m2?parseInt(m2[2]):1;
-    var aPrice=(AN[aName]||AN[a]||50)*aQty;
-    rows+=R(a,aPrice,'× '+totalSessions+'次',aPrice*totalSessions);
-  });
+  // 優先用 addonItems（有獨立日期），否則 fallback 到 addons[]
+  var _showAddonItems=bk.addonItems&&bk.addonItems.length?bk.addonItems:[];
+  if(_showAddonItems.length){
+    _showAddonItems.forEach(function(item){
+      if(!item.name) return;
+      var sd2=item.startDate||bk.startDate||'';
+      var ed2=item.endDate||bk.endDate||'';
+      var itemDays=1;
+      if(sd2&&ed2){
+        var dd1=new Date(sd2),dd2=new Date(ed2);
+        if(!isNaN(dd1)&&!isNaN(dd2)&&dd2>=dd1) itemDays=Math.round((dd2-dd1)/86400000)+1;
+      }
+      var itemSlots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*itemSlots.length;
+      var unitP=(AN[item.name]||50)*(item.qty||1);
+      var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+' ('+itemSlots.join('/')+' '+itemDays+'天)';
+      rows+=R(label,unitP,'× '+itemSessions+'次',unitP*itemSessions);
+    });
+  } else {
+    (bk.addons||[]).forEach(function(a){
+      var m2=a.match(/^(.+?)[×x\*×](\d+)/);
+      var aName=m2?m2[1].trim():a;
+      var aQty=m2?parseInt(m2[2]):1;
+      var aPrice=(AN[aName]||AN[a]||50)*aQty;
+      rows+=R(a,aPrice,'× '+totalSessions+'次',aPrice*totalSessions);
+    });
+  }
   var totalPets=(bk.catCount||0)+(bk.dogCount||0);
   if(totalPets>3){
     var overPets=totalPets-3;
@@ -2099,7 +2118,7 @@ function showDetail(bookId){
   // Visit info
   html+=buildVisitPaymentHTML(bk, Math.max(0,total));
 
-  // ── 追加附加服務（明細結構，每筆獨立日期）──
+  // ── 附加服務明細（每筆獨立日期）──
   var _addonItems=JSON.parse(JSON.stringify(bk.addonItems||[]));
   _addonItemsEdit[bookId]=_addonItems; // 初始化編輯狀態
   // 舊格式 addons[] 轉新格式
@@ -2118,44 +2137,7 @@ function showDetail(bookId){
   html+='<div style="background:#FFF8E1;border:2px solid #FFD54F;border-radius:14px;padding:14px;margin-top:14px;">';
   html+='<div style="font-size:.84rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💊 附加服務明細</div>';
 
-  // 費用摘要（按日期算天數）
-  if(_addonItems.length){
-    html+='<div style="background:#FFFDE7;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;">';
-    html+='<div style="font-weight:800;color:#8B6000;margin-bottom:6px;">📊 費用試算（依日期範圍）</div>';
-    var addonGrandTotal=0;
-    _addonItems.forEach(function(item){
-      if(!item.name) return;
-      var sd=item.startDate||bk.startDate||'';
-      var ed=item.endDate||bk.endDate||'';
-      var days=1;
-      if(sd&&ed){
-        var d1=new Date(sd),d2=new Date(ed);
-        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1){
-          days=Math.round((d2-d1)/(86400000))+1;
-        }
-      }
-      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
-      var timesPerDay=slots.length; // 幾個時段
-      var unitPrice=ADDON_PRICE_MAP[item.name]||50;
-      var qty=item.qty||1;
-      var totalSessions=days*timesPerDay;
-      var itemTotal=unitPrice*qty*totalSessions;
-      addonGrandTotal+=itemTotal;
-      var dateRange=sd&&ed?(sd+' ～ '+ed+' ('+days+'天)'):'（同整單期間）';
-      var slotStr=slots.join('/');
-      html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #FFE082;">'
-        +'<span style="color:#555;">'+item.name+(qty>1?' ×'+qty+'隻':'')
-        +'<span style="color:#aaa;font-size:.72rem;margin-left:6px;">'+slotStr+' · '+dateRange+'</span></span>'
-        +'<span style="font-weight:800;color:#8B6000;">$'+unitPrice+(qty>1?'×'+qty:'')+'×'+totalSessions+'次 = $'+itemTotal+'</span>'
-        +'</div>';
-    });
-    html+='<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-weight:900;font-size:.82rem;">'
-      +'<span style="color:#8B6000;">💊 附加服務合計</span>'
-      +'<span style="color:#FF6D00;">$'+addonGrandTotal+'</span>'
-      +'</div>';
-    html+='</div>';
-  }
-
+  // (費用試算已合併至下方)
   // 費用試算（按日期天數）
   if(_addonItems.length){
     var _addonGrandTotal=0;

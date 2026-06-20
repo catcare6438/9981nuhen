@@ -2118,6 +2118,79 @@ function showDetail(bookId){
   html+='<div style="background:#FFF8E1;border:2px solid #FFD54F;border-radius:14px;padding:14px;margin-top:14px;">';
   html+='<div style="font-size:.84rem;font-weight:900;color:#8B6000;margin-bottom:10px;">💊 附加服務明細</div>';
 
+  // 費用摘要（按日期算天數）
+  if(_addonItems.length){
+    html+='<div style="background:#FFFDE7;border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:.78rem;">';
+    html+='<div style="font-weight:800;color:#8B6000;margin-bottom:6px;">📊 費用試算（依日期範圍）</div>';
+    var addonGrandTotal=0;
+    _addonItems.forEach(function(item){
+      if(!item.name) return;
+      var sd=item.startDate||bk.startDate||'';
+      var ed=item.endDate||bk.endDate||'';
+      var days=1;
+      if(sd&&ed){
+        var d1=new Date(sd),d2=new Date(ed);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1){
+          days=Math.round((d2-d1)/(86400000))+1;
+        }
+      }
+      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var timesPerDay=slots.length; // 幾個時段
+      var unitPrice=ADDON_PRICE_MAP[item.name]||50;
+      var qty=item.qty||1;
+      var totalSessions=days*timesPerDay;
+      var itemTotal=unitPrice*qty*totalSessions;
+      addonGrandTotal+=itemTotal;
+      var dateRange=sd&&ed?(sd+' ～ '+ed+' ('+days+'天)'):'（同整單期間）';
+      var slotStr=slots.join('/');
+      html+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #FFE082;">'
+        +'<span style="color:#555;">'+item.name+(qty>1?' ×'+qty+'隻':'')
+        +'<span style="color:#aaa;font-size:.72rem;margin-left:6px;">'+slotStr+' · '+dateRange+'</span></span>'
+        +'<span style="font-weight:800;color:#8B6000;">$'+unitPrice+(qty>1?'×'+qty:'')+'×'+totalSessions+'次 = $'+itemTotal+'</span>'
+        +'</div>';
+    });
+    html+='<div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-weight:900;font-size:.82rem;">'
+      +'<span style="color:#8B6000;">💊 附加服務合計</span>'
+      +'<span style="color:#FF6D00;">$'+addonGrandTotal+'</span>'
+      +'</div>';
+    html+='</div>';
+  }
+
+  // 費用試算（按日期天數）
+  if(_addonItems.length){
+    var _addonGrandTotal=0;
+    var _addonSummaryRows='';
+    _addonItems.forEach(function(item){
+      if(!item.name) return;
+      var sd=item.startDate||bk.startDate||'';
+      var ed=item.endDate||bk.endDate||'';
+      var days=1;
+      if(sd&&ed){
+        var d1=new Date(sd),d2=new Date(ed);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) days=Math.round((d2-d1)/86400000)+1;
+      }
+      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var timesPerDay=slots.length;
+      var unitPrice=ADDON_PRICE_MAP[item.name]||50;
+      var qty=item.qty||1;
+      var totalSessions=days*timesPerDay;
+      var itemTotal=unitPrice*qty*totalSessions;
+      _addonGrandTotal+=itemTotal;
+      var dateStr=sd&&ed?sd+'～'+ed+'('+days+'天)':'整單期間';
+      _addonSummaryRows+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed #FFE082;font-size:.77rem;">'
+        +'<span style="color:#555;">'+item.name+(qty>1?' ×'+qty+'隻':'')+' <span style="color:#bbb;">'+slots.join('/')+' · '+dateStr+'</span></span>'
+        +'<span style="font-weight:800;color:#8B6000;">$'+unitPrice+(qty>1?'×'+qty:'')+'×'+totalSessions+'次=$'+itemTotal+'</span>'
+        +'</div>';
+    });
+    html+='<div style="background:#FFFDE7;border:1.5px solid #FFE082;border-radius:10px;padding:10px 12px;margin-bottom:10px;">'
+      +'<div style="font-weight:900;color:#8B6000;font-size:.8rem;margin-bottom:6px;">📊 附加服務費用試算</div>'
+      +_addonSummaryRows
+      +'<div style="display:flex;justify-content:space-between;padding:6px 0 0;font-weight:900;font-size:.82rem;border-top:1.5px solid #FFE082;margin-top:4px;">'
+      +'<span style="color:#8B6000;">💊 附加合計</span>'
+      +'<span style="color:#FF6D00;">$'+_addonGrandTotal+'</span>'
+      +'</div></div>';
+  }
+
   // 現有明細列表
   html+='<div id="addon-items-'+bk.id+'">';
   _addonItems.forEach(function(item,idx){

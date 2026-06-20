@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781964489 -->
+<!-- build:1781969765 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -363,11 +363,26 @@ async function dbInsertOrder(b){
   if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
 }
 async function dbUpdateOrder(id,fields){
+  const MAP={
+    status:'status',addons:'addons',services:'services',
+    petData:'pet_data',pet_data:'pet_data',
+    sitterExtraFees:'sitter_extra_fees',sitter_extra_fees:'sitter_extra_fees',
+    addonItems:'addon_items',addon_items:'addon_items',
+    transport:'transport',total:'total',
+  };
   const row={};
-  if(fields.status!==undefined)row.status=fields.status;
-  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
-  const{error}=await _supa.from('orders').update(row).eq('id',id);
-  if(error)console.error('updateOrder:',_errMsg(error));
+  Object.keys(fields).forEach(function(k){
+    row[MAP[k]||k]=fields[k];
+  });
+  if(!Object.keys(row).length) return;
+  var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(id)),{
+    method:'PUT',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(row)
+  });
+  var j=await res.json();
+  if(j&&j.error) throw new Error(String(j.error));
+  console.log('[sitter dbUpdateOrder] ✅ id='+id);
 }
 async function dbDeleteOrder(id){
   const{error}=await _supa.from('orders').delete().eq('id',id);
@@ -1313,7 +1328,7 @@ async function renderCases(){
         if(addonItems.length||myExtraFees.length){
           // ── 附加服務（前台下單）──
           if(addonItems.length){
-            row+='<div style="font-weight:800;color:#8B6000;margin-bottom:4px;font-size:.8rem;">💊 附加服務（前台）</div>';
+            row+='<div style="font-weight:800;color:#8B6000;margin-bottom:4px;font-size:.8rem;">🛍 寵物服務加購項目</div>';
             addonItems.forEach(function(item){
               if(!item.name) return;
               var sd=item.startDate||b.startDate||'';
@@ -1338,13 +1353,13 @@ async function renderCases(){
           }
 
           // ── 保母附加費：🐾 服務費 ──
-          var svcFees=myExtraFees.filter(function(f){return (f.category||'保母服務費')==='保母服務費';});
+          var svcFees=myExtraFees.filter(function(f){var cat=f.category||'保母服務費';return cat!=='代購';});
           var purchFees=myExtraFees.filter(function(f){return f.category==='代購';});
           var svcFeesTotal=svcFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
           var purchTotal=purchFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
 
           if(svcFees.length){
-            row+='<div style="font-weight:800;color:#BE185D;margin-bottom:4px;font-size:.8rem;">🐾 保母服務費</div>';
+            row+='<div style="font-weight:800;color:#BE185D;margin-bottom:4px;font-size:.8rem;">🐾 保母代購&服務費</div>';
             svcFees.forEach(function(f){
               row+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #FFE4EC;font-size:.78rem;">'
                 +'<span>'+f.name+'</span>'

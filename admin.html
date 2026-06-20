@@ -3606,36 +3606,97 @@ async function exportOrderPDF(bookId){
     T(c0,'👩  '+assignedStr+'    ｜    共 '+reports.length+' 天回報',PW/2,oy+42,'#666',12,false,'center');
     oy+=66;
 
-    // 毛孩列表（全部顯示，超出換頁由分頁保護）
+    // ── 毛孩資訊：一頁左右各4個橢圓框，最多8隻 ──
     var pets=bk.petData||[];
-    var petsH=32+pets.length*68+8;
-    // 若放不下，截到能放的
-    var maxPetsInCover=Math.floor((PH-oy-60)/68);
-    var shownPets=pets.slice(0,Math.max(2,maxPetsInCover));
 
-    RR(c0,18,oy,559,32+shownPets.length*68+8,14,'#fff','#FFD6E0',2);
-    c0.fillStyle=GR(c0,18,oy,18,oy+32+shownPets.length*68+8,'#FF4F7B','#FF9AB5');
-    c0.fillRect(18,oy,6,32+shownPets.length*68+8);
-    T(c0,'🐾  毛孩資訊（共 '+pets.length+' 隻）',32,oy+24,'#FF4F7B',14,true);
-    var petY=oy+34;
-    shownPets.forEach(function(p,pi){
-      var bg2=pi%2===0?'#FFF8FB':'#fff';
-      RR(c0,24,petY,545,62,8,bg2,null,0);
-      var em3=p.type==='cat'?'🐱':'🐶';
-      T(c0,em3,34,petY+30,'#FF4F7B',22);
-      T(c0,p.name||'未命名',62,petY+22,'#FF4F7B',16,true);
-      T(c0,(p.type==='cat'?'貓咪':'狗狗')+(p.gender?'  '+p.gender:''),62,petY+42,'#888',12);
-      var ht=(p.health&&p.health.length)?p.health.join(' · '):'健康良好 ✓';
-      var htC=p.health&&p.health.length?'#C05000':'#166534';
-      RR(c0,240,petY+12,300,22,11,'#FFF0F5',null,0);
-      T(c0,ht.substring(0,22),248,petY+27,htC,11);
-      LINE(c0,28,petY+62,564,petY+62,'#FFE4EC',.7);
-      petY+=64;
-    });
-    if(shownPets.length<pets.length){
-      T(c0,'… 另有 '+(pets.length-shownPets.length)+' 隻，詳見後續頁面',34,petY+16,'#aaa',11);
+    // 預載毛孩大頭照
+    var petImgs=[];
+    for(var pi4=0;pi4<pets.length;pi4++){
+      var photoUrl=pets[pi4].photo||'';
+      petImgs.push(photoUrl&&photoUrl.startsWith('http')?await loadImg(photoUrl):null);
     }
-    oy+=32+shownPets.length*68+24;
+
+    // 橢圓框配置：每排2個，最多4排（8隻）
+    var OVAL_W=238, OVAL_H=210; // 橢圓框尺寸
+    var OVAL_GAP=18; // 間距
+    var OVAL_START_X=22; // 左起點
+    var OVAL_COLS=2;
+    var maxPerPage=Math.min(pets.length,8);
+    var rowCount=Math.ceil(maxPerPage/OVAL_COLS);
+    var petsGridH=rowCount*(OVAL_H+OVAL_GAP)+8;
+
+    // 標題
+    T(c0,'🐾  毛孩資訊（共 '+pets.length+' 隻）',PW/2,oy+20,'#FF4F7B',14,true,'center');
+    oy+=30;
+
+    for(var pi5=0;pi5<maxPerPage;pi5++){
+      var p5=pets[pi5];
+      var col5=pi5%OVAL_COLS;
+      var row5=Math.floor(pi5/OVAL_COLS);
+      var ox5=OVAL_START_X+col5*(OVAL_W+OVAL_GAP);
+      var oy5=oy+row5*(OVAL_H+OVAL_GAP);
+
+      // 橢圓外框陰影效果
+      c0.shadowColor='rgba(255,93,125,.18)';c0.shadowBlur=14;c0.shadowOffsetY=4;
+      RR(c0,ox5,oy5,OVAL_W,OVAL_H,OVAL_H/2,'#fff','#FFD6E0',2);
+      c0.shadowColor='transparent';c0.shadowBlur=0;c0.shadowOffsetY=0;
+
+      // 漸層背景
+      c0.fillStyle=GR(c0,ox5,oy5,ox5,oy5+OVAL_H,'#FFF5F8','#FFF0F5');
+      c0.save();
+      c0.beginPath();
+      // 橢圓路徑
+      c0.ellipse(ox5+OVAL_W/2,oy5+OVAL_H/2,OVAL_W/2-2,OVAL_H/2-2,0,0,Math.PI*2);
+      c0.clip();
+      c0.fillRect(ox5,oy5,OVAL_W,OVAL_H);
+
+      // 毛孩照片（圓形裁剪）
+      var imgSize=88;
+      var imgX=ox5+OVAL_W/2-imgSize/2;
+      var imgY=oy5+24;
+      var pImg5=petImgs[pi5];
+
+      if(pImg5){
+        c0.save();
+        c0.beginPath();c0.arc(ox5+OVAL_W/2,imgY+imgSize/2,imgSize/2,0,Math.PI*2);c0.clip();
+        c0.drawImage(pImg5,imgX,imgY,imgSize,imgSize);
+        c0.restore();
+        // 照片邊框
+        c0.strokeStyle='#FFD6E0';c0.lineWidth=3;
+        c0.beginPath();c0.arc(ox5+OVAL_W/2,imgY+imgSize/2,imgSize/2,0,Math.PI*2);c0.stroke();
+      } else {
+        // 無照片：顯示大 emoji
+        var em5=p5.type==='cat'?'🐱':'🐶';
+        // 圓形底
+        c0.fillStyle='#FFE4EC';
+        c0.beginPath();c0.arc(ox5+OVAL_W/2,imgY+imgSize/2,imgSize/2,0,Math.PI*2);c0.fill();
+        c0.strokeStyle='#FFD6E0';c0.lineWidth=2;
+        c0.beginPath();c0.arc(ox5+OVAL_W/2,imgY+imgSize/2,imgSize/2,0,Math.PI*2);c0.stroke();
+        T(c0,em5,ox5+OVAL_W/2,imgY+imgSize/2+14,'#FF8FAB',36,false,'center');
+      }
+      c0.restore();
+
+      // 名字
+      var nameY5=imgY+imgSize+22;
+      c0.fillStyle='#FF4F7B';c0.font='bold 17px "Noto Sans TC",sans-serif';
+      c0.textAlign='center';
+      c0.fillText((p5.name||'未命名').substring(0,6),ox5+OVAL_W/2,nameY5);
+      c0.textAlign='left';
+
+      // 種類 + 性別
+      var typeStr=(p5.type==='cat'?'🐱 貓咪':'🐶 狗狗')+(p5.gender?' · '+p5.gender:'');
+      T(c0,typeStr,ox5+OVAL_W/2,nameY5+20,'#888',11,false,'center');
+
+      // 健康狀態小標籤
+      var htStr=(p5.health&&p5.health.length)?'⚠ '+p5.health[0]:'✓ 健康';
+      var htC=(p5.health&&p5.health.length)?'#C05000':'#166534';
+      var htBg=(p5.health&&p5.health.length)?'#FFF3E0':'#F0FDF4';
+      c0.fillStyle=htBg;
+      var htW=c0.measureText(htStr).width+20;
+      RR(c0,ox5+OVAL_W/2-htW/2,nameY5+30,htW,20,10,htBg,null,0);
+      T(c0,htStr,ox5+OVAL_W/2,nameY5+44,htC,10,false,'center');
+    }
+    oy+=petsGridH+14;
 
     if(oy<PH-70){
       RR(c0,18,oy,559,46,12,GR(c0,18,oy,577,oy+46,'#FF4F7B','#FF8FAB'),null,0);

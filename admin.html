@@ -1064,12 +1064,33 @@ function parseSlotStats(bk){
 function calcBv2(bk){
   const AN={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   const{totalSessions,holSessions,cnySessions,normSessions}=parseSlotStats(bk);
-  const addon=(bk.addons||[]).reduce((s,a)=>{
-    var m2=a.match(/^(.+?)[×x\*×](\d+)/);
-    var nm=m2?m2[1].trim():a;
-    var qty=m2?parseInt(m2[2]):1;
-    return s+(AN[nm]||AN[a]||50)*qty;
-  },0);
+  // 附加服務：優先用 addonItems 各自日期
+  var addonSub=0;
+  var addonItemsArr=bk.addonItems||[];
+  if(addonItemsArr.length){
+    addonItemsArr.forEach(function(item){
+      if(!item.name) return;
+      var sd=item.startDate||bk.startDate||'';
+      var ed=item.endDate||bk.endDate||'';
+      var itemDays=1;
+      if(sd&&ed){
+        var d1=new Date(sd),d2=new Date(ed);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+      }
+      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*slots.length;
+      var unitP=(AN[item.name]||50)*(item.qty||1);
+      addonSub+=unitP*itemSessions;
+    });
+  } else {
+    var addon=(bk.addons||[]).reduce(function(s,a){
+      var m2=a.match(/^(.+?)[×x\*×](\d+)/);
+      var nm=m2?m2[1].trim():a;
+      var qty=m2?parseInt(m2[2]):1;
+      return s+(AN[nm]||AN[a]||50)*qty;
+    },0);
+    addonSub=addon*totalSessions;
+  }
   const totalPets=(bk.catCount||0)+(bk.dogCount||0);
   const extra=totalPets>3?(totalPets-3)*50:0;
   let normSvcSub=0,holSvcSub=0,cnySvcSub=0;
@@ -1078,7 +1099,6 @@ function calcBv2(bk){
     holSvcSub +=(HOL_PRICE[k]||0)*holSessions;
     cnySvcSub +=(CNY_PRICE[k]||0)*(cnySessions||0);
   });
-  const addonSub=addon*totalSessions;
   const extraSub=extra*totalSessions;
   const svcSub=normSvcSub+holSvcSub+cnySvcSub+addonSub+extraSub;
   const transportTotal=(bk.transport||0)*totalSessions;
@@ -1975,8 +1995,9 @@ function showDetail(bookId){
       var itemSlots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
       var itemSessions=itemDays*itemSlots.length;
       var unitP=(AN[item.name]||50)*(item.qty||1);
-      var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+' ('+itemSlots.join('/')+' '+itemDays+'天)';
-      rows+=R(label,unitP,'× '+itemSessions+'次',unitP*itemSessions);
+      var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'');
+      var timeLabel='('+itemSlots.join('/')+' '+itemDays+'天)';
+      rows+=R(label+' '+timeLabel,unitP,'× '+itemSessions+'次',unitP*itemSessions);
     });
   } else {
     (bk.addons||[]).forEach(function(a){

@@ -2105,8 +2105,13 @@ function showDetail(bookId){
   // 舊格式 addons[] 轉新格式
   if(!_addonItems.length&&bk.addons&&bk.addons.length){
     _addonItems=bk.addons.map(function(a){
-      var m=a.match(/^(.+?)×(\d+)/);
-      return {name:m?m[1]:a,qty:m?parseInt(m[2]):1,startDate:bk.startDate||'',endDate:bk.endDate||''};
+      // 格式：餵藥×3隻（早/晚） 或 餵藥×3隻 或 餵藥
+      var mQty=a.match(/^(.+?)×(\d+)/);
+      var mSlot=a.match(/（([^）]+)）/);
+      var name=mQty?mQty[1]:a.replace(/（[^）]+）/,'');
+      var qty=mQty?parseInt(mQty[2]):1;
+      var slots=mSlot?mSlot[1].split('/'):['早','中','晚'];
+      return {name:name.trim(),qty:qty,slots:slots,startDate:bk.startDate||'',endDate:bk.endDate||''};
     });
   }
 

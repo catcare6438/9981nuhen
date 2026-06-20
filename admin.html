@@ -3505,14 +3505,18 @@ function buildExtraFeeHTML(bk){
   return html;
 }
 
-function efCalc(elOrUid){
-  // Accept both DOM element and uid string
-  var uid=typeof elOrUid==='string'?elOrUid:(elOrUid&&elOrUid.dataset?elOrUid.dataset.uid:null);
+function efCalc(uid){
   if(!uid) return;
-  var p=parseFloat(document.getElementById('ef-p-'+uid)?.value)||0;
-  var t=parseFloat(document.getElementById('ef-t-'+uid)?.value)||1;
-  var s=document.getElementById('ef-s-'+uid);
-  if(s) s.textContent=Math.round(p*t);
+  var pEl=document.getElementById('ef-p-'+uid);
+  var tEl=document.getElementById('ef-t-'+uid);
+  var sEl=document.getElementById('ef-s-'+uid);
+  var p=pEl?parseFloat(pEl.value)||0:0;
+  var t=tEl?parseFloat(tEl.value)||1:1;
+  if(sEl) sEl.textContent=Math.round(p*t);
+}
+function efCalcEl(input){
+  var uid=input.dataset.uid||input.id.replace('ef-p-','').replace('ef-t-','');
+  efCalc(uid);
 }
 
 
@@ -4170,18 +4174,18 @@ function addExtraFeeRow(bookId, sitter){
   var listId='ef-list-'+bookId+'-'+encodeURIComponent(sitter);
   var list=document.getElementById(listId);
   if(!list) return;
-  var i=list.children.length;
-  var uid=bookId+'-'+encodeURIComponent(sitter)+'-'+i;
+  // 用時間戳確保 uid 唯一（避免 children.length 計算錯誤）
+  var uid=bookId+'-'+encodeURIComponent(sitter)+'-'+Date.now();
   var d=document.createElement('div');
   d.style.cssText='display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;';
   d.innerHTML='<select id="ef-cat-'+uid+'" style="padding:4px 6px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.76rem;">'
-    +'<option value="保母服務費">🐾 保母服務費</option>'
+    +'<option value="保母服務費">🐾 服務費</option>'
     +'<option value="代購">🛒 代購</option>'
     +'</select>'
-    +'<input type="text" id="ef-n-'+uid+'" style="flex:1;min-width:70px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
-    +'<span>$</span><input type="number" id="ef-p-'+uid+'" value="0" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:60px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
-    +'<span>×</span><input type="number" id="ef-t-'+uid+'" value="1" oninput="efCalc(this.dataset.uid)" data-uid="'+uid+'" style="width:46px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
-    +'<span>=$<b id="ef-s-'+uid+'">0</b></span>'
+    +'<input type="text" id="ef-n-'+uid+'" style="flex:1;min-width:90px;padding:4px 7px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;" placeholder="費用名稱">'
+    +'<span style="color:var(--tl);">$</span><input type="number" id="ef-p-'+uid+'" value="0" oninput="efCalcEl(this)"  style="width:70px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+    +'<span style="color:var(--tl);">×</span><input type="number" id="ef-t-'+uid+'" value="1" oninput="efCalcEl(this)"  style="width:52px;padding:4px;border:1.5px solid var(--pk3);border-radius:7px;font-size:.8rem;">'
+    +'<span style="font-size:.8rem;">=$<b id="ef-s-'+uid+'" style="color:var(--pk);">0</b></span>'
     +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:7px;padding:3px 8px;cursor:pointer;font-size:.72rem;">✕</button>';
   list.appendChild(d);
 }

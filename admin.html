@@ -504,72 +504,50 @@ async function dbInsertOrder(b){
   if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
 }
 async function dbUpdateOrder(id,fields){
-  // Map every known field to its DB column
+  // 欄位名稱對應（camelCase → snake_case）
   const MAP={
-    status:'status',
-    assigned_to:'assigned_to',
-    manual_adj:'manual_adj',
-    owner_name:'owner_name',
-    owner_phone:'owner_phone',
-    owner_line:'owner_line',
-    owner_addr:'owner_addr',
-    pet_data:'pet_data',
-    cat_count:'cat_count',
-    dog_count:'dog_count',
-    pet_notes:'pet_notes',
-    start_date:'start_date',
-    end_date:'end_date',
-    days:'days',
-    tpd:'tpd',
-    services:'services',
-    addons:'addons',
-    transport:'transport',
-    transport_total:'transport_total',
-    urgent:'urgent',
-    distance:'distance',
-    total:'total',
-    is_holiday:'is_holiday',
-    note:'pet_notes',
-    home_visit_date:'home_visit_date',
-    home_visit_note:'home_visit_note',
-    deposit_date:'deposit_date',
-    deposit_amount:'deposit_amount',
-    deposit_paid:'deposit_paid',
-    full_paid:'full_paid',
-    pay_method:'pay_method',
-    pay_note:'pay_note',
-    visit_date:'visit_date',
-    visit_notes:'visit_notes',
-    visit_photos:'visit_photos',
-    caution:'caution',
-    contract_url:'contract_url',
-    fee_table_url:'fee_table_url',
-    sitter_extra_fees:'sitter_extra_fees',
-    addon_items:'addon_items',
-    owner_line_id:'owner_line_id',
-    manual_adjs:'manual_adjs',
-    addon_items:'addon_items',
+    status:'status',assignedTo:'assigned_to',assigned_to:'assigned_to',
+    ownerName:'owner_name',ownerPhone:'owner_phone',ownerLine:'owner_line',ownerAddr:'owner_addr',
+    petData:'pet_data',catCount:'cat_count',dogCount:'dog_count',petNotes:'pet_notes',
+    startDate:'start_date',endDate:'end_date',days:'days',tpd:'tpd',
+    services:'services',addons:'addons',transport:'transport',
+    transportTotal:'transport_total',urgent:'urgent',distance:'distance',
+    total:'total',isHoliday:'is_holiday',note:'pet_notes',
+    homeVisitDate:'home_visit_date',homeVisitNote:'home_visit_note',
+    depositDate:'deposit_date',depositAmount:'deposit_amount',
+    depositPaid:'deposit_paid',fullPaid:'full_paid',
+    payMethod:'pay_method',payNote:'pay_note',
+    visitDate:'visit_date',visitNotes:'visit_notes',visitPhotos:'visit_photos',
+    caution:'caution',contractUrl:'contract_url',feeTableUrl:'fee_table_url',
+    sitterExtraFees:'sitter_extra_fees',sitter_extra_fees:'sitter_extra_fees',
+    addonItems:'addon_items',addon_items:'addon_items',
+    ownerLineId:'owner_line_id',manualAdjs:'manual_adjs',manual_adjs:'manual_adjs',
+    couponCode:'coupon_code',couponDiscount:'coupon_discount',
   };
   const row={};
-  Object.keys(fields).forEach(k=>{
-    const col=MAP[k]||k;
+  Object.keys(fields).forEach(function(k){
+    var col=MAP[k]||k;
     row[col]=fields[k];
   });
-  if(!Object.keys(row).length)return;
-  // Retry up to 3 times on network error
+  if(!Object.keys(row).length) return;
+  var idStr=String(id);
   var lastErr=null;
   for(var attempt=1;attempt<=3;attempt++){
     try{
-      const{error}=await _supa.from('orders').update(row).eq('id',String(id));
-      if(error){console.error('updateOrder:',_errMsg(error));throw new Error(_errMsg(error));}
-      return; // success
+      var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(idStr),{
+        method:'PUT',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(row)
+      });
+      var j=await res.json();
+      if(j&&j.error) throw new Error(String(j.error));
+      console.log('[dbUpdateOrder] ✅ id='+idStr,'fields='+Object.keys(row).join(','));
+      return;
     }catch(e){
       lastErr=e;
-      if(attempt<3 && (e.message.includes('fetch')||e.message.includes('network')||e.message.includes('connect'))){
-        console.warn('updateOrder retry',attempt);
+      if(attempt<3){
+        console.warn('[dbUpdateOrder] retry',attempt,e.message);
         await new Promise(function(r){setTimeout(r,1000*attempt);});
-      } else {
-        throw e;
       }
     }
   }

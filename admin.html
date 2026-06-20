@@ -3612,16 +3612,8 @@ async function exportOrderPDF(bookId){
     // ── 毛孩資訊：4排×2欄 = 8格，每格橢圓卡片 ──
     var pets=bk.petData||[];
 
-    // 預載毛孩大頭照（支援 base64 和 http URL）
-    var petImgs=[];
-    for(var pi4=0;pi4<pets.length;pi4++){
-      var photoUrl=pets[pi4].photo||'';
-      if(photoUrl&&(photoUrl.startsWith('http')||photoUrl.startsWith('data:'))){
-        petImgs.push(await loadImg(photoUrl));
-      } else {
-        petImgs.push(null);
-      }
-    }
+    // 大頭照不顯示，全部用 emoji 代替
+    var petImgs=pets.map(function(){return null;});
 
     // 8隻全放：計算尺寸讓4排剛好塞入剩餘高度
     var maxPerPage=Math.min(pets.length,8);

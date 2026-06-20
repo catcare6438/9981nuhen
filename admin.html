@@ -1011,7 +1011,7 @@ const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散�
 const SVC_PRICE     = {companion:300,walk:200,both:500};   // 平日
 const HOL_PRICE     = {companion:450,walk:350,both:750};   // 一般連假
 const CNY_PRICE     = {companion:600,walk:500,both:1000};  // 春節過年
-const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:50,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 // ── 2026 台灣連假（行政院人事行政總處核定）──
 const CNY_HOLIDAYS   = new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);   // 春節 2/14~2/22
 const OTHER_HOLIDAYS = new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-10-24","2026-10-25","2026-10-26","2026-12-25","2026-12-26","2026-12-27"]);  // 其他連假
@@ -4201,16 +4201,24 @@ function removeExtraFee(i){
 
 async function saveExtraFees(bookId){
   var fees=[];
-  // Collect all sitter sections
   document.querySelectorAll('[id^="ef-list-'+bookId+'-"]').forEach(function(list){
     var sitterEnc=list.id.replace('ef-list-'+bookId+'-','');
     var sitter=decodeURIComponent(sitterEnc);
-    list.querySelectorAll('div').forEach(function(row,i){
-      var uid=bookId+'-'+sitterEnc+'-'+i;
-      var n=document.getElementById('ef-n-'+uid);
-      var p=document.getElementById('ef-p-'+uid);
-      var t=document.getElementById('ef-t-'+uid);
-      if(n&&n.value.trim()) fees.push({sitter:sitter,name:n.value.trim(),unitPrice:parseInt(p?p.value:0)||0,times:parseInt(t?t.value:1)||1});
+    // 直接讀各 row 的 input（用 data-uid 找對應欄位）
+    list.querySelectorAll('[id^="ef-n-"]').forEach(function(nEl){
+      var uid=nEl.id.replace('ef-n-','');
+      var pEl=document.getElementById('ef-p-'+uid);
+      var tEl=document.getElementById('ef-t-'+uid);
+      var catEl=document.getElementById('ef-cat-'+uid);
+      var name=nEl.value.trim();
+      if(!name) return;
+      fees.push({
+        sitter:sitter,
+        category:catEl?catEl.value:'保母服務費',
+        name:name,
+        unitPrice:parseInt(pEl?pEl.value:0)||0,
+        times:parseInt(tEl?tEl.value:1)||1
+      });
     });
   });
   try{
@@ -4218,7 +4226,7 @@ async function saveExtraFees(bookId){
     var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
     if(bk) bk.sitterExtraFees=fees;
     var msg=document.getElementById('ef-msg-'+bookId);
-    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+    if(msg){msg.textContent='✅ 已儲存 '+fees.length+' 筆';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
 }
 function buildVisitPaymentHTML(bk, total){

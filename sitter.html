@@ -2043,20 +2043,32 @@ function uploadPetPhoto(idx, input){
 
 async function savePetPhotoToSupabase(bookId,petIdx,dataUrl){
   try{
-    const res=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
-    if(res.error||!res.data||!res.data[0])return;
-    const pd=res.data[0].pet_data||[];
-    if(!pd[petIdx])pd[petIdx]={};
+    // 先取得現有 pet_data
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+    var rows=await res.json();
+    var order=Array.isArray(rows)?rows[0]:rows;
+    if(!order) return;
+    var pd=order.pet_data||order.petData||[];
+    if(typeof pd==='string') try{pd=JSON.parse(pd);}catch(e){pd=[];}
+    if(!pd[petIdx]) pd[petIdx]={};
     pd[petIdx].photo=dataUrl;
-    await _supa.from('orders').update({pet_data:pd}).eq('id',parseInt(bookId));
+    // 儲存回去
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)),{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pet_data:pd})
+    });
   }catch(e){console.error('savePetPhoto:',e);}
 }
 
 async function loadPetPhotosFromSupabase(bookId){
   try{
-    const res=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
-    if(res.error||!res.data||!res.data[0])return;
-    const pd=res.data[0].pet_data||[];
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+    var rows=await res.json();
+    var order=Array.isArray(rows)?rows[0]:rows;
+    if(!order) return;
+    var pd=order.pet_data||order.petData||[];
+    if(typeof pd==='string') try{pd=JSON.parse(pd);}catch(e){pd=[];}
     pd.forEach(function(p,i){
       if(p&&p.photo){
         const key='petphoto_'+bookId+'_'+i;

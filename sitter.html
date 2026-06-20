@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1781710337 -->
+<!-- build:1781951129 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1231,13 +1231,34 @@ async function renderCases(){
         if(petCount>3) careTotal+=(petCount-3)*50*sal.sessions; // 第4隻起$50/隻
         if(sal.transport>0) careTotal+=sal.transportTotal;
 
-        // ── 計算附加服務小計 ──
-        var addonTotal=addons.reduce(function(sum,a){
-          var m2=a.match(/^(.+?)×(\d+)/);
-          var name=m2?m2[1]:a;
-          var qty=m2?parseInt(m2[2]):1;
-          return sum+(ADDON_P[name]||50)*qty*sal.sessions;
-        },0);
+        // ── 計算附加服務小計（優先用 addonItems 日期，否則用整單天數）──
+        var addonItems=b.addonItems||[];
+        var addonTotal=0;
+        if(addonItems.length){
+          // 用 addonItems 各自的日期算天數
+          addonItems.forEach(function(item){
+            if(!item.name) return;
+            var sd=item.startDate||b.startDate||'';
+            var ed=item.endDate||b.endDate||'';
+            var itemDays=1;
+            if(sd&&ed){
+              var d1=new Date(sd),d2=new Date(ed);
+              if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+            }
+            var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+            var sessions=itemDays*slots.length;
+            var unitP=(ADDON_P[item.name]||50)*(item.qty||1);
+            addonTotal+=unitP*sessions;
+          });
+        } else {
+          // fallback：舊格式 addons[] × 整單次數
+          addonTotal=addons.reduce(function(sum,a){
+            var m2=a.match(/^(.+?)×(\d+)/);
+            var name=m2?m2[1]:a;
+            var qty=m2?parseInt(m2[2]):1;
+            return sum+(ADDON_P[name]||50)*qty*sal.sessions;
+          },0);
+        }
         var extraTotal=myExtraFees.reduce(function(sum,f){
           return sum+(f.unitPrice||0)*(f.times||0);
         },0);

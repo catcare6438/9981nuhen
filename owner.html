@@ -1565,60 +1565,66 @@ function renderReport(r){
 // ── 費用計算（常數已移入 ownerCalcDetail 函式內）──
 
 function ownerCalcDetail(bk){
-  // 常數內嵌，避免 TDZ 問題
   var SVC_P={companion:300,walk:200,both:500};
   var HOL_P={companion:450,walk:350,both:750};
   var CNY_P={companion:600,walk:500,both:1000};
   var CNY_SET=new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);
   var HOL_SET=new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-12-25","2026-12-26","2026-12-27"]);
-  var ADDON_P={餵藥:50,點藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  // 統一價目（含擦藥）
+  var ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
   var SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 
+  // 解析 assignedTo 取得每日時段
   var raw=bk.assignedTo||'';
-  var slots=[];
+  var dateSlots=[];
   if(raw){try{
     var p=JSON.parse(raw);
     if(Array.isArray(p)&&p.length){
-      if(p[0].slot!==undefined) slots=p;
-      else if(p[0].slots!==undefined) p.forEach(function(d){(d.slots||[]).forEach(function(s){slots.push({date:d.date,slot:s});});});
+      if(p[0].slot!==undefined) dateSlots=p;
+      else if(p[0].slots!==undefined) p.forEach(function(d){(d.slots||[]).forEach(function(s){dateSlots.push({date:d.date,slot:s});});});
     }
   }catch(e){}}
 
-  var total=slots.length||Math.max(1,(bk.tpd||1)*Math.max(1,Math.round((new Date((bk.endDate||'')+' 00:00:00')-new Date((bk.startDate||'')+' 00:00:00'))/86400000)+1));
+  var total=dateSlots.length||Math.max(1,(bk.tpd||1)*Math.max(1,Math.round((new Date((bk.endDate||'')+' 00:00:00')-new Date((bk.startDate||'')+' 00:00:00'))/86400000)+1));
   var cny=0,hol=0,norm=0;
-  slots.forEach(function(s){
+  dateSlots.forEach(function(s){
     if(CNY_SET.has(s.date)) cny++;
     else if(HOL_SET.has(s.date)) hol++;
     else norm++;
   });
-  if(!slots.length) norm=total;
+  if(!dateSlots.length) norm=total;
 
   var rows=[];
+
+  // ── 服務費用 ──
   (bk.services||[]).forEach(function(k){
     var sn=SN[k]||k;
     if(norm>0) rows.push({label:sn+'（平日）',price:SVC_P[k]||0,times:norm,sub:(SVC_P[k]||0)*norm});
     if(hol>0)  rows.push({label:sn+'（連假🎊）',price:HOL_P[k]||0,times:hol,sub:(HOL_P[k]||0)*hol});
     if(cny>0)  rows.push({label:sn+'（春節🧧）',price:CNY_P[k]||0,times:cny,sub:(CNY_P[k]||0)*cny});
   });
-  // 優先用 addonItems（各自日期），否則 fallback addons[]
+
+  // ── 寵物服務加購項目（用 addonItems 各自日期）──
   var addonItems2=bk.addonItems||[];
+  var addonSubtotal=0;
   if(addonItems2.length){
-    rows.push({label:'🛍 寵物服務加購項目',price:'',times:'',sub:'',isSectionHeader:true});
+    rows.push({label:'🛍 寵物服務加購項目',price:'',times:'',sub:0,isSectionHeader:true});
     addonItems2.forEach(function(item){
       if(!item.name) return;
-      var sd=item.startDate||bk.startDate||'';
-      var ed=item.endDate||bk.endDate||'';
+      var sd2=item.startDate||bk.startDate||'';
+      var ed2=item.endDate||bk.endDate||'';
       var itemDays=1;
-      if(sd&&ed){
-        var d1=new Date(sd),d2=new Date(ed);
+      if(sd2&&ed2){
+        var d1=new Date(sd2),d2=new Date(ed2);
         if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
       }
-      var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
-      var itemSessions=itemDays*slots.length;
+      var itemSlots2=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*itemSlots2.length;
       var unitP=(ADDON_P[item.name]||50)*(item.qty||1);
-      var label=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'')
-        +' ('+slots.join('/')+' '+itemDays+'天)';
-      rows.push({label:label,price:unitP,times:itemSessions,sub:unitP*itemSessions});
+      var lbl=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'')
+        +' ('+itemSlots2.join('/')+' '+itemDays+'天)';
+      rows.push({label:lbl,price:unitP,times:itemSessions,sub:unitP*itemSessions});
+      addonSubtotal+=unitP*itemSessions;
     });
   } else {
     (bk.addons||[]).forEach(function(a){
@@ -1627,15 +1633,26 @@ function ownerCalcDetail(bk){
       var qty=m2?parseInt(m2[2]):1;
       var p2=(ADDON_P[nm]||50)*qty;
       rows.push({label:a,price:p2,times:total,sub:p2*total});
+      addonSubtotal+=p2*total;
     });
   }
+
+  // ── 寵物加收（第4隻起）──
   var tp=(bk.catCount||0)+(bk.dogCount||0);
-  if(tp>3){var eu=50*(tp-3);rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});}
-  if(bk.urgent>0) rows.push({label:'急件加收',price:bk.urgent,times:1,sub:bk.urgent});
-  if(bk.transport>0) rows.push({label:'車馬費',price:bk.transport,times:total,sub:bk.transport*total});
+  if(tp>3){
+    var eu=100*(tp-3);
+    rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});
+  }
+
+  // ── 急件 ──
+  if(bk.urgent>0) rows.push({label:'⚡ 急件加收',price:bk.urgent,times:1,sub:bk.urgent});
+
+  // ── 車馬費 ──
+  if(bk.transport>0) rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
 
   var adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
-  var grandTotal=rows.reduce(function(s,r){return s+r.sub;},0)+adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
+  var grandTotal=rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
+    +adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
   return {rows:rows,adjs:adjs,grandTotal:grandTotal,total:total};
 }
 

@@ -1603,6 +1603,7 @@ function ownerCalcDetail(bk){
   // 優先用 addonItems（各自日期），否則 fallback addons[]
   var addonItems2=bk.addonItems||[];
   if(addonItems2.length){
+    rows.push({label:'🛍 寵物服務加購項目',price:'',times:'',sub:'',isSectionHeader:true});
     addonItems2.forEach(function(item){
       if(!item.name) return;
       var sd=item.startDate||bk.startDate||'';
@@ -1641,6 +1642,9 @@ function ownerCalcDetail(bk){
 function buildOwnerDetailHTML(bk){
   var d=ownerCalcDetail(bk);
   var rowsHTML=d.rows.map(function(r){
+    if(r.isSectionHeader){
+      return '<tr><td colspan="4" style="padding:8px 10px;font-weight:900;font-size:.8rem;background:#FFF9E6;color:#8B6000;border-radius:6px;">'+r.label+'</td></tr>';
+    }
     return '<tr style="border-bottom:1px solid #FFE8F0;">'
       +'<td style="padding:8px 10px;">'+r.label+'</td>'
       +'<td style="padding:8px 10px;color:var(--pk);">$'+r.price+'</td>'

@@ -689,7 +689,7 @@ function dbRowToOrder(r){
       <strong style="color:var(--pk);">@099nuhen</strong><br>
       <span style="color:#C05000;">下單預約成功才有會員哦～</span>
     </div>
-    <input class="l-in" type="text" id="ownerPwIn" placeholder="輸入您的專屬密碼" onkeydown="if(event.key==='Enter')ownerLogin()">
+    <input class="l-in" type="text" id="ownerPwIn" placeholder="輸入您的專屬密碼" onkeydown="if(event.key==='Enter')ownerLogin()" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
     <button class="l-btn" onclick="ownerLogin()">進入毛孩專區 🐱</button>
     <div class="l-err" id="ownerErr">密碼錯誤，請確認後再試 🐾</div>
   </div>
@@ -977,7 +977,11 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 async function ownerLogin(){
-  var pw=document.getElementById('ownerPwIn').value.trim();
+  var pw=document.getElementById('ownerPwIn').value
+    .trim()
+    .replace(/[\u200b\u00a0\ufeff]/g,'')  // 去除零寬/不換行空格
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);}) // 全形→半形
+    .replace(/　/g,' '); // 全形空格→半形
   if(!pw){alert('請輸入密碼');return;}
   document.getElementById('ownerErr').style.display='none';
   var loginBtn=document.querySelector('#loginScreen .l-btn');
@@ -994,7 +998,10 @@ async function ownerLogin(){
   }
   if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
 
-  var matchedId=Object.keys(pws).find(function(id){return String(pws[id])===String(pw);});
+  var matchedId=Object.keys(pws).find(function(id){
+    var stored=String(pws[id]||'').trim().replace(/[\u200b\u00a0\ufeff]/g,'');
+    return stored===pw;
+  });
   console.log('[login] pw='+pw+' matchedId='+matchedId+' keys='+JSON.stringify(Object.keys(pws).slice(0,3)));
   if(!matchedId){
 

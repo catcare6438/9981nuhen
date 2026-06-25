@@ -1307,7 +1307,9 @@ function calc(){
   });
   const totalPets=petCounts.cat+petCounts.dog;
   // 前三隻免費，第四隻起每隻 +$100
-  const extra=totalPets>3?(totalPets-3)*100:0; // 前3隻免費，第4隻起+$100
+  // 從後台設定讀取寵物加收
+  var _petFee=window._petExtraFees||{free:3,unit:100};
+  const extra=totalPets>_petFee.free?(totalPets-_petFee.free)*_petFee.unit:0;
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
   let disc=0;
@@ -1767,6 +1769,16 @@ async function initFromSiteSettings(){
       }
     }
 
+    // 寵物加收設定
+    if(settings.pet_extra_fees&&typeof settings.pet_extra_fees==='object'){
+      window._petExtraFees=settings.pet_extra_fees;
+      // 更新備注說明
+      var petNoteEl=document.querySelector('.pet-extra-note');
+      if(petNoteEl){
+        var pf=settings.pet_extra_fees;
+        petNoteEl.innerHTML='🐾 前'+(pf.free||3)+'隻免加收 ｜ 第'+(( pf.free||3)+1)+'隻起 +$'+(pf.unit||100)+'/ 次';
+      }
+    }
     calc();
     console.log('[settings] 載入完成', Object.keys(settings));
   }catch(e){

@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1782020333 -->
+<!-- build:1782391695 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -224,6 +224,25 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 </style>
 
 <script>
+function showCheckinToast(msg, color){
+  var existing=document.getElementById('checkin-toast');
+  if(existing) existing.remove();
+  var toast=document.createElement('div');
+  toast.id='checkin-toast';
+  toast.textContent=msg;
+  toast.style.cssText='position:fixed;top:20px;left:50%;transform:translateX(-50%);'
+    +'background:'+(color||'#22C55E')+';color:#fff;padding:14px 28px;border-radius:16px;'
+    +'font-size:1.05rem;font-weight:900;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.2);'
+    +'animation:fadeInDown .3s ease;font-family:"Noto Sans TC",sans-serif;';
+  document.body.appendChild(toast);
+  setTimeout(function(){
+    toast.style.transition='opacity .5s';
+    toast.style.opacity='0';
+    setTimeout(function(){toast.remove();},500);
+  },2500);
+}
+
+
 const SUPA_KEY='neon_worker_auth';
 // ══════════════════════════════════════════════
 // Supabase → Cloudflare Worker Polyfill

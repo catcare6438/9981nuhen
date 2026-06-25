@@ -1804,6 +1804,25 @@ function renderSettingsPage(){
     +'<button onclick="saveTrans()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
     +'<span id="trans-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
 
+  // ── 寵物加收設定 ──
+  var petFeeP=_siteSettings.pet_extra_fees||{free:3,unit:100};
+  html+='<div class="detail-section">'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF8F0;padding:12px;border-radius:10px;">'
+    +'<span style="font-size:.82rem;color:var(--tl);">前</span>'
+    +'<input type="number" id="pet-free-count" oninput="var d=document.getElementById(&quot;pet-free-count-display&quot;);if(d)d.value=parseInt(this.value||0)+1;" value="'+(petFeeP.free||3)+'" min="0" max="10" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;">'
+    +'<span style="font-size:.82rem;color:var(--tl);">隻免費，第</span>'
+    +'<input type="number" id="pet-free-count-display" value="'+(( petFeeP.free||3)+1)+'" min="1" max="11" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;" disabled>'
+    +'<span style="font-size:.82rem;color:var(--tl);">隻起每隻加收 $</span>'
+    +'<input type="number" id="pet-unit-price" value="'+(petFeeP.unit||100)+'" min="0" step="10" style="width:70px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;">'
+    +'<span style="font-size:.82rem;color:var(--tl);">/ 次</span>'
+    +'</div>'
+    +'<div style="margin-top:10px;">'
+    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
+    +'</div>';
+
   // 地標
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">📍 附近參考地標</div>';
   html+='<div id="lm-list">';
@@ -2792,6 +2811,21 @@ async function saveTrans(){
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
 }
+async function savePetFees(){
+  var freeEl=document.getElementById('pet-free-count');
+  var unitEl=document.getElementById('pet-unit-price');
+  var displayEl=document.getElementById('pet-free-count-display');
+  if(!freeEl||!unitEl) return;
+  var freeCount=parseInt(freeEl.value)||3;
+  var unitPrice=parseInt(unitEl.value)||100;
+  if(displayEl) displayEl.value=freeCount+1;
+  try{
+    await saveSiteSetting('pet_extra_fees',{free:freeCount,unit:unitPrice});
+    var msg=document.getElementById('pet-fee-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+
 async function saveLandmarks(){
   try{
     var rows=document.querySelectorAll('#lm-list > div');

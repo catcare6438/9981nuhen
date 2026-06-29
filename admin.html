@@ -2975,8 +2975,8 @@ async function loadReviewsMgmt(){
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">'
         +'<div style="font-weight:800;font-size:.88rem;">'+statusBadge+' &nbsp;'+( r.author||'匿名')+'<span style="color:#aaa;font-size:.76rem;margin-left:6px;">'+date+'</span></div>'
         +'<div style="display:flex;gap:6px;">'
-        +(!r.approved?'<button onclick="approveReview(this.dataset.rid)" style="padding:5px 12px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🚀 發布到前台</button>':'')
-        +'<button onclick="deleteReview(this.dataset.rid)" style="padding:5px 12px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🗑 刪除</button>'
+        +(!r.approved?'<button data-rid="'+r.id+'" onclick="approveReview(this.dataset.rid)" style="padding:5px 12px;background:linear-gradient(135deg,#22C55E,#16A34A);color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🚀 發布到前台</button>':'')
+        +'<button data-rid="'+r.id+'" onclick="deleteReview(this.dataset.rid)" style="padding:5px 12px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🗑 刪除</button>'
         +'</div></div>'
         +'<div style="font-size:1rem;color:#FFB800;margin-bottom:4px;">'+(r.rating||'★★★★★')+'</div>'
         +(r.best?'<div style="font-size:.78rem;color:var(--pk);font-weight:700;margin-bottom:4px;">💝 '+r.best+'</div>':'')

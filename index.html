@@ -1579,13 +1579,12 @@ const PER_PAGE=6;
 
 // 將 Supabase review row 轉成 {s,t,a,p} 格式
 function dbReviewToCard(r){
-  // 支援 owner.html submitReview 存的格式
   var rating=r.rating||'★★★★★';
   var comment=r.comment||r.best||'非常滿意！推薦給大家 🐾';
   var author=r.author||r.owner_name||'飼主';
   var petInfo=r.pet_type?r.pet_type+' '+(r.pet_name||'毛孩'):'🐾 毛孩寶貝';
   var sitter=r.sitter?' ｜ 保母：'+r.sitter:'';
-  return {s:rating, t:comment, a:author, p:petInfo+sitter};
+  return {s:rating, t:comment, a:author, p:petInfo+sitter, real:true};
 }
 
 // 合併 Supabase 好評（最新在前）+ 靜態好評
@@ -1595,7 +1594,17 @@ async function getAllReviews(forceRefresh){
   let dbRevs=[];
   try{dbRevs=await dbGetReviews();}catch(e){}
   const dbCards=dbRevs.map(dbReviewToCard);
-  _allReviews=[...dbCards,...REVIEWS];
+  // 真實好評放最前面，每筆真實好評隨機替換一筆假評論（seed固定讓結果穩定）
+  var staticPool=[...REVIEWS];
+  var realCount=dbCards.length;
+  if(realCount>0){
+    // 用固定seed決定替換哪幾筆（避免每次重整都換）
+    for(var ri=0;ri<realCount&&staticPool.length>0;ri++){
+      var removeIdx=(ri*7+3)%staticPool.length;
+      staticPool.splice(removeIdx,1);
+    }
+  }
+  _allReviews=[...dbCards,...staticPool];
   return _allReviews;
 }
 
@@ -1606,7 +1615,8 @@ async function renderReviews6(){
   const countEl=document.getElementById('reviewCount');
   if(countEl)countEl.textContent=all.length;
   grid.innerHTML=all.slice(0,6).map(r=>`
-    <div class="review-c">
+    <div class="review-c" style="${r.real?'border-color:var(--p1);box-shadow:0 4px 16px rgba(255,143,163,.18);':''}">
+      ${r.real?'<div style="font-size:.68rem;font-weight:800;color:var(--p1);margin-bottom:4px;letter-spacing:.5px;">✅ 真實飼主好評</div>':''}
       <div class="review-stars">${r.s}</div>
       <div class="review-txt">「${r.t}」</div>
       <div class="review-author">— ${r.a}</div>

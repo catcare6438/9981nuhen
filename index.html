@@ -1883,14 +1883,64 @@ async function prefillFromOldOrder(){
     // ── 填入距離 ──
     if(old.distance){var distEl=document.getElementById('dist');if(distEl)distEl.value=old.distance;}
 
-    // ── 填入寵物數量 ──
+    // ── 填入寵物資料 ──
     var pd=old.pet_data||[];
     if(typeof pd==='string'){try{pd=JSON.parse(pd);}catch(e){pd=[];}}
-    var cats=pd.filter(function(p){return p.type==='cat';}).length||1;
-    var dogs=pd.filter(function(p){return p.type==='dog';}).length||0;
-    if(window._S){window._S.cat=cats;window._S.dog=dogs;}
+    var cats=pd.filter(function(p){return p.type==='cat';});
+    var dogs=pd.filter(function(p){return p.type==='dog';});
+    var catCount=cats.length||1;
+    var dogCount=dogs.length||0;
+    // 更新計數
+    if(window._S){window._S.cat=catCount;window._S.dog=dogCount;}
+    if(window.petCounts){window.petCounts.cat=catCount;window.petCounts.dog=dogCount;}
     var catEl=document.getElementById('catVal');var dogEl=document.getElementById('dogVal');
-    if(catEl)catEl.textContent=cats;if(dogEl)dogEl.textContent=dogs;
+    if(catEl)catEl.textContent=catCount;if(dogEl)dogEl.textContent=dogCount;
+    // 重新渲染寵物表單，再填入詳細資料
+    if(typeof renderPetForms==='function') renderPetForms();
+    setTimeout(function(){
+      // 填入每隻貓咪資料
+      cats.forEach(function(p,i){
+        var nameEl=document.getElementById('cat'+i+'_name');
+        var genderEl=document.getElementById('cat'+i+'_gender');
+        var ageEl=document.getElementById('cat'+i+'_age');
+        if(nameEl&&p.name) nameEl.value=p.name;
+        if(genderEl&&p.gender) genderEl.value=p.gender;
+        if(ageEl&&p.age) ageEl.value=p.age;
+        // 健康狀況 checkbox
+        if(p.health&&Array.isArray(p.health)){
+          p.health.forEach(function(h){
+            var cb=document.querySelector('#catForms input[value="'+h+'"]');
+            if(cb){cb.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(cb);}
+          });
+        }
+        // 疫苗
+        if(p.vaccine){
+          var vEl=document.getElementById('cat'+i+'_vaccine');
+          if(vEl) vEl.value=p.vaccine;
+        }
+      });
+      // 填入每隻狗狗資料
+      dogs.forEach(function(p,i){
+        var nameEl=document.getElementById('dog'+i+'_name');
+        var genderEl=document.getElementById('dog'+i+'_gender');
+        var ageEl=document.getElementById('dog'+i+'_age');
+        if(nameEl&&p.name) nameEl.value=p.name;
+        if(genderEl&&p.gender) genderEl.value=p.gender;
+        if(ageEl&&p.age) ageEl.value=p.age;
+        if(p.health&&Array.isArray(p.health)){
+          p.health.forEach(function(h){
+            var cb=document.querySelector('#dogForms input[value="'+h+'"]');
+            if(cb){cb.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(cb);}
+          });
+        }
+        if(p.vaccine){
+          var vEl=document.getElementById('dog'+i+'_vaccine');
+          if(vEl) vEl.value=p.vaccine;
+        }
+      });
+      calc();
+    },300);
+    // 備注
     var petNotes=document.getElementById('petNotes');
     if(petNotes&&old.pet_notes)petNotes.value=old.pet_notes;
 

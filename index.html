@@ -259,60 +259,56 @@ function _errMsg(e){
 
 // ── Supabase helpers ──
 async function dbGetOrders(){
-  const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
-  if(error){console.error('getOrders:',_errMsg(error));return[];}
-  return(data||[]).map(dbRowToOrder);
+  try{var r=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');var d=await r.json();return Array.isArray(d)?d:[];}
+  catch(e){console.error('getOrders:',e.message);return[];}
 }
 async function dbInsertOrder(b){
   const row=orderToDbRow(b);
-  const{error}=await _supa.from('orders').insert([row]);
-  if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
+  var r=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)});
+  var j=await r.json();
+  if(j&&j.error)throw new Error(j.error);
+  if(j&&j.id) b.id=j.id;
 }
 async function dbUpdateOrder(id,fields){
+  const MAP={status:'status',assignedTo:'assigned_to',assigned_to:'assigned_to',
+    ownerName:'owner_name',petData:'pet_data',addons:'addons',services:'services',
+    transport:'transport',total:'total',addonItems:'addon_items',manualAdjs:'manual_adjs',
+    depositPaid:'deposit_paid',fullPaid:'full_paid'};
   const row={};
-  if(fields.status!==undefined)row.status=fields.status;
-  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
-  const{error}=await _supa.from('orders').update(row).eq('id',id);
-  if(error)console.error('updateOrder:',_errMsg(error));
+  Object.keys(fields).forEach(k=>{var col=MAP[k]||k;row[col]=fields[k];});
+  if(!Object.keys(row).length)return;
+  var r=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(id)),{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)
+  });
+  var j=await r.json();
+  if(j&&j.error)throw new Error(j.error);
 }
 async function dbDeleteOrder(id){
-  const{error}=await _supa.from('orders').delete().eq('id',id);
-  if(error)console.error('deleteOrder:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(id)),{method:'DELETE'});}catch(e){}
 }
 async function dbGetReports(bookId){
-  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
-  if(bookId)q=q.eq('book_id',bookId);
-  const{data,error}=await q;
-  if(error){console.error('getReports:',_errMsg(error));return[];}
-  return(data||[]).map(r=>({
-    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
-    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
-    petReports:r.pet_reports||[],services:r.services||[],
-    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
-    hasVideo:false,videoDataURL:null,videoName:'',videoDuration:0
-  }));
+  try{
+    var url='https://catwoli-api.catwoli6644.workers.dev/reports'+(bookId?'?book_id='+encodeURIComponent(String(bookId)):'');
+    var r=await fetch(url);var d=await r.json();return Array.isArray(d)?d:[];
+  }catch(e){return[];}
 }
 async function dbInsertReport(r){
-  const{error}=await _supa.from('reports').insert([{
-    ts:r.ts,book_id:r.bookId,book_name:r.bookName,sitter:r.sitter,
-    date:r.date,time_start:r.timeStart,time_end:r.timeEnd,
-    pet_reports:r.petReports,services:r.services,
-    disinfect:r.disinfect,safety:r.safety,diary:r.diary
-  }]);
-  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+  try{
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/reports',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ts:r.ts,book_id:r.bookId,sitter:r.sitter,note:r.note,photos:r.photos||[],visitDate:r.visitDate})
+    });
+  }catch(e){console.error('insertReport:',e);}
 }
 async function dbGetCoupons(){
-  const{data,error}=await _supa.from('coupons').select('*');
-  if(error){console.error('getCoupons:',_errMsg(error));return[];}
-  return data||[];
+  try{var r=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');var d=await r.json();return Array.isArray(d)?d:[];}catch(e){return[];}
 }
 async function dbInsertCoupon(cp){
-  const{error}=await _supa.from('coupons').insert([cp]);
-  if(error)console.error('insertCoupon:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cp)});}catch(e){console.error('insertCoupon:',e);}
 }
 async function dbMarkCouponUsed(code){
-  const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
-  if(error)console.error('markCouponUsed:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons?code='+encodeURIComponent(code),{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({used:true})
+  });}catch(e){}
 }
 async function dbGetReviews(){
   try{
@@ -324,8 +320,7 @@ async function dbGetReviews(){
   }catch(e){console.error('getReviews:',e.message);return[];}
 }
 async function dbInsertReview(rv){
-  const{error}=await _supa.from('reviews').insert([rv]);
-  if(error)console.error('insertReview:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rv)});}catch(e){}
 }
 async function dbGetOwnerPws(){
   try{
@@ -339,21 +334,26 @@ async function dbGetOwnerPws(){
   }catch(e){console.error('getOwnerPws:',e.message);return{};}
 }
 async function dbSetOwnerPw(bookId,pw){
-  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
-  if(error)console.error('setOwnerPw:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
+    method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({book_id:String(bookId),password:pw})
+  });}catch(e){console.error('setOwnerPw:',e);}
 }
 async function dbGetRefCodes(){
-  const{data,error}=await _supa.from('referral_codes').select('*');
-  if(error){console.error('getRefCodes:',_errMsg(error));return{};}
-  const map={};(data||[]).forEach(r=>{map[r.code]={bookId:r.book_id,owner:r.owner,usedBy:r.used_by,usedAt:r.used_at};}); return map;
+  try{var r=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');var d=await r.json();return Array.isArray(d)?d:[];}catch(e){return[];}
 }
 async function dbInsertRefCode(code,bookId,owner){
-  const{error}=await _supa.from('referral_codes').insert([{code,book_id:bookId,owner,used_by:null,used_at:null}]);
-  if(error)console.error('insertRefCode:',_errMsg(error));
+  try{
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({code,book_id:bookId,owner})
+    });
+  }catch(e){}
 }
 async function dbMarkRefCodeUsed(code,usedBy){
-  const{error}=await _supa.from('referral_codes').update({used_by:usedBy,used_at:new Date().toISOString()}).eq('code',code);
-  if(error)console.error('markRefCodeUsed:',_errMsg(error));
+  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes?code='+encodeURIComponent(code),{
+    method:'PUT',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({used_by:usedBy,used_at:new Date().toISOString()})
+  });}catch(e){}
 }
 
 // ── Row ↔ Object converters ──

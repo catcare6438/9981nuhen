@@ -324,6 +324,25 @@ body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);
 .lb-download{margin-top:14px;padding:10px 24px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;}
 .clickable-img{cursor:pointer;transition:transform .2s;}
 .clickable-img:hover{transform:scale(1.02);}
+
+/* Review Coupon */
+.rv-coupon{
+  margin-top:20px;
+  background:linear-gradient(135deg,#FFFDE7,#FFF8E1);
+  border:3px dashed #FFB800;border-radius:20px;padding:28px 22px;
+  text-align:center;display:none;
+  animation:fadein .5s ease;
+}
+.rv-coupon-amount{
+  font-size:3rem;font-weight:900;color:#B8860B;
+  font-family:'Nunito',sans-serif;line-height:1;margin:12px 0 6px;
+}
+.rv-coupon-code{
+  font-family:monospace;font-size:.88rem;color:var(--tl);
+  background:#fff;border:1.5px solid #FFD700;border-radius:10px;
+  padding:10px 18px;display:inline-block;margin:10px 0;letter-spacing:3px;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
 </style>
 <script>
 const SUPA_KEY='neon_worker_auth';
@@ -1215,11 +1234,50 @@ async function submitReview(){
         ts:Date.now()
       })
     });
-    document.getElementById('rvModal').classList.remove('show');
     _reviewsCache=null;_reviewsCacheTime=0;
-    alert('感謝您的好評！🐾');
-    location.reload();
+
+    // 產生優惠券
+    var cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
+    var expiry=new Date();expiry.setMonth(expiry.getMonth()+3);
+    var expiryStr=expiry.toLocaleDateString('zh-TW');
+    try{
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          code:cpCode,amount:50,discount:50,
+          book_id:String(bookId),
+          expired_at:expiry.toISOString().slice(0,10),
+          used:false,source:'review'
+        })
+      });
+    }catch(e){}
+
+    // 顯示優惠券（不關 modal）
+    document.getElementById('rvCouponCode').textContent=cpCode;
+    document.getElementById('rvCouponExpiry').textContent='有效期限：'+expiryStr+' 前';
+    var cpBox=document.getElementById('rvCouponBox');
+    if(cpBox) cpBox.style.display='block';
+    // 隱藏送出/取消按鈕
+    cpBox.previousElementSibling && (cpBox.previousElementSibling.style.display='none');
+
+    // 重新渲染訂單列表（不 reload）
+    setTimeout(async function(){
+      var books=await getB();
+      await renderAllOrders(books);
+    },1000);
   }catch(e){alert('送出失敗：'+e.message);}
+}
+
+function copyRvCoupon(){
+  var code=document.getElementById('rvCouponCode').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){
+      alert('優惠碼已複製！下次預約時輸入即可享 $50 折扣 🎉');
+    });
+  } else {
+    alert('優惠碼：'+code+'（請截圖保存）');
+  }
 }
 
 function toggleOrder(bookId){
@@ -2111,6 +2169,16 @@ function showLineBindResult(msg, color){
     </div>
     <button onclick="submitReview()" style="width:100%;padding:12px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.95rem;cursor:pointer;">送出好評 🌸</button>
     <button onclick="document.getElementById('rvModal').classList.remove('show')" class="modal-close" style="margin-top:10px;">取消</button>
+
+    <!-- 好評優惠券 -->
+    <div class="rv-coupon" id="rvCouponBox">
+      <div style="font-size:1.5rem;margin-bottom:6px;">🎁 感謝您的好評！</div>
+      <div style="font-size:.9rem;color:var(--tl);margin-bottom:4px;">專屬新客優惠券（下次預約使用）</div>
+      <div class="rv-coupon-amount">折 $50</div>
+      <div class="rv-coupon-code" id="rvCouponCode">—</div>
+      <div style="font-size:.74rem;color:var(--tl);margin-bottom:14px;" id="rvCouponExpiry"></div>
+      <button onclick="copyRvCoupon()" style="padding:10px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.88rem;cursor:pointer;">📋 複製優惠碼</button>
+    </div>
   </div>
 </div>
 </body>

@@ -881,9 +881,13 @@ function dbRowToOrder(r){
       <!-- REVIEWS -->
       <div id="page-reviews" style="display:none;">
         <div class="panel">
-          <div class="panel-header"><div class="panel-title">⭐ 客戶好評管理</div></div>
-          <div class="panel-body"><div id="reviewListAdmin"></div></div>
+          <div class="panel-header">
+            <div class="panel-title">⭐ 好評管理</div>
+            <button onclick="loadReviewsMgmt()" style="background:var(--pk4);border:1.5px solid var(--pk3);color:var(--pk);border-radius:8px;padding:6px 14px;font-weight:800;font-size:.8rem;cursor:pointer;">🔄 重新整理</button>
+          </div>
+          <div id="reviewsMgmtList" style="padding:8px 0;"><div style="color:var(--tl);padding:20px;text-align:center;">點擊右上角重新整理載入好評</div></div>
         </div>
+      </div>
       </div>
       <!-- PASSWORDS -->
       <div <div id="page-reviews" style="display:none;">
@@ -2633,24 +2637,18 @@ function goPage(page,el){
   });
   const titles={orders:'📋 訂單管理',salary:'💰 薪資計算',owners:'🏠 毛孩爸媽系統',coupons:'🎟 折抵券',reviews:'⭐ 好評管理',passwords:'🔐 密碼總覽',settings:'⚙️ 網站設定'};
   document.getElementById('pageTitle').textContent=titles[page]||'';
-  if(page==='salary')renderSalary();
+  if(page==='salary') renderSalary();
   if(page==='owners'){renderOwners();renderSitterPwStatus();}
-  if(page==='passwords')renderPasswords();
-  if(page==='coupons')renderCoupons();
-  if(page==='reviews')renderReviewsAdmin();
-  if(page==='reviews-mgmt'){
-    loadReviewsMgmt();
-  } else if(page==='reviews-mgmt'){
-    loadReviewsMgmt();
-  } else if(page==='settings'){
+  if(page==='passwords') renderPasswords();
+  if(page==='coupons') renderCoupons();
+  if(page==='reviews') loadReviewsMgmt();
+  if(page==='settings'){
     document.getElementById('settingsContent').innerHTML='<div style="padding:20px;color:var(--tl);">⏳ 載入設定中...</div>';
-    // 預載保母列表
     fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords')
       .then(function(r){return r.json();})
       .then(function(d){window._cachedSitters=Array.isArray(d)?d:[];})
       .catch(function(){window._cachedSitters=[];});
     loadSiteSettings().then(function(){
-      console.log('[settings] _siteSettings=',JSON.stringify(_siteSettings).substring(0,100));
       renderSettingsPage();
     }).catch(function(e){
       document.getElementById('settingsContent').innerHTML='<div style="color:red;padding:20px;">設定載入失敗：'+e.message+'</div>';
@@ -2971,13 +2969,13 @@ async function loadReviewsMgmt(){
     function buildReviewCard(r){
       var date=r.ts?new Date(parseInt(r.ts)).toLocaleDateString('zh-TW'):'';
       var statusBadge=r.approved
-        ?'<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:10px;font-size:.72rem;font-weight:800;">✅ 已審核</span>'
-        :'<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:10px;font-size:.72rem;font-weight:800;">⏳ 待審核</span>';
+        ?'<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:10px;font-size:.72rem;font-weight:800;">✅ 已發布 已發布前台</span>'
+        :'<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:10px;font-size:.72rem;font-weight:800;">⏳ 待發布</span>';
       return '<div style="background:#fff;border:1.5px solid var(--pk3);border-radius:12px;padding:14px;margin-bottom:10px;">'
         +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">'
         +'<div style="font-weight:800;font-size:.88rem;">'+statusBadge+' &nbsp;'+( r.author||'匿名')+'<span style="color:#aaa;font-size:.76rem;margin-left:6px;">'+date+'</span></div>'
         +'<div style="display:flex;gap:6px;">'
-        +(!r.approved?'<button onclick="approveReview(this.dataset.rid)" style="padding:5px 12px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">✅ 審核通過</button>':'')
+        +(!r.approved?'<button onclick="approveReview(this.dataset.rid)" style="padding:5px 12px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🚀 發布到前台</button>':'')
         +'<button onclick="deleteReview(this.dataset.rid)" style="padding:5px 12px;background:#FFF5F5;border:1px solid #FFBDBD;color:#E05252;border-radius:8px;font-weight:800;font-size:.76rem;cursor:pointer;">🗑 刪除</button>'
         +'</div></div>'
         +'<div style="font-size:1rem;color:#FFB800;margin-bottom:4px;">'+(r.rating||'★★★★★')+'</div>'
@@ -2989,11 +2987,11 @@ async function loadReviewsMgmt(){
 
     var html='';
     if(pending.length){
-      html+='<div style="font-weight:900;color:#92400E;font-size:.85rem;margin-bottom:8px;padding:6px 10px;background:#FEF3C7;border-radius:8px;">⏳ 待審核（'+pending.length+' 則）</div>';
+      html+='<div style="font-weight:900;color:#92400E;font-size:.85rem;margin-bottom:8px;padding:6px 10px;background:#FEF3C7;border-radius:8px;">⏳ 待發布（'+pending.length+' 則）</div>';
       html+=pending.map(buildReviewCard).join('');
     }
     if(approved.length){
-      html+='<div style="font-weight:900;color:#065F46;font-size:.85rem;margin:14px 0 8px;padding:6px 10px;background:#D1FAE5;border-radius:8px;">✅ 已審核顯示中（'+approved.length+' 則）</div>';
+      html+='<div style="font-weight:900;color:#065F46;font-size:.85rem;margin:14px 0 8px;padding:6px 10px;background:#D1FAE5;border-radius:8px;">✅ 已發布顯示中（'+approved.length+' 則）</div>';
       html+=approved.map(buildReviewCard).join('');
     }
     el.innerHTML=html;

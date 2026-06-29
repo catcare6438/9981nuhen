@@ -1194,15 +1194,16 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
       <div><div class="info-label">狀態</div><div class="info-val"><span class="badge ${bk.status==='完成'?'b-ok':'b-wait'}">${bk.status||'待確認'}</span></div></div>
     </div>`;
 
-  // 好評區：已完成顯示填寫入口，有好評則顯示內容
+  // 好評區：有好評顯示內容；完成中/完成 顯示填寫入口
   var reviewSection='';
   if(myReview){
     reviewSection=buildReviewDoneHTML(myReview,bk.id);
-  } else if(bk.status==='完成'){
+  } else {
     reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
-      +'<div style="text-align:center;padding:14px;background:#FFF8FB;border-radius:12px;margin-bottom:10px;">'
-      +'<div style="font-size:.85rem;color:var(--tl);margin-bottom:10px;">分享您的照護體驗，讓更多毛孩找到好保母 🐾</div>'
-      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:10px 24px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.88rem;cursor:pointer;">⭐ 填寫好評</button>'
+      +'<div style="text-align:center;padding:16px 14px;background:linear-gradient(135deg,#FFFDE7,#FFF0F5);border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
+      +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 $50 折抵券！</div>'
+      +'<div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">分享毛孩照護體驗，幫助更多飼主找到好保母 🐾</div>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評</button>'
       +'</div>';
   }
 
@@ -1235,9 +1236,9 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
 }
 
 function repeatOrder(bookId){
-  // 把上次訂單 id 帶到前台，前台會自動填入資料
   var url='https://catcare6438.github.io/9981nuhen/index.html?from='+encodeURIComponent(String(bookId));
-  window.open(url,'_blank');
+  // 直接跳轉（避免 popup 封鎖），下單完後再回來
+  window.location.href=url;
 }
 
 async function loadReviewSitters(){

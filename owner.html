@@ -1367,39 +1367,32 @@ async function submitOwnerReview(){
     var j=await res.json();
     if(j&&j.error) throw new Error(j.error);
 
-    // 檢查此飼主是否已領過好評優惠券（用手機號碼比對，同手機只給一次）
+    // 檢查此飼主是否已領過好評優惠券（直接查 coupons table，用 book_id 比對飼主所有訂單）
     var alreadyHasCoupon=false;
     var existingCpCode='';
     try{
-      // 取得此訂單的飼主手機
-      var ownerPhone='';
-      try{
-        var bkRes2=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
-        var bkData2=await bkRes2.json();
-        var bkRow2=Array.isArray(bkData2)?bkData2[0]:bkData2;
-        ownerPhone=bkRow2?bkRow2.owner_phone||'':'';
-      }catch(e){}
-
-      // 取所有 review 來源優惠券
-      var cpRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
-      var cpAll=await cpRes.json();
-      if(Array.isArray(cpAll)&&cpAll.length&&ownerPhone){
-        // 取出所有此飼主的訂單 id
-        var myOrdersRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?phone='+encodeURIComponent(ownerPhone));
-        var myOrders=await myOrdersRes.json();
-        var myOrderIds=(Array.isArray(myOrders)?myOrders:[]).map(function(o){return String(o.id);});
-        // 找有沒有 source:'review' 的優惠券屬於此飼主
-        var existingCp=cpAll.find(function(cp){
-          return cp.source==='review'&&myOrderIds.includes(String(cp.book_id||cp.bookId||''));
-        });
-        if(existingCp){
-          alreadyHasCoupon=true;
-          existingCpCode=existingCp.code||'';
+      // 直接取所有好評優惠券，用目前的書本ID所有者比對
+      var allCpRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
+      var allCps=await allCpRes.json();
+      if(Array.isArray(allCps)){
+        // 取此 bookId 所屬的飼主手機，再找同手機的所有訂單
+        var thisOrderRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');
+        var allOrders=await thisOrderRes.json();
+        if(Array.isArray(allOrders)){
+          var thisOrder=allOrders.find(function(o){return String(o.id)===String(bookId);});
+          var myPhone=thisOrder?thisOrder.owner_phone:'';
+          if(myPhone){
+            var myIds=allOrders.filter(function(o){return o.owner_phone===myPhone;}).map(function(o){return String(o.id);});
+            var reviewCp=allCps.find(function(cp){
+              return (cp.source==='review')&&myIds.includes(String(cp.book_id||''));
+            });
+            if(reviewCp){alreadyHasCoupon=true;existingCpCode=reviewCp.code||'';}
+          }
         }
       }
-    }catch(e){}
+    }catch(e){console.warn('coupon check:',e);}
 
-    var cpCode='';
+        var cpCode='';
     var expiryStr='';
     if(!alreadyHasCoupon){
       // 第一次好評：產生新優惠券

@@ -1236,8 +1236,9 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
 }
 
 function repeatOrder(bookId){
-  var url='https://catcare6438.github.io/9981nuhen/index.html?from='+encodeURIComponent(String(bookId));
-  // 直接跳轉（避免 popup 封鎖），下單完後再回來
+  // 用相對路徑，確保跳到同一站台的前台
+  var base=window.location.href.replace(/\/owner\.html.*$/, '/index.html');
+  var url=base+'?from='+encodeURIComponent(String(bookId));
   window.location.href=url;
 }
 

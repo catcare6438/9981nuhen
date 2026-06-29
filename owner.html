@@ -1151,6 +1151,9 @@ async function renderAllOrders(books){
   // 取出所有訂單的 reviews（用 bookId 對應）
   let allReviews=[];
   try{allReviews=await dbGetReviews();}catch(e){}
+  // 此飼主所有訂單的 id set（用來判斷是否曾留過好評）
+  var allBookIds=books.map(function(b){return String(b.id);});
+  var ownerHasReview=allReviews.some(function(r){return allBookIds.includes(String(r.book_id||r.bookId||''));});
 
   container.innerHTML='';
   for(let i=0;i<books.length;i++){
@@ -1165,7 +1168,7 @@ async function renderAllOrders(books){
     const myReview=allReviews.find(r=>String(r.book_id||r.bookId)===String(bk.id));
 
     try{
-      el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
+      el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i,ownerHasReview);
     }catch(err){
       el.innerHTML='<div style="padding:14px;color:red;font-size:.8rem;">訂單載入錯誤：'+err.message+'</div>';
       console.error('buildOrderHTML error for order',bk.id,err);
@@ -1180,7 +1183,7 @@ async function renderAllOrders(books){
   }
 }
 
-function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
+function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx,ownerHasReview){
   var svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、')||'—';
   var sitterSummary=parseAssignedSummary(bk.assignedTo);
   var openClass=defaultOpen?'open':'';
@@ -1194,16 +1197,25 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
       <div><div class="info-label">狀態</div><div class="info-val"><span class="badge ${bk.status==='完成'?'b-ok':'b-wait'}">${bk.status||'待確認'}</span></div></div>
     </div>`;
 
-  // 好評區：有好評顯示內容；完成中/完成 顯示填寫入口
+  // 好評區
   var reviewSection='';
   if(myReview){
+    // 此訂單已有好評 → 顯示好評內容
     reviewSection=buildReviewDoneHTML(myReview,bk.id);
+  } else if(ownerHasReview){
+    // 此飼主在其他訂單已留過好評 → 可再留評但不給券
+    reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
+      +'<div style="text-align:center;padding:14px;background:#FFF8FB;border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
+      +'<div style="font-size:.82rem;color:var(--tl);margin-bottom:10px;">感謝您再次選擇貓窩裏 🐾<br><span style="font-size:.76rem;color:#aaa;">（好評優惠券僅首次評論贈送）</span></div>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:9px 22px;background:var(--pk4);border:1.5px solid var(--pk3);color:var(--pk);border-radius:20px;font-weight:800;font-size:.85rem;cursor:pointer;">✍️ 留下好評</button>'
+      +'</div>';
   } else {
+    // 從未留過好評 → 顯示送券按鈕
     reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
       +'<div style="text-align:center;padding:16px 14px;background:linear-gradient(135deg,#FFFDE7,#FFF0F5);border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
       +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 $50 折抵券！</div>'
       +'<div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">分享毛孩照護體驗，幫助更多飼主找到好保母 🐾</div>'
-      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評</button>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評 送 $50</button>'
       +'</div>';
   }
 

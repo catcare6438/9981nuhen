@@ -573,10 +573,13 @@ var _reviewsCache=null, _reviewsCacheTime=0;
 async function dbGetReviews(){
   var now=Date.now();
   if(_reviewsCache&&(now-_reviewsCacheTime)<60000) return _reviewsCache;
-  const{data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
-  if(error){console.error('getReviews:',_errMsg(error));return _reviewsCache||[];}
-  _reviewsCache=data||[]; _reviewsCacheTime=now;
-  return _reviewsCache;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews');
+    var data=await res.json();
+    _reviewsCache=Array.isArray(data)?data:[];
+    _reviewsCacheTime=Date.now();
+    return _reviewsCache;
+  }catch(e){console.error('getReviews:',e.message);return[];}
 }
 async function dbInsertReview(rv){
   const{error}=await _supa.from('reviews').insert([rv]);
@@ -1085,7 +1088,7 @@ async function renderAllOrders(books){
     el.id=`order-${bk.id}`;
 
     // 找此單的 review
-    const myReview=allReviews.find(r=>r.book_id===bk.id||r.bookId===bk.id);
+    const myReview=allReviews.find(r=>String(r.book_id||r.bookId)===String(bk.id));
 
     try{
       el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
@@ -1117,12 +1120,25 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
       <div><div class="info-label">狀態</div><div class="info-val"><span class="badge ${bk.status==='完成'?'b-ok':'b-wait'}">${bk.status||'待確認'}</span></div></div>
     </div>`;
 
-  // 好評區：只在已完成且有好評時顯示（填寫好評改由後台管理）
-  var reviewSection=myReview
-    ? buildReviewDoneHTML(myReview,bk.id)
-    : '';
+  // 好評區：已完成顯示填寫入口，有好評則顯示內容
+  var reviewSection='';
+  if(myReview){
+    reviewSection=buildReviewDoneHTML(myReview,bk.id);
+  } else if(bk.status==='完成'){
+    reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
+      +'<div style="text-align:center;padding:14px;background:#FFF8FB;border-radius:12px;margin-bottom:10px;">'
+      +'<div style="font-size:.85rem;color:var(--tl);margin-bottom:10px;">分享您的照護體驗，讓更多毛孩找到好保母 🐾</div>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:10px 24px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.88rem;cursor:pointer;">⭐ 填寫好評</button>'
+      +'</div>';
+  }
 
   return `
+    <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+      <button onclick="repeatOrder('${bk.id}')"
+        style="padding:6px 16px;background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border:none;border-radius:20px;font-size:.78rem;font-weight:800;cursor:pointer;box-shadow:0 2px 8px rgba(255,93,125,.3);">
+        🔄 再次預約
+      </button>
+    </div>
     <div class="order-header" onclick="toggleOrder('${bk.id}')">
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="order-num">📋 ${orderNum}</span>
@@ -1142,6 +1158,12 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
       <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
       ${reviewSection}
     </div>`;
+}
+
+function repeatOrder(bookId){
+  // 把上次訂單 id 帶到前台，前台會自動填入資料
+  var url='https://catcare6438.github.io/9981nuhen/index.html?from='+encodeURIComponent(String(bookId));
+  window.open(url,'_blank');
 }
 
 function toggleOrder(bookId){
@@ -1935,14 +1957,26 @@ document.head.appendChild(_shakeStyle);
     var data = {};
     try{ data = JSON.parse(raw); }catch(e){ data = {error: raw}; }
     if(data.success){
-      showLineStatus('✅ LINE 綁定成功！保母回報將即時通知您 🐾', '#06C755');
-      // 綁定成功後，用 state(bookId) 對應的密碼自動登入
-      // 讓用戶重新輸入密碼進入毛孩專區
-      setTimeout(function(){
-        var loginErr=document.getElementById('ownerErr');
-        var hint=document.getElementById('lineBindStatus');
-        if(hint) hint.textContent='✅ LINE 綁定成功！請輸入您的專屬密碼進入毛孩專區 🐾';
-      }, 1000);
+      showLineStatus('✅ LINE 綁定成功！正在進入毛孩專區...', '#06C755');
+      // 綁定成功：自動取得密碼並登入
+      setTimeout(async function(){
+        try{
+          // 從 owner_passwords 取得此訂單的密碼
+          var pwRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(state));
+          var pwRows=await pwRes.json();
+          var pw=Array.isArray(pwRows)&&pwRows[0]?pwRows[0].password:'';
+          if(pw){
+            // 自動填入密碼並登入
+            var input=document.getElementById('ownerPwIn');
+            if(input) input.value=pw;
+            await ownerLogin();
+          } else {
+            showLineStatus('✅ LINE 綁定成功！密碼將透過 LINE 傳送給您，請使用密碼登入 🐾','#06C755');
+          }
+        }catch(e){
+          showLineStatus('✅ LINE 綁定成功！請使用密碼登入 🐾','#06C755');
+        }
+      }, 1200);
     } else {
       showLineStatus('❌ 綁定失敗：'+(data.error||'未知錯誤 status='+res.status), '#E05252');
     }

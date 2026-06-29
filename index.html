@@ -1333,11 +1333,18 @@ function calc(){
   const cm=document.getElementById('couponMsg');
   if(cc){
     if(cm)cm.textContent='⏳ 驗證中...';
-    dbGetCoupons().then(coupons=>{
-      const cp=coupons.find(x=>x.code===cc&&!x.used);
+    dbGetCoupons().then(function(coupons){
+      // 比對 code 欄位（兼容大小寫）
+      const cp=coupons.find(function(x){
+        return (x.code||x.coupon_code||'').toUpperCase()===cc.toUpperCase()&&!x.used;
+      });
       if(cm)cm.textContent=cp?'✅ 折抵券有效！折扣 $50':'❌ 券碼無效或已使用';
+      // 只在確認有效時才設折扣（不能提前設）
+      if(!cp){
+        // 無效券 - 不加折扣，重新 calc（不觸發遞迴）
+      }
     });
-    disc=50;
+    // 不在這裡設 disc=50，在 submitBook 前再驗證
   } else { if(cm)cm.textContent=''; }
 
   // 三層計算：平日 / 一般連假 / 春節
@@ -1482,12 +1489,16 @@ async function submitBook(){
   let extra=0; if(totalPets>3)extra=(totalPets-3)*50;
   const sessions=getTotalSessions();
   const sub=(base+addon+extra)*sessions;
-  const cc=(document.getElementById('couponCode')?.value||'').trim();
+  const cc=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
   let disc=0;
+  let validCoupon=null;
   if(cc){
     const coupons=await dbGetCoupons();
-    const cp=coupons.find(x=>x.code===cc&&!x.used);
-    if(cp)disc=50;
+    validCoupon=coupons.find(x=>(x.code||x.coupon_code||'').toUpperCase()===cc&&!x.used);
+    if(validCoupon){disc=validCoupon.discount||validCoupon.amount||50;}
+    else{
+      if(!confirm('⚠️ 優惠券碼「'+cc+'」無效或已使用，確定繼續下單（不套用折扣）？')) return;
+    }
   }
   const total=Math.max(0,sub+dc*sessions+urg-disc);
   const pets=getPetData();

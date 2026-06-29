@@ -324,9 +324,15 @@ async function dbInsertReview(rv){
   if(error)console.error('insertReview:',_errMsg(error));
 }
 async function dbGetOwnerPws(){
-  const{data,error}=await _supa.from('owner_passwords').select('*');
-  if(error){console.error('getOwnerPws:',_errMsg(error));return{};}
-  const map={};(data||[]).forEach(r=>{map[r.book_id]=r.password;});return map;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords');
+    var rows=await res.json();
+    var map={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      map[String(r.book_id||'')]=r.password;
+    });
+    return map;
+  }catch(e){console.error('getOwnerPws:',e.message);return{};}
 }
 async function dbSetOwnerPw(bookId,pw){
   const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
@@ -1635,15 +1641,25 @@ function openOwnerLogin(){
   document.getElementById('ownerPwErr').textContent='';
 }
 async function doOwnerLogin(){
-  const pw=document.getElementById('ownerPwField').value.trim();
+  var pwRaw=document.getElementById('ownerPwField').value||'';
+  // 手機防呆：去除特殊空白、全形轉半形
+  var pw=pwRaw.trim()
+    .replace(/[​ ﻿]/g,'')
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);});
   if(!pw){document.getElementById('ownerPwErr').textContent='請輸入密碼';return;}
   document.getElementById('ownerPwErr').textContent='⏳ 驗證中...';
-  const pws=await dbGetOwnerPws();
-  const found=Object.keys(pws).find(id=>String(pws[id])===pw);
-  if(found){
-    window.location.href='owner.html#pw='+encodeURIComponent(pw);
-  } else {
-    document.getElementById('ownerPwErr').textContent='密碼錯誤，請確認後再試 🐾';
+  try{
+    var pws=await dbGetOwnerPws();
+    var found=Object.keys(pws).find(function(id){
+      return String(pws[id]||'').trim()===pw;
+    });
+    if(found){
+      window.location.href='owner.html#pw='+encodeURIComponent(pw);
+    } else {
+      document.getElementById('ownerPwErr').textContent='密碼錯誤，請確認後再試 🐾';
+    }
+  }catch(e){
+    document.getElementById('ownerPwErr').textContent='網路錯誤，請稍後再試';
   }
 }
 function closeOwnerLogin(){document.getElementById('ownerLoginOv').classList.remove('show');}

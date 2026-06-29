@@ -694,9 +694,16 @@ function dbRowToOrder(r){
     <div class="modal-title">預約申請已送出！</div>
     <div class="modal-msg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出！3秒後將自動跳轉 LINE 授權，完成綁定後即可查看每日照護回報 🐾</div>
     <div class="modal-line"><a class="line-join" href="https://line.me/R/ti/p/@099nuhen" target="_blank" style="font-size:1rem;padding:14px 28px;display:inline-flex;align-items:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.02 2 11c0 4.18 2.76 7.73 6.76 9.29L8 22l2.09-1.28C10.7 20.88 11.35 21 12 21c5.52 0 10-4.02 10-9s-4.48-9-10-9z"/></svg>加入 @099nuhen</a>
-    <div style="background:linear-gradient(135deg,#FFF0F5,#FFF9E8);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;margin-top:12px;font-size:.8rem;color:var(--tl);line-height:1.7;">
-      🏠 <strong style="color:var(--p1);">請加入官方帳號獲取毛孩爸媽專屬密碼</strong><br>
-      裡面會有保母的詳細照護回報喔！
+    <div style="background:linear-gradient(135deg,#F0FFF4,#FFFDE7);border:2px solid #4CAF50;border-radius:14px;padding:14px 16px;margin-top:12px;font-size:.84rem;color:#1a1a1a;line-height:2;">
+      <div style="font-weight:900;font-size:.95rem;color:#2E7D32;margin-bottom:6px;">📲 即將跳轉綁定 LINE</div>
+      <div style="color:#555;">綁定後您將能即時收到：</div>
+      <div>🔵 &nbsp;保母<strong>到達</strong>通知</div>
+      <div>🔴 &nbsp;保母<strong>離開</strong>通知</div>
+      <div>📋 &nbsp;每日<strong>毛孩照護回報</strong>完成通知</div>
+      <div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px dashed #4CAF50;font-size:.78rem;color:#666;">
+        ⏱ <span id="lineBindCountdown">10</span> 秒後自動跳轉 LINE 授權頁面<br>
+        （授權後即可第一時間收到毛孩消息 🐾）
+      </div>
     </div>
     </div>
     <button class="modal-close" onclick="closeModal()">好的，謝謝 🌸</button>
@@ -1516,17 +1523,24 @@ async function submitBook(){
     await dbInsertOrder(b);
     sendNewOrderNotify(b).catch(()=>{});
     document.getElementById('modalOv').classList.add('show');
-    // 自動觸發 LINE Login 綁定（3秒後跳轉，讓用戶先看到成功訊息）
+    // 顯示說明並倒數跳轉 LINE 綁定
     var _orderId = String(b.id);
-    setTimeout(function(){
-      var lineLoginUrl = 'https://access.line.me/oauth2/v2.1/authorize'
-        + '?response_type=code'
-        + '&client_id=2010383087'
-        + '&redirect_uri=' + encodeURIComponent('https://catcare6438.github.io/9981nuhen/owner.html')
-        + '&state=' + _orderId
-        + '&scope=profile%20openid';
-      window.location.href = lineLoginUrl;
-    }, 3000);
+    var _countdown = 10;
+    var _countEl = document.getElementById('lineBindCountdown');
+    var _countTimer = setInterval(function(){
+      _countdown--;
+      if(_countEl) _countEl.textContent = _countdown;
+      if(_countdown <= 0){
+        clearInterval(_countTimer);
+        var lineLoginUrl = 'https://access.line.me/oauth2/v2.1/authorize'
+          + '?response_type=code'
+          + '&client_id=2010383087'
+          + '&redirect_uri=' + encodeURIComponent('https://catcare6438.github.io/9981nuhen/owner.html')
+          + '&state=' + _orderId
+          + '&scope=profile%20openid';
+        window.location.href = lineLoginUrl;
+      }
+    }, 1000);
   }catch(e){
     alert('訂單儲存失敗，請檢查網路連線後再試 🐱\n'+e.message);
   }
@@ -1787,6 +1801,78 @@ async function initFromSiteSettings(){
 }
 // 頁面載入時自動執行
 initFromSiteSettings();
+
+// ── 舊客戶再次預約：URL ?from=bookId 自動填入上次資料 ──
+(async function prefillFromOldOrder(){
+  var params=new URLSearchParams(window.location.search);
+  var fromId=params.get('from');
+  if(!fromId) return;
+
+  try{
+    // 取得上次訂單資料
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(fromId));
+    var rows=await res.json();
+    var old=Array.isArray(rows)?rows[0]:rows;
+    if(!old) return;
+
+    // 顯示提示橫幅
+    var banner=document.createElement('div');
+    banner.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(135deg,#FF5C7D,#FFADC0);color:#fff;text-align:center;padding:10px 16px;font-size:.88rem;font-weight:800;box-shadow:0 2px 12px rgba(255,93,125,.4);';
+    banner.innerHTML='🐾 已自動填入上次預約資料，請確認後修改日期即可下單！<button onclick="this.parentElement.remove()" style="margin-left:12px;background:rgba(255,255,255,.3);border:none;color:#fff;border-radius:10px;padding:2px 8px;cursor:pointer;font-size:.8rem;">✕</button>';
+    document.body.prepend(banner);
+
+    // 填入飼主資料
+    var fields={
+      ownerName:old.owner_name,
+      ownerPhone:old.owner_phone,
+      ownerLine:old.owner_line,
+      ownerAddr:old.owner_addr,
+    };
+    Object.keys(fields).forEach(function(id){
+      var el=document.getElementById(id);
+      if(el&&fields[id]) el.value=fields[id];
+    });
+
+    // 填入寵物數量
+    var pd=old.pet_data||[];
+    if(typeof pd==='string'){try{pd=JSON.parse(pd);}catch(e){pd=[];}}
+    var cats=pd.filter(function(p){return p.type==='cat';}).length;
+    var dogs=pd.filter(function(p){return p.type==='dog';}).length;
+    if(window._S){window._S.cat=cats||1;window._S.dog=dogs||0;}
+    var catEl=document.getElementById('catVal');
+    var dogEl=document.getElementById('dogVal');
+    if(catEl) catEl.textContent=cats||1;
+    if(dogEl) dogEl.textContent=dogs||0;
+
+    // 填入寵物備注
+    var petNotes=document.getElementById('petNotes');
+    if(petNotes&&old.pet_notes) petNotes.value=old.pet_notes;
+
+    // 填入服務選項（重選）
+    var svcs=old.services||[];
+    if(typeof svcs==='string'){try{svcs=JSON.parse(svcs);}catch(e){svcs=[];}}
+    svcs.forEach(function(k){
+      var el=document.querySelector('[data-key="'+k+'"]');
+      if(el&&!el.classList.contains('on')) el.classList.add('on');
+    });
+
+    // 填入距離
+    if(old.distance){
+      var distEl=document.getElementById('dist');
+      if(distEl) distEl.value=old.distance;
+    }
+
+    // 捲到日期選擇區（飼主只需要選日期）
+    setTimeout(function(){
+      var dateSection=document.querySelector('.card-title');
+      if(dateSection) dateSection.scrollIntoView({behavior:'smooth',block:'start'});
+    },500);
+
+    calc();
+  }catch(e){
+    console.warn('[prefill]',e.message);
+  }
+})();
 
 </script>
 

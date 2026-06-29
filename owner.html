@@ -1270,6 +1270,8 @@ async function loadReviewSitters(){
   }catch(e){console.warn('loadReviewSitters:',e);}
 }
 
+function closeRvModal(){document.getElementById("rvModal").classList.remove("show");}
+
 function openReviewForm(elOrId){
   var bookId=typeof elOrId==='object'&&elOrId&&elOrId.dataset?elOrId.dataset.bid:String(elOrId);
   document.getElementById('rvBookId').value=bookId;
@@ -1353,29 +1355,80 @@ async function submitOwnerReview(){
     var j=await res.json();
     if(j&&j.error) throw new Error(j.error);
 
-    // 產生優惠券
-    var cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
-    var expiry=new Date();expiry.setMonth(expiry.getMonth()+3);
-    var expiryStr=expiry.toLocaleDateString('zh-TW');
+    // 檢查此飼主是否已領過好評優惠券（用手機號碼比對，同手機只給一次）
+    var alreadyHasCoupon=false;
+    var existingCpCode='';
     try{
-      await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          code:cpCode,amount:50,discount:50,
-          book_id:String(bookId),
-          expired_at:expiry.toISOString().slice(0,10),
-          used:false,source:'review'
-        })
-      });
+      // 取得此訂單的飼主手機
+      var ownerPhone='';
+      try{
+        var bkRes2=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+        var bkData2=await bkRes2.json();
+        var bkRow2=Array.isArray(bkData2)?bkData2[0]:bkData2;
+        ownerPhone=bkRow2?bkRow2.owner_phone||'':'';
+      }catch(e){}
+
+      // 取所有 review 來源優惠券
+      var cpRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
+      var cpAll=await cpRes.json();
+      if(Array.isArray(cpAll)&&cpAll.length&&ownerPhone){
+        // 取出所有此飼主的訂單 id
+        var myOrdersRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?phone='+encodeURIComponent(ownerPhone));
+        var myOrders=await myOrdersRes.json();
+        var myOrderIds=(Array.isArray(myOrders)?myOrders:[]).map(function(o){return String(o.id);});
+        // 找有沒有 source:'review' 的優惠券屬於此飼主
+        var existingCp=cpAll.find(function(cp){
+          return cp.source==='review'&&myOrderIds.includes(String(cp.book_id||cp.bookId||''));
+        });
+        if(existingCp){
+          alreadyHasCoupon=true;
+          existingCpCode=existingCp.code||'';
+        }
+      }
     }catch(e){}
 
-    // 顯示優惠券
-    document.getElementById('oCpCode').textContent=cpCode;
-    document.getElementById('oCpDates').textContent='有效期限：'+expiryStr+' 前';
+    var cpCode='';
+    var expiryStr='';
+    if(!alreadyHasCoupon){
+      // 第一次好評：產生新優惠券
+      cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
+      var expiry=new Date();expiry.setMonth(expiry.getMonth()+3);
+      expiryStr=expiry.toLocaleDateString('zh-TW');
+      try{
+        await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            code:cpCode,amount:50,discount:50,
+            book_id:String(bookId),
+            expired_at:expiry.toISOString().slice(0,10),
+            used:false,source:'review'
+          })
+        });
+      }catch(e){}
+    }
+
+    // 顯示結果
     document.getElementById('reviewFormSection').style.display='none';
     document.getElementById('rvCancelBtn').style.display='none';
-    document.getElementById('ownerCouponBox').style.display='block';
+    var cpBox=document.getElementById('ownerCouponBox');
+    if(alreadyHasCoupon){
+      // 已有優惠券：顯示感謝但不給新券
+      cpBox.innerHTML='<div style="text-align:center;padding:20px;">'
+        +'<div style="font-size:2rem;margin-bottom:10px;">🐾</div>'
+        +'<div style="font-weight:900;font-size:1.1rem;color:var(--pk);margin-bottom:8px;">感謝您的好評！</div>'
+        +'<div style="font-size:.84rem;color:var(--tl);line-height:1.8;">您之前已領取過好評優惠券<br>'
+        +(existingCpCode?'優惠碼：<b style="font-family:monospace;color:#B8860B;">'+existingCpCode+'</b><br>':'')
+        +'期待您再次光臨，繼續呵護您的毛孩 💕</div>'
+        +'<button onclick="closeRvModal()" '
+        +'style="margin-top:14px;padding:10px 24px;background:var(--pk4);border:1.5px solid var(--pk3);'
+        +'color:var(--pk);border-radius:16px;font-weight:800;cursor:pointer;">關閉</button>'
+        +'</div>';
+    } else {
+      document.getElementById('oCpCode').textContent=cpCode;
+      document.getElementById('oCpDates').textContent='有效期限：'+expiryStr+' 前';
+    }
+    cpBox.style.display='block';
 
     // 更新訂單卡片（不 reload）
     _reviewsCache=null;_reviewsCacheTime=0;

@@ -1,0 +1,2421 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<!-- build:1781445228 -->
+
+
+
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>貓窩裏｜毛孩爸媽專區</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pk:#FF8FA3;--pk2:#FFB6C1;--pk3:#FFD6E0;--pk4:#FFF0F5;--pk5:#FFFAFB;
+  --y:#FFE066;--y3:#FFB800;
+  --g:#52C48A;--g2:#D4F5E4;
+  --t:#3D2B35;--tl:#9B7A8A;
+  --sh:0 4px 20px rgba(255,143,163,.18);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--pk5);color:var(--t);min-height:100vh;}
+
+/* LOGIN */
+#loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#FFD0DF 0%,#FFF5F8 55%,#FFE8EF 100%);}
+.lbox{background:#fff;border:3px solid var(--pk3);border-radius:28px;
+  padding:42px 34px;width:380px;max-width:95vw;text-align:center;
+  box-shadow:var(--sh);position:relative;overflow:hidden;}
+.lbox::before{content:'';position:absolute;top:0;left:0;right:0;height:6px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:sh 3s linear infinite;}
+@keyframes sh{0%{background-position:0%;}100%{background-position:200%;}}
+.l-ico{font-size:3.2rem;margin-bottom:10px;animation:bounce 2.5s ease-in-out infinite;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.l-title{font-family:'Nunito',sans-serif;font-size:1.5rem;font-weight:900;color:var(--pk);
+  margin-bottom:4px;text-shadow:2px 2px 0 #fff;}
+.l-sub{font-size:.82rem;color:var(--tl);margin-bottom:6px;}
+.l-hint{background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;
+  padding:10px 14px;font-size:.8rem;color:var(--tl);margin-bottom:20px;line-height:1.6;}
+.l-in{width:100%;padding:13px 18px;background:var(--pk5);border:2.5px solid var(--pk3);
+  border-radius:12px;color:var(--t);font-size:1rem;font-family:inherit;outline:none;
+  text-align:center;letter-spacing:4px;transition:border .2s;margin-bottom:12px;}
+.l-in:focus{border-color:var(--pk);}
+.l-btn{width:100%;padding:13px;background:linear-gradient(135deg,#FF5C7D,var(--pk));
+  color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:900;
+  font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;
+  box-shadow:0 6px 18px rgba(255,92,125,.28);}
+.l-btn:hover{transform:translateY(-2px);}
+.l-err{color:#F87171;font-size:.8rem;margin-top:8px;display:none;}
+
+/* MAIN */
+#mainScreen{display:none;}
+.topbar{background:rgba(255,255,255,.97);backdrop-filter:blur(10px);
+  border-bottom:2.5px solid var(--pk3);padding:12px 20px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;box-shadow:0 2px 14px rgba(255,143,163,.12);}
+.topbar-l{display:flex;align-items:center;gap:10px;}
+.top-av{font-size:1.8rem;}
+.top-nm{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:.95rem;}
+.top-role{font-size:.68rem;color:var(--tl);}
+.btn{padding:8px 16px;border-radius:20px;border:none;cursor:pointer;font-size:.8rem;
+  font-weight:800;font-family:'Nunito',sans-serif;transition:all .2s;}
+.btn-out{background:#fff;border:2px solid var(--pk3);color:var(--tl);}
+.btn-out:hover{border-color:var(--pk);color:var(--pk);}
+.btn-pk{background:linear-gradient(135deg,#FF5C7D,var(--pk));color:#fff;}
+
+/* CONTENT */
+.wrap{max-width:860px;margin:0 auto;padding:22px 16px;}
+.card{background:#fff;border:2.5px solid var(--pk3);border-radius:20px;
+  padding:22px;box-shadow:var(--sh);margin-bottom:18px;position:relative;overflow:hidden;}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;
+  background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));
+  background-size:200%;animation:sh 3s linear infinite;}
+.card-title{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:1.05rem;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+
+/* REPORT CARD */
+.rep-card{background:var(--pk4);border:2px solid var(--pk3);border-radius:16px;
+  padding:18px;margin-bottom:16px;}
+.rep-date{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:.95rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+
+/* SECTION BLOCK */
+.rblock{margin-bottom:14px;background:#fff;border-radius:12px;padding:14px;
+  border:1.5px solid var(--pk3);}
+.rblock-title{font-size:.78rem;font-weight:800;color:var(--pk);margin-bottom:8px;
+  font-family:'Nunito',sans-serif;display:flex;align-items:center;gap:6px;
+  padding-bottom:6px;border-bottom:1.5px dashed var(--pk3);}
+.rblock-content{font-size:.84rem;line-height:1.8;color:var(--t);}
+.rblock-row{display:flex;gap:8px;margin-bottom:4px;}
+.rblock-label{color:var(--tl);font-weight:700;min-width:60px;}
+.tag{display:inline-flex;background:rgba(255,143,163,.1);color:var(--pk);
+  border:1.5px solid var(--pk3);border-radius:8px;padding:2px 9px;
+  font-size:.72rem;font-weight:700;margin:2px;}
+
+/* DISINFECT / SERVICE CHECKS */
+.check-list{display:flex;flex-wrap:wrap;gap:6px;}
+.check-ok{display:inline-flex;align-items:center;gap:4px;background:var(--g2);
+  color:#1A7A4A;border:1.5px solid var(--g);border-radius:8px;padding:4px 10px;font-size:.76rem;font-weight:700;}
+
+/* PET SECTION */
+.pet-section{background:#fff;border:2px solid var(--pk2);border-radius:14px;
+  padding:14px;margin-bottom:12px;}
+.pet-name{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);
+  font-size:.95rem;margin-bottom:10px;}
+.pet-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:400px){.pet-grid{grid-template-columns:1fr;}}
+.pet-item{background:var(--pk4);border-radius:8px;padding:8px 10px;}
+.pet-item-label{font-size:.68rem;color:var(--tl);font-weight:700;margin-bottom:2px;}
+.pet-item-val{font-size:.82rem;font-weight:700;color:var(--t);}
+
+/* PHOTOS */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:8px;}
+.photo-thumb{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;
+  border:2.5px solid var(--pk3);cursor:pointer;transition:transform .2s;}
+.photo-thumb:hover{transform:scale(1.05);border-color:var(--pk);}
+.photo-carousel{position:relative;width:100%;margin-top:8px;overflow:hidden;border-radius:14px;background:#000;aspect-ratio:1;touch-action:pan-y;}
+.photo-carousel-track{display:flex;transition:transform .32s cubic-bezier(.4,0,.2,1);height:100%;will-change:transform;}
+.photo-carousel-slide{flex:0 0 100%;height:100%;position:relative;}
+.photo-carousel-slide img{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block;}
+.photo-carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.85);border:none;border-radius:50%;width:36px;height:36px;font-size:1.1rem;cursor:pointer;z-index:3;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.2);transition:opacity .2s;}
+.photo-carousel-btn:hover{background:#fff;}
+.photo-carousel-prev{left:8px;}
+.photo-carousel-next{right:8px;}
+.photo-carousel-dots{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);display:flex;gap:5px;z-index:3;}
+.photo-carousel-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.5);cursor:pointer;transition:background .2s;}
+.photo-carousel-dot.active{background:#fff;}
+.photo-carousel-count{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.45);color:#fff;font-size:.72rem;font-weight:800;padding:3px 8px;border-radius:8px;z-index:3;}
+.photo-group-label{font-size:.74rem;font-weight:700;color:var(--tl);margin:8px 0 4px;font-family:'Nunito',sans-serif;}
+
+/* COMPARE PHOTOS */
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.compare-item{text-align:center;}
+.compare-item img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:2.5px solid var(--pk3);}
+.compare-item .clabel{font-size:.7rem;color:var(--tl);margin-top:4px;font-weight:700;}
+
+/* VIDEO */
+.video-player{width:100%;max-height:240px;border-radius:12px;border:2.5px solid var(--pk3);margin-top:8px;}
+
+/* PHOTO LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;
+  align-items:center;justify-content:center;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:95vw;max-height:90vh;border-radius:14px;object-fit:contain;}
+
+/* NO REPORT */
+.no-rep{text-align:center;padding:36px;color:var(--tl);font-size:.88rem;line-height:1.8;}
+
+.badge{display:inline-flex;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:800;font-family:'Nunito',sans-serif;}
+.b-ok{background:var(--g2);color:#1A7A4A;border:2px solid var(--g);}
+.b-wait{background:#FFF8D0;color:#8B6800;border:2px solid var(--y);}
+
+/* ── DATE ACCORDION (reports) ── */
+.date-accordion{border:1.5px solid var(--pk3);border-radius:14px;margin-bottom:10px;overflow:hidden;background:#fff;}
+.date-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;cursor:pointer;background:var(--pk4);transition:background .2s;}
+.date-header:hover{background:#FFE8F0;}
+.date-header-l{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:.88rem;}
+.date-arrow{font-size:.85rem;color:var(--pk);transition:transform .25s;}
+.date-arrow.open{transform:rotate(180deg);}
+.date-body{display:none;padding:12px;}
+.date-body.open{display:block;}
+/* ── SLOT TABS ── */
+.slot-tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.slot-tab{padding:7px 16px;border:2px solid var(--pk3);border-radius:20px;background:#fff;font-size:.78rem;font-weight:800;font-family:'Nunito',sans-serif;color:var(--tl);cursor:pointer;transition:all .18s;}
+.slot-tab.on{background:linear-gradient(135deg,var(--pk4),#FFE8F0);border-color:var(--pk);color:var(--pk);}
+.slot-panel.hidden{display:none;}
+/* ── DATE ACCORDION (reports) END ── */
+.order-accordion{border:2.5px solid var(--pk3);border-radius:20px;margin-bottom:16px;overflow:hidden;background:#fff;box-shadow:var(--sh);}
+.order-accordion::before{content:'';display:block;height:5px;background:linear-gradient(90deg,var(--pk),var(--pk2),var(--y),var(--pk2),var(--pk));background-size:200%;animation:sh 3s linear infinite;}
+.order-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;background:#fff;transition:background .2s;}
+.order-header:hover{background:var(--pk4);}
+.order-num{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:1rem;}
+.order-dates{font-size:.78rem;color:var(--tl);font-weight:700;}
+.order-arrow{font-size:1rem;color:var(--pk);transition:transform .25s;flex-shrink:0;}
+.order-arrow.open{transform:rotate(180deg);}
+.order-body{display:none;padding:20px;border-top:2px dashed var(--pk3);}
+.order-body.open{display:block;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.83rem;margin-bottom:6px;}
+@media(max-width:420px){.info-grid{grid-template-columns:1fr;}}
+.info-label{font-size:.7rem;color:var(--tl);font-weight:700;font-family:'Nunito',sans-serif;text-transform:uppercase;letter-spacing:.3px;margin-bottom:2px;}
+.info-val{font-weight:700;color:var(--t);}
+.sitter-tag{display:inline-flex;align-items:center;gap:4px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:8px;padding:3px 10px;font-size:.78rem;font-weight:800;color:var(--pk);margin:2px;}
+.section-sub-title{font-family:'Nunito',sans-serif;font-weight:900;color:var(--pk);font-size:.92rem;margin:18px 0 10px;display:flex;align-items:center;gap:6px;}
+/* ── REVIEW SECTION ── */
+.rv-hero{
+  background:linear-gradient(135deg,#FFF0F5 0%,#FFF9E8 50%,#FFF0F5 100%);
+  border:2.5px solid var(--pk3);border-radius:20px;padding:28px 22px;
+  text-align:center;position:relative;overflow:hidden;margin-bottom:18px;
+}
+.rv-hero::before{
+  content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  background:radial-gradient(circle,rgba(255,143,163,.15),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.rv-hero::after{
+  content:'';position:absolute;bottom:-30px;left:-30px;width:110px;height:110px;
+  background:radial-gradient(circle,rgba(255,224,102,.18),transparent 70%);
+  border-radius:50%;pointer-events:none;
+}
+.rv-emoji-row{font-size:2rem;margin-bottom:10px;line-height:1;letter-spacing:6px;}
+.rv-hero-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.25rem;
+  color:var(--pk);margin-bottom:8px;}
+.rv-hero-sub{font-size:.84rem;color:var(--tl);line-height:1.7;margin-bottom:18px;}
+.rv-reward-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border-radius:24px;padding:10px 22px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;
+  box-shadow:0 6px 18px rgba(255,184,0,.35);
+  animation:pulse-y 2.2s ease-in-out infinite;
+}
+@keyframes pulse-y{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+/* Star rating buttons */
+.rv-stars{display:flex;justify-content:center;gap:8px;margin:18px 0 8px;}
+.rv-star{width:46px;height:46px;border:2.5px solid var(--pk3);border-radius:14px;
+  background:#fff;font-size:1.4rem;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rv-star.on{background:linear-gradient(135deg,#FFE066,#FFB800);border-color:#FFB800;
+  transform:scale(1.12);box-shadow:0 4px 12px rgba(255,184,0,.3);}
+.rv-star:hover{transform:scale(1.1);border-color:var(--pk);}
+.rv-star-label{font-size:.76rem;color:var(--tl);text-align:center;margin-bottom:16px;
+  font-weight:700;min-height:1.2em;transition:color .2s;}
+/* Sitter pills */
+.rv-sitter-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
+.rv-sitter{padding:8px 16px;border:2.5px solid var(--pk3);border-radius:24px;
+  background:#fff;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .18s;
+  font-family:'Nunito',sans-serif;color:var(--tl);}
+.rv-sitter.on{background:linear-gradient(135deg,var(--pk4),#FFF0F5);
+  border-color:var(--pk);color:var(--pk);box-shadow:0 3px 10px rgba(255,143,163,.2);}
+/* Best select chips */
+.rv-best-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+@media(max-width:480px){.rv-best-grid{grid-template-columns:1fr;}}
+.rv-chip{padding:10px 12px;border:2px solid var(--pk3);border-radius:12px;
+  background:#fff;font-size:.77rem;cursor:pointer;transition:all .15s;
+  text-align:center;line-height:1.4;color:var(--tl);font-weight:600;}
+.rv-chip.on{background:linear-gradient(135deg,rgba(255,143,163,.1),rgba(255,224,102,.1));
+  border-color:var(--pk);color:var(--pk);font-weight:800;}
+/* Input fields */
+.rv-input{width:100%;padding:12px 16px;border:2.5px solid var(--pk3);border-radius:14px;
+  font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;
+  transition:border .2s;margin-bottom:12px;}
+.rv-input:focus{border-color:var(--pk);}
+.rv-section-label{font-size:.72rem;font-weight:800;color:var(--tl);
+  font-family:'Nunito',sans-serif;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase;}
+/* Submit btn */
+.rv-submit{
+  width:100%;padding:16px;margin-top:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border:none;border-radius:16px;
+  font-size:1rem;font-weight:900;font-family:'Nunito',sans-serif;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 8px 24px rgba(255,184,0,.35);
+  position:relative;overflow:hidden;
+}
+.rv-submit::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.15),transparent);
+}
+.rv-submit:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,184,0,.4);}
+.rv-submit:active{transform:translateY(0);}
+/* Coupon result */
+.rv-coupon{
+  margin-top:20px;
+  background:linear-gradient(135deg,#FFFDE7,#FFF8E1);
+  border:3px dashed #FFB800;border-radius:20px;padding:28px 22px;
+  text-align:center;display:none;
+  animation:fadein .5s ease;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+.rv-coupon-amount{
+  font-size:3rem;font-weight:900;color:#B8860B;
+  font-family:'Nunito',sans-serif;line-height:1;margin:12px 0 6px;
+}
+.rv-coupon-code{
+  font-family:monospace;font-size:.88rem;color:var(--tl);
+  background:#fff;border:1.5px solid #FFD700;border-radius:10px;
+  padding:10px 18px;display:inline-block;margin:10px 0;letter-spacing:2px;
+}
+/* Referral section */
+.rv-ref{
+  margin-top:20px;padding:22px;
+  background:linear-gradient(135deg,#FFF0F5,#F5EEFF);
+  border:2.5px solid var(--pk3);border-radius:20px;
+  text-align:center;position:relative;overflow:hidden;
+}
+.rv-ref::before{
+  content:'🌸';position:absolute;top:-8px;right:14px;font-size:2.4rem;
+  opacity:.18;pointer-events:none;
+}
+.rv-ref-code{
+  font-size:1.5rem;font-weight:900;color:var(--pk);
+  letter-spacing:8px;font-family:monospace;
+  background:#fff;border:2.5px dashed var(--pk3);border-radius:14px;
+  padding:14px 20px;margin:12px 0;display:block;
+}
+.rv-copy-btn{
+  width:100%;padding:12px;
+  background:linear-gradient(135deg,var(--pk),#FF5C7D);
+  color:#fff;border:none;border-radius:14px;
+  font-size:.9rem;font-weight:900;font-family:'Nunito',sans-serif;
+  cursor:pointer;box-shadow:0 5px 16px rgba(255,92,125,.3);
+  transition:all .2s;
+}
+.rv-copy-btn:hover{transform:translateY(-2px);}
+
+
+.detail-section{margin-top:14px;}
+.detail-toggle-btn{display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;cursor:pointer;font-size:.82rem;font-weight:900;color:var(--pk);box-sizing:border-box;margin-bottom:2px;}
+.detail-toggle-btn:hover{background:var(--pk3);}
+.detail-toggle-arrow{transition:transform .22s;font-size:.8rem;}
+.detail-toggle-arrow.open{transform:rotate(180deg);}
+.detail-body{display:none;}
+.detail-body.open{display:block;}
+/* Lightbox */
+.lb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;align-items:center;justify-content:center;flex-direction:column;}
+.lb-overlay.show{display:flex;}
+.lb-overlay img{max-width:90vw;max-height:80vh;border-radius:10px;object-fit:contain;}
+.lb-close{position:absolute;top:18px;right:22px;color:#fff;font-size:2rem;cursor:pointer;font-weight:900;line-height:1;}
+.lb-download{margin-top:14px;padding:10px 24px;background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.9rem;cursor:pointer;}
+.clickable-img{cursor:pointer;transition:transform .2s;}
+.clickable-img:hover{transform:scale(1.02);}
+
+/* Review Section */
+.rv-hero{
+  background:linear-gradient(135deg,#FFF0F5 0%,#FFF9E8 50%,#FFF0F5 100%);
+  border:2.5px solid var(--pk3);border-radius:20px;padding:28px 22px;
+  text-align:center;position:relative;overflow:hidden;margin-bottom:18px;
+}
+.rv-emoji-row{font-size:2rem;margin-bottom:10px;line-height:1;letter-spacing:6px;}
+.rv-hero-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:1.25rem;color:var(--pk);margin-bottom:8px;}
+.rv-hero-sub{font-size:.84rem;color:var(--tl);line-height:1.7;margin-bottom:18px;}
+.rv-reward-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border-radius:24px;padding:10px 22px;
+  font-family:'Nunito',sans-serif;font-weight:900;font-size:.95rem;
+  box-shadow:0 6px 18px rgba(255,184,0,.35);
+  animation:pulse-y 2.2s ease-in-out infinite;
+}
+@keyframes pulse-y{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+.rv-stars{display:flex;justify-content:center;gap:8px;margin:18px 0 8px;}
+.rv-star{width:46px;height:46px;border:2.5px solid var(--pk3);border-radius:14px;
+  background:#fff;font-size:1.4rem;cursor:pointer;transition:all .18s;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.rv-star.on{background:linear-gradient(135deg,#FFE066,#FFB800);border-color:#FFB800;
+  transform:scale(1.12);box-shadow:0 4px 12px rgba(255,184,0,.3);}
+.rv-star:hover{transform:scale(1.1);border-color:var(--pk);}
+.rv-star-label{font-size:.76rem;color:var(--tl);text-align:center;margin-bottom:16px;font-weight:700;min-height:1.2em;}
+.rv-sitter-row{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
+.rv-sitter{padding:8px 16px;border:2.5px solid var(--pk3);border-radius:24px;
+  background:#fff;font-size:.82rem;font-weight:800;cursor:pointer;transition:all .18s;color:var(--tl);}
+.rv-sitter.on{background:linear-gradient(135deg,var(--pk4),#FFF0F5);border-color:var(--pk);color:var(--pk);}
+.rv-best-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;}
+@media(max-width:480px){.rv-best-grid{grid-template-columns:1fr;}}
+.rv-chip{padding:10px 12px;border:2px solid var(--pk3);border-radius:12px;
+  background:#fff;font-size:.77rem;cursor:pointer;transition:all .15s;text-align:center;line-height:1.4;color:var(--tl);font-weight:600;}
+.rv-chip.on{background:linear-gradient(135deg,rgba(255,143,163,.1),rgba(255,224,102,.1));border-color:var(--pk);color:var(--pk);font-weight:800;}
+.rv-input{width:100%;padding:12px 16px;border:2.5px solid var(--pk3);border-radius:14px;
+  font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;transition:border .2s;margin-bottom:12px;box-sizing:border-box;}
+.rv-input:focus{border-color:var(--pk);}
+.rv-section-label{font-size:.72rem;font-weight:800;color:var(--tl);
+  font-family:'Nunito',sans-serif;margin-bottom:8px;letter-spacing:.5px;text-transform:uppercase;}
+.rv-submit{
+  width:100%;padding:16px;margin-top:8px;
+  background:linear-gradient(135deg,#FFB800,#FF9500);
+  color:#fff;border:none;border-radius:16px;
+  font-size:1rem;font-weight:900;font-family:'Nunito',sans-serif;
+  cursor:pointer;transition:all .2s;
+  box-shadow:0 8px 24px rgba(255,184,0,.35);
+}
+.rv-submit:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(255,184,0,.4);}
+/* Review Coupon */
+.rv-coupon{
+  margin-top:20px;
+  background:linear-gradient(135deg,#FFFDE7,#FFF8E1);
+  border:3px dashed #FFB800;border-radius:20px;padding:28px 22px;
+  text-align:center;display:none;
+  animation:fadein .5s ease;
+}
+.rv-coupon-amount{
+  font-size:3rem;font-weight:900;color:#B8860B;
+  font-family:'Nunito',sans-serif;line-height:1;margin:12px 0 6px;
+}
+.rv-coupon-code{
+  font-family:monospace;font-size:.88rem;color:var(--tl);
+  background:#fff;border:1.5px solid #FFD700;border-radius:10px;
+  padding:10px 18px;display:inline-block;margin:10px 0;letter-spacing:3px;
+}
+@keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+/* Modal overlay */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:999;align-items:center;justify-content:center;padding:16px;}
+.modal-ov.show{display:flex;}
+.modal{background:#fff;border-radius:20px;padding:24px 20px;width:100%;max-width:440px;max-height:90vh;overflow-y:auto;position:relative;}
+.modal-close{display:block;width:100%;padding:11px;background:var(--pk4);border:2px solid var(--pk3);border-radius:14px;font-size:.88rem;font-weight:800;color:var(--tl);cursor:pointer;margin-top:10px;font-family:inherit;}
+</style>
+<script>
+const SUPA_KEY='neon_worker_auth';
+// ══════════════════════════════════════════════
+// Supabase → Cloudflare Worker Polyfill
+// ══════════════════════════════════════════════
+// ── Cloudflare Worker 轉接頭（格式A：直接陣列）──
+const WORKER_URL = 'https://catwoli-api.catwoli6644.workers.dev';
+
+async function _wfetch(path, opts){
+  const res = await fetch(WORKER_URL + path, opts);
+  const j = await res.json();
+  // Worker 直接回傳陣列或物件
+  if(Array.isArray(j)) return {data:j, error:null};
+  if(j && j.error) return {data:null, error:{message:j.error||j.message}};
+  if(j && j.rows) return {data:j.rows, error:null};
+  // single row object
+  return {data:j, error:null};
+}
+
+const _supa = {
+  from: (table) => ({
+    select: (cols) => ({
+      order: (col, opts) => ({
+        then: async (cb) => cb(await _wfetch('/'+table+'?_order='+col+'&_asc='+(!!(opts&&opts.ascending)))),
+        eq: (c2,v) => ({ then: async (cb) => cb(await _wfetch('/'+table+'?'+c2+'='+encodeURIComponent(v)+'&_order='+col)) }),
+        limit: (n) => ({ single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_order='+col+'&_limit='+n); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } }) })
+      }),
+      eq: (col,val) => ({
+        then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val))),
+        limit: (n) => ({
+          then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit='+n)),
+          single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
+        }),
+        single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val)+'&_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
+      }),
+      then: async (cb) => cb(await _wfetch('/'+table)),
+      limit: (n) => ({
+        then: async (cb) => cb(await _wfetch('/'+table+'?_limit='+n)),
+        single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
+      }),
+      single: () => ({ then: async (cb) => { const r=await _wfetch('/'+table+'?_limit=1'); cb({data:Array.isArray(r.data)?r.data[0]:r.data,error:r.error}); } })
+    }),
+    insert: (rows) => ({
+      then: async (cb) => cb(await _wfetch('/'+table, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)})),
+      select: () => ({ then: async (cb) => { const r=await _wfetch('/'+table,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Array.isArray(rows)?rows[0]:rows)}); cb({data:r.data?[r.data]:[],error:r.error}); } })
+    }),
+    upsert: (rows, opts) => ({
+      then: async (cb) => {
+        const row=Array.isArray(rows)?rows[0]:rows;
+        const conflict=opts&&opts.onConflict?'&_conflict='+opts.onConflict:'';
+        cb(await _wfetch('/'+table+'?_upsert=1'+conflict,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(row)}));
+      }
+    }),
+    update: (fields) => ({
+      eq: (col,val) => ({
+        then: async (cb) => cb(await _wfetch('/'+table+'?'+col+'='+encodeURIComponent(val),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)}))
+      })
+    }),
+    delete: () => ({
+      eq: (col,val) => ({
+        then: async (cb) => { try{await fetch(WORKER_URL+'/'+table+'?'+col+'='+encodeURIComponent(val),{method:'DELETE'});cb({error:null});}catch(e){cb({error:e});} }
+      })
+    })
+  })
+};
+class _SupaQuery {
+  constructor(table){
+    this._t=table; this._f={}; this._sel='*';
+    this._lim=null; this._m='select'; this._data=null; this._sngl=false;
+  }
+  select(c){this._sel=c;return this;}
+  eq(k,v){this._f[k]=v;return this;}
+  limit(n){this._lim=n;return this;}
+  order(col,opt){return this;}
+  insert(rows){this._m='insert';this._data=Array.isArray(rows)?rows[0]:rows;return this;}
+  update(fields){this._m='update';this._data=fields;return this;}
+  upsert(rows,opt){this._m='upsert';this._data=Array.isArray(rows)?rows[0]:rows;this._uopt=opt;return this;}
+  delete(){this._m='delete';return this;}
+  single(){this._sngl=true;return this;}
+
+  then(resolve,reject){
+    const run = async () => {
+      const t=this._t, f=this._f;
+      let data;
+      try{
+        if(this._m==='insert'){
+          data = await _workerFetch(t+'/insert', {fields:this._data});
+        } else if(this._m==='update'){
+          const fk=Object.keys(f)[0];
+          data = await _workerFetch(t+'/update', {filterKey:fk, filterVal:f[fk], fields:this._data});
+        } else if(this._m==='upsert'){
+          data = await _workerFetch(t+'/upsert', {...this._data, ...(this._uopt||{})});
+        } else if(this._m==='delete'){
+          const fk=Object.keys(f)[0];
+          data = await _workerFetch(t+'/delete', {filterKey:fk, filterVal:f[fk]});
+        } else {
+          // select
+          data = await _workerFetch(t+'/list', {filters:f, limit:this._lim});
+          if(Array.isArray(data)){
+            Object.entries(f).forEach(([k,v])=>{
+              data=data.filter(r=>String(r[k])===String(v));
+            });
+            if(this._lim) data=data.slice(0,this._lim);
+          }
+        }
+        const result = this._sngl?(Array.isArray(data)?data[0]:data):data;
+        resolve({data:result, error:null});
+      }catch(e){
+        resolve({data:null, error:{message:e.message}});
+      }
+    };
+    run();
+  }
+}
+// ══════════════════════════════════════════════
+
+
+// Safe error message extractor — never touches Headers or non-serialisable fields
+function _errMsg(e){
+  if(!e) return 'unknown error';
+  if(typeof e==='string') return e;
+  // Extract only plain-string fields
+  const msg=e.message||e.msg||'';
+  const code=e.code||e.status_code||'';
+  const hint=e.hint||e.details||'';
+  return [msg,code?`[${code}]`:'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
+}
+
+// ── Supabase helpers ──
+var _ownerOrdersCache=null,_ownerOrdersCacheTime=0;
+async function dbGetOrders(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');
+    var data=await res.json();
+    if(!Array.isArray(data)) data=[];
+    return data.map(dbRowToOrder);
+  }catch(e){
+    console.error('[dbGetOrders]',e.message);
+    return [];
+  }
+}
+async function dbInsertOrder(b){
+  const row=orderToDbRow(b);
+  const{error}=await _supa.from('orders').insert([row]);
+  if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
+}
+async function dbUpdateOrder(id,fields){
+  const row={};
+  if(fields.status!==undefined)row.status=fields.status;
+  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
+  const{error}=await _supa.from('orders').update(row).eq('id',id);
+  if(error)console.error('updateOrder:',_errMsg(error));
+}
+async function dbDeleteOrder(id){
+  const{error}=await _supa.from('orders').delete().eq('id',id);
+  if(error)console.error('deleteOrder:',_errMsg(error));
+}
+var _allReportsCache=null, _allReportsCacheTime=0;
+async function dbGetAllReports(){
+  var now=Date.now();
+  if(_allReportsCache&&(now-_allReportsCacheTime)<30000) return _allReportsCache;
+  const{data,error}=await _supa.from('reports').select('ts,book_id,book_name,sitter,date,time_start,time_end,pet_reports,services,disinfect,safety,diary,pet_photos,clean_photos,videos,video_data_url').order('ts',{ascending:false});
+  if(error){console.error('getAllReports:',error.message);return _allReportsCache||[];}
+  _allReportsCache=data||[]; _allReportsCacheTime=now;
+  return _allReportsCache;
+}
+
+function mapReport(r){
+  return {
+    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
+    videoDataUrl:r.video_data_url||'',videos:r.videos||[]
+  };
+}
+
+function dbRowToReport(r){
+  return {
+    ts:       r.ts,
+    bookId:   r.book_id,
+    bookName: r.book_name||'',
+    sitter:   r.sitter||'',
+    date:     r.date||'',
+    timeStart:r.time_start||'',
+    timeEnd:  r.time_end||'',
+    petReports: r.pet_reports||[],
+    services:   r.services||[],
+    disinfect:  r.disinfect||[],
+    safety:     r.safety||[],
+    diary:      r.diary||'',
+    petPhotos:  r.pet_photos||[],
+    cleanPhotos:r.clean_photos||[],
+    videos:     r.videos||[],
+    videoDataUrl:r.video_data_url||''
+  };
+}
+
+var _repsCache={}, _repsCacheTime={};
+async function dbGetReports(bookId){
+  var now=Date.now();
+  var key=String(bookId||'all');
+  if(_repsCache[key]&&(now-(_repsCacheTime[key]||0))<60000) return _repsCache[key];
+  let q=_supa.from('reports').select('ts,book_id,book_name,sitter,date,time_start,time_end,pet_reports,services,disinfect,safety,diary,pet_photos,clean_photos,videos,video_data_url').order('ts',{ascending:false});
+  if(bookId) q=q.eq('book_id',parseInt(bookId));
+  const{data,error}=await q;
+  if(error){console.error('getReports:',error.message);return[];}
+  var result=(data||[]).map(dbRowToReport);
+  _repsCache[key]=result; _repsCacheTime[key]=now;
+  return result;
+}
+
+function _unused_r(r){return {ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    petPhotos:r.pet_photos||[],cleanPhotos:r.clean_photos||[],
+    videoDataUrl:r.video_data_url||'',
+    videos:r.videos||[]
+  };
+}
+async function dbInsertReport(r){
+  const{error}=await _supa.from('reports').insert([{
+    ts:r.ts,book_id:r.bookId,book_name:r.bookName,sitter:r.sitter,
+    date:r.date,time_start:r.timeStart,time_end:r.timeEnd,
+    pet_reports:r.petReports,services:r.services,
+    disinfect:r.disinfect,safety:r.safety,diary:r.diary
+  }]);
+  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+}
+async function dbGetCoupons(){
+  const{data,error}=await _supa.from('coupons').select('*');
+  if(error){console.error('getCoupons:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertCoupon(cp){
+  const{error}=await _supa.from('coupons').insert([cp]);
+  if(error)console.error('insertCoupon:',_errMsg(error));
+}
+async function dbMarkCouponUsed(code){
+  const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
+  if(error)console.error('markCouponUsed:',_errMsg(error));
+}
+var _reviewsCache=null, _reviewsCacheTime=0;
+async function dbGetReviews(){
+  var now=Date.now();
+  if(_reviewsCache&&(now-_reviewsCacheTime)<60000) return _reviewsCache;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews');
+    var data=await res.json();
+    _reviewsCache=Array.isArray(data)?data:[];
+    _reviewsCacheTime=Date.now();
+    return _reviewsCache;
+  }catch(e){console.error('getReviews:',e.message);return[];}
+}
+async function dbInsertReview(rv){
+  const{error}=await _supa.from('reviews').insert([rv]);
+  if(error)console.error('insertReview:',_errMsg(error));
+}
+var _pwsCache=null;
+async function dbGetOwnerPws(){
+  if(_pwsCache) return _pwsCache;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords');
+    var rows=await res.json();
+    var map={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      map[String(r.book_id||'')]=r.password;
+    });
+    _pwsCache=map;
+    console.log('[dbGetOwnerPws] loaded',Object.keys(map).length,'筆');
+    return map;
+  }catch(e){console.error('[dbGetOwnerPws]',e.message);return{};}
+}
+async function dbSetOwnerPw(bookId,pw){
+  var bidStr=String(bookId);
+  try{
+    var r1=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(bidStr),{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pw})
+    });
+    var j1=await r1.json();
+    if(!j1||j1.error||!Array.isArray(j1)||!j1.length){
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({book_id:bidStr,password:pw})
+      });
+    }
+    _pwsCache=null;
+  }catch(e){console.error('[dbSetOwnerPw]',e.message);}
+}
+async function dbGetRefCodes(){
+  const{data,error}=await _supa.from('referral_codes').select('*');
+  if(error){console.error('getRefCodes:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.code]={bookId:r.book_id,owner:r.owner,usedBy:r.used_by,usedAt:r.used_at};}); return map;
+}
+async function dbInsertRefCode(code,bookId,owner){
+  const{error}=await _supa.from('referral_codes').insert([{code,book_id:bookId,owner,used_by:null,used_at:null}]);
+  if(error)console.error('insertRefCode:',_errMsg(error));
+}
+async function dbMarkRefCodeUsed(code,usedBy){
+  const{error}=await _supa.from('referral_codes').update({used_by:usedBy,used_at:new Date().toISOString()}).eq('code',code);
+  if(error)console.error('markRefCodeUsed:',_errMsg(error));
+}
+
+// ── Row ↔ Object converters ──
+function orderToDbRow(b){
+  return{
+    id:b.id,ts:b.ts,
+    owner_name:b.ownerName,owner_phone:b.ownerPhone,
+    owner_line:b.ownerLine||'',owner_addr:b.ownerAddr||'',
+    pet_data:b.petData||[],cat_count:b.catCount||0,dog_count:b.dogCount||0,
+    pet_notes:b.petNotes||'',
+    start_date:b.startDate,end_date:b.endDate,
+    days:b.days||1,tpd:b.tpd||1,
+    services:b.services||[],addons:b.addons||[],
+    urgent:b.urgent||0,distance:b.distance||0,
+    transport:b.transport||0,transport_total:b.transportTotal||0,
+    is_holiday:b.isHoliday||false,
+    coupon_used:b.couponUsed||'',ref_code:b.refCode||'',
+    discounts:b.discounts||0,total:b.total||0,
+    status:b.status||'待確認',assigned_to:b.assignedTo||''
+  };
+}
+function dbRowToOrder(r){
+  return{
+    id:String(r.id),ts:r.ts,
+    ownerName:r.owner_name,ownerPhone:r.owner_phone,
+    ownerLine:r.owner_line,ownerAddr:r.owner_addr,
+    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petNotes:r.pet_notes||'',
+    startDate:r.start_date,endDate:r.end_date,
+    days:r.days||1,tpd:r.tpd||1,
+    services:r.services||[],addons:r.addons||[],
+    urgent:r.urgent||0,distance:r.distance||0,
+    transport:r.transport||0,transportTotal:r.transport_total||0,
+    isHoliday:r.is_holiday||false,
+    couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
+    discounts:r.discounts||0,total:r.total||0,
+    status:r.status||'待確認',assignedTo:r.assigned_to||'',
+    manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
+    visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
+    depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
+    depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
+    payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',visitPhotos:r.visit_photos||[],ownerLineId:r.owner_line_id||'',
+    addonItems:r.addon_items||[],
+    sitterExtraFees:r.sitter_extra_fees||[]
+  };
+}
+</script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="lineBindStatus" style="display:none;position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#fff;padding:12px 24px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,.15);font-weight:800;font-size:.9rem;z-index:9999;white-space:nowrap;"></div>
+<div id="loginScreen">
+  <div class="lbox">
+    <div class="l-ico">🏠</div>
+    <div class="l-title">毛孩爸媽專區</div>
+    <div class="l-sub">查看您家毛孩的每日照護回報 🐾</div>
+    <div class="l-hint">
+      📢 密碼請加入 LINE 官方帳號取得<br>
+      <strong style="color:var(--pk);">@099nuhen</strong><br>
+      <span style="color:#C05000;">下單預約成功才有會員哦～</span>
+    </div>
+    <input class="l-in" type="text" id="ownerPwIn" placeholder="輸入您的專屬密碼" onkeydown="if(event.key==='Enter')ownerLogin()" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+    <button class="l-btn" onclick="ownerLogin()">進入毛孩專區 🐱</button>
+    <div class="l-err" id="ownerErr">密碼錯誤，請確認後再試 🐾</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="mainScreen">
+  <div class="topbar">
+    <div class="topbar-l">
+      <div class="top-av">🏠</div>
+      <div>
+        <div class="top-nm" id="ownerDisplayName">毛孩爸媽</div>
+        <div class="top-role">查看我家毛孩的回報</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="index.html" class="btn btn-out">← 回前台</a>
+      <button class="btn btn-out" onclick="ownerLogout()">登出</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <!-- 多訂單區塊 (動態生成) -->
+    <div id="ordersContainer"><div class="no-rep">載入中...</div></div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+
+
+<script>
+
+// ── LINE Login 設定 ──
+var LINE_LOGIN_CHANNEL_ID = '2010383087';
+var LINE_REDIRECT_URI = 'https://catcare6438.github.io/9981nuhen/owner.html';
+let currentOwnerPhone=null; // 用電話號碼識別同一飼主的所有訂單
+var SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+var SLOT_NAME={morning:'早上🌅',noon:'中午☀️',evening:'晚上🌙'};
+
+var _ordersCache=null,_ordersCacheTime=0;
+async function getB(){
+  var now=Date.now();
+  if(_ordersCache&&(now-_ordersCacheTime)<10000)return _ordersCache;
+  var data=await dbGetOrders();
+  _ordersCache=data;_ordersCacheTime=now;
+  return data;
+}
+function clearOrdersCache(){_ordersCache=null;_ordersCacheTime=0;}
+async function getReps(bookId){return await dbGetReports(bookId);}
+
+// ── 解析 assigned_to 欄位，取出保母名稱列表 ──
+function parseAssignedSitters(assignedTo){
+  if(!assignedTo||assignedTo==='安排中')return [];
+  try{
+    const arr=typeof assignedTo==='string'?JSON.parse(assignedTo):assignedTo;
+    if(!Array.isArray(arr))return [String(assignedTo)];
+    // [{date,slot,sitter,transport},...] 格式
+    const sitters=[...new Set(arr.map(x=>x.sitter).filter(Boolean))];
+    return sitters;
+  }catch(e){
+    // 可能是舊格式字串
+    if(typeof assignedTo==='string'&&assignedTo.includes('"sitter"')){
+      const m=assignedTo.match(/"sitter":"([^"]+)"/g);
+      if(m)return [...new Set(m.map(s=>s.replace(/"sitter":"|"/g,'')))];
+    }
+    return assignedTo?[assignedTo]:[];
+  }
+}
+
+// ── 解析時段指派，生成人類可讀文字 ──
+function parseAssignedSummary(assignedTo){
+  if(!assignedTo||assignedTo==='安排中')return '安排中';
+  try{
+    const arr=typeof assignedTo==='string'?JSON.parse(assignedTo):assignedTo;
+    if(!Array.isArray(arr)||!arr.length)return String(assignedTo);
+    const sitters=[...new Set(arr.map(x=>x.sitter).filter(Boolean))];
+    return sitters.join('、')||'安排中';
+  }catch(e){
+    return typeof assignedTo==='string'&&assignedTo.length<30?assignedTo:'安排中';
+  }
+}
+
+// ── 登入 ──
+
+
+
+
+
+function openGlobalLB(carouselId, idx){
+  var photos=_carouselPhotos[carouselId];
+  if(!photos||!photos.length){ console.warn('no photos for',carouselId); return; }
+  idx=idx||0;
+  openLB(photos[idx],'照片.jpg',photos,idx);
+}
+function openCarouselLB(slide){
+  try{
+    var photos=JSON.parse(decodeURIComponent(slide.dataset.photos||'[]'));
+    var idx=parseInt(slide.dataset.idx)||0;
+    if(photos.length) openLB(photos[idx],'照片.jpg',photos,idx);
+  }catch(e){ console.error(e); }
+}
+var _carouselPhotos={};
+
+// Carousel slide click → open lightbox
+document.addEventListener('click', function(e){
+  var slide = e.target.closest('.photo-carousel-slide');
+  if(slide){
+    e.stopPropagation();
+    var cid = slide.dataset.carouselId;
+    var si = parseInt(slide.dataset.idx) || 0;
+    var photos = _carouselPhotos[cid];
+    if(photos && photos.length){
+      openLB(photos[si], '照片.jpg', photos, si);
+    } else {
+      var img = slide.querySelector('img');
+      if(img && img.src) openLB(img.src, '照片.jpg', [img.src], 0);
+    }
+  }
+});
+
+function buildPhotoCarousel(id, photos){
+  if(!photos||!photos.length) return '';
+  _carouselPhotos[id]=photos;
+
+  // Create a unique click handler on window
+  var fnKey='_cshow_'+id.replace(/\W/g,'_');
+  window[fnKey]=function(idx){
+    var p=_carouselPhotos[id];
+    if(!p||!p.length)return;
+    _lbPhotos=p; _lbIdx=idx||0;
+    lbRender();
+    document.getElementById('lbOverlay').classList.add('show');
+  };
+
+  if(photos.length===1){
+    return '<div class="rblock"><div class="rblock-title">📸 毛孩當日美照</div>'
+      +'<div onclick="'+fnKey+'(0)" style="border-radius:14px;overflow:hidden;margin-top:8px;cursor:pointer;">'
+      +'<img src="'+photos[0]+'" style="width:100%;aspect-ratio:1;object-fit:cover;display:block;pointer-events:none;">'
+      +'</div></div>';
+  }
+
+  var slides=photos.map(function(src,i){
+    return '<div onclick="'+fnKey+'('+i+')" style="flex:0 0 100%;height:100%;cursor:pointer;">'
+      +'<img src="'+src+'" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;"></div>';
+  }).join('');
+
+  var dots=photos.map(function(_,i){
+    return '<div class="photo-carousel-dot'+(i===0?' active':'')+'" data-carousel="'+id+'" data-goto="'+i+'"></div>';
+  }).join('');
+
+  return '<div class="rblock">'
+    +'<div class="rblock-title">📸 毛孩當日美照 <span style="font-size:.72rem;color:var(--tl);">點擊放大 ‧ 左右滑動</span></div>'
+    +'<div class="photo-carousel" id="'+id+'" data-idx="0" data-total="'+photos.length+'">'
+    +'<div class="photo-carousel-track" id="'+id+'-track">'+slides+'</div>'
+    +'<div class="photo-carousel-count"><span id="'+id+'-cur">1</span>/'+photos.length+'</div>'
+    +'<div class="photo-carousel-dots" id="'+id+'-dots">'+dots+'</div>'
+    +'</div></div>';
+}
+
+function carouselGoTo(id, idx){
+  var el=document.getElementById(id);
+  if(!el)return;
+  var total=parseInt(el.dataset.total)||1;
+  idx=Math.max(0,Math.min(idx,total-1));
+  el.dataset.idx=idx;
+  var track=document.getElementById(id+'-track');
+  if(track) track.style.transform='translateX(-'+( idx*100)+'%)';
+  var cur=document.getElementById(id+'-cur');
+  if(cur) cur.textContent=idx+1;
+  var dots=document.querySelectorAll('#'+id+'-dots .photo-carousel-dot');
+  dots.forEach(function(d,i){d.classList.toggle('active',i===idx);});
+}
+function carouselPrev(id){var el=document.getElementById(id);if(el)carouselGoTo(id,parseInt(el.dataset.idx||0)-1);}
+function carouselNext(id){var el=document.getElementById(id);if(el)carouselGoTo(id,parseInt(el.dataset.idx||0)+1);}
+
+// Touch swipe for carousel
+(function(){
+  var startX=0, startId='';
+  document.addEventListener('touchstart',function(e){
+    var c2=e.target.closest('.photo-carousel');
+    if(!c2)return;
+    startX=e.touches[0].clientX;
+    startId=c2.id;
+  },{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(!startId)return;
+    var dx=e.changedTouches[0].clientX-startX;
+    if(Math.abs(dx)>40){dx<0?carouselNext(startId):carouselPrev(startId);}
+    startId='';
+  },{passive:true});
+  // carousel click handled by delegation below
+})();
+function buildOwnerPetPhotos(bk){
+  var pets=bk.petData||[];
+  var withPhoto=pets.filter(function(p){return p&&p.photo;});
+  if(!withPhoto.length) return '';
+  var items=withPhoto.map(function(p,i){
+    var name=p.name||('毛孩'+(i+1));
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">'
+      +'<img src="'+p.photo+'" class="pet-thumb" data-name="'+name+'" style="width:72px;height:72px;border-radius:50%;object-fit:cover;border:2.5px solid var(--pk3);cursor:pointer;">'
+      +'<span style="font-size:.72rem;font-weight:800;color:var(--pk);">'+name+'</span>'
+      +'</div>';
+  }).join('');
+  return '<div style="margin-top:14px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">'
+    +'<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">🐾 毛孩大頭照</div>'
+    +'<div style="padding:12px 14px;display:flex;gap:14px;flex-wrap:wrap;">'+items+'</div></div>';
+}
+function toggleDetail(id){
+  var body=document.getElementById('detail-'+id);
+  var arrow=document.getElementById('darrow-'+id);
+  if(!body)return;
+  var isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  if(arrow)arrow.classList.toggle('open',!isOpen);
+}
+
+var _lbPhotos=[], _lbIdx=0;
+
+function openLB(src, filename, allSrcs, startIdx){
+  var actualSrc=(src instanceof HTMLElement)?src.src:(typeof src==='string'?src:'');
+  if(!actualSrc)return;
+  // If allSrcs provided, use carousel mode
+  if(allSrcs&&allSrcs.length>1){
+    _lbPhotos=allSrcs;
+    _lbIdx=startIdx||0;
+  } else {
+    _lbPhotos=[actualSrc];
+    _lbIdx=0;
+  }
+  lbRender();
+  document.getElementById('lbOverlay').classList.add('show');
+}
+
+function lbRender(){
+  var src=_lbPhotos[_lbIdx]||'';
+  var img=document.getElementById('lbImg');
+  var dl=document.getElementById('lbDownload');
+  var prev=document.getElementById('lbPrev');
+  var next=document.getElementById('lbNext');
+  var count=document.getElementById('lbCount');
+  var dots=document.getElementById('lbDots');
+  if(img) img.src=src;
+  if(dl){dl.href=src;dl.download='照片'+(_lbIdx+1)+'.jpg';}
+  var multi=_lbPhotos.length>1;
+  if(prev)prev.style.display=multi?'flex':'none';
+  if(next)next.style.display=multi?'flex':'none';
+  if(count)count.textContent=multi?(_lbIdx+1)+' / '+_lbPhotos.length:'';
+  if(dots){
+    dots.innerHTML=multi?_lbPhotos.map(function(_,i){
+      return '<div style="width:8px;height:8px;border-radius:50%;cursor:pointer;background:'+(i===_lbIdx?'#fff':'rgba(255,255,255,.4)')+'" onclick="lbGoTo('+i+')"></div>';
+    }).join(''):'';
+  }
+}
+function lbOverlayClick(e){
+  if(e.target===document.getElementById('lbOverlay')) closeLB();
+}
+
+function lbNav(dir){
+  _lbIdx=(_lbIdx+dir+_lbPhotos.length)%_lbPhotos.length;
+  lbRender();
+}
+function lbGoTo(i){_lbIdx=i;lbRender();}
+
+function closeLB(){
+  document.getElementById('lbOverlay').classList.remove('show');
+  _lbPhotos=[];_lbIdx=0;
+}
+
+// Touch swipe in lightbox
+document.addEventListener('DOMContentLoaded',function(){
+  var lbOv=document.getElementById('lbOverlay');
+  if(!lbOv)return;
+  var sx=0, sy=0;
+  lbOv.addEventListener('touchstart',function(e){
+    if(e.target.closest('button')||e.target.closest('a'))return;
+    sx=e.touches[0].clientX; sy=e.touches[0].clientY||0;
+  },{passive:true});
+  lbOv.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-sx;
+    var dy=Math.abs((e.changedTouches[0].clientY||0)-sy);
+    if(Math.abs(dx)>40&&dy<80&&_lbPhotos.length>1) lbNav(dx<0?1:-1);
+  },{passive:true});
+  lbOv.addEventListener('click',function(e){
+    if(e.target===this) closeLB();
+  });
+});
+async function ownerLogin(){
+  var pw=document.getElementById('ownerPwIn').value
+    .trim()
+    .replace(/[\u200b\u00a0\ufeff]/g,'')  // 去除零寬/不換行空格
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);}) // 全形→半形
+    .replace(/　/g,' '); // 全形空格→半形
+  if(!pw){alert('請輸入密碼');return;}
+  document.getElementById('ownerErr').style.display='none';
+  var loginBtn=document.querySelector('#loginScreen .l-btn');
+  if(loginBtn){loginBtn.textContent='⏳ 驗證中...';loginBtn.disabled=true;}
+
+  let pws={};
+  try{
+    pws=await dbGetOwnerPws();
+    console.log('[login] pws count='+Object.keys(pws).length);
+  }catch(e){
+    alert('讀取密碼失敗：'+e.message);
+    if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
+    return;
+  }
+  if(loginBtn){loginBtn.textContent='進入毛孩專區 🐱';loginBtn.disabled=false;}
+
+  var matchedId=Object.keys(pws).find(function(id){
+    var stored=String(pws[id]||'').trim().replace(/[\u200b\u00a0\ufeff]/g,'');
+    return stored===pw;
+  });
+  console.log('[login] pw='+pw+' matchedId='+matchedId+' keys='+JSON.stringify(Object.keys(pws).slice(0,3)));
+  if(!matchedId){
+
+    document.getElementById('ownerErr').style.display='block';return;
+  }
+
+  let allBooks=[];
+  try{allBooks=await getB();}catch(e){alert('讀取訂單失敗：'+e.message);return;}
+
+  // matchedId from owner_passwords table (book_id field)
+  var firstBook=allBooks.find(function(x){return String(x.id)===String(matchedId);});
+  // If not found by id, try finding any order with same phone via any matched book
+  if(!firstBook){
+    console.warn('[login] direct match failed, matchedId='+matchedId+', trying all books...');
+    // The book might have a different id format - try numeric
+    firstBook=allBooks.find(function(x){return Number(x.id)===Number(matchedId);});
+  }
+  if(!firstBook){alert('找不到訂單 id='+matchedId+'\n現有ids:'+allBooks.slice(0,3).map(function(b){return b.id;}).join(','));document.getElementById('ownerErr').style.display='block';return;}
+
+  currentOwnerPhone=firstBook.ownerPhone;
+  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return String(a.id)>String(b.id)?1:-1;});
+
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainScreen').style.display='block';
+  document.getElementById('ownerDisplayName').textContent=(firstBook.ownerName||'')+'家的毛孩';
+  window._ownerLoggedIn=true;
+
+  try{
+    await renderAllOrders(myBooks);
+  }catch(e){
+    // Keep mainScreen visible even on error
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('mainScreen').style.display='block';
+    document.getElementById('ordersContainer').innerHTML=
+      '<div style="padding:20px;color:red;font-size:.82rem;">載入失敗：'+e.message
+      +'<br><br>'+e.stack.replace(/</g,'&lt;').split('\n').slice(0,5).join('<br>')+'</div>';
+  }
+}
+
+function ownerLogout(){
+  window._ownerLoggedIn=false;
+  currentOwnerPhone=null;
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('mainScreen').style.display='none';
+  document.getElementById('ownerPwIn').value='';
+  document.getElementById('ownerErr').style.display='none';
+}
+
+// ── 渲染所有訂單手風琴 ──
+// Slot tab and date accordion handled by direct onclick
+// Pet photo click delegation
+document.addEventListener('click',function(e){
+  var el=e.target.closest('.pet-thumb');
+  if(el){
+    var container=el.closest('.detail-body')||document;
+    var allThumbs=Array.from(container.querySelectorAll('.pet-thumb'));
+    var idx4=allThumbs.indexOf(el);
+    var srcs=allThumbs.map(function(t){return t.src;});
+    openLB(el.src,(el.dataset.name||'毛孩')+'照片.jpg',srcs.length>1?srcs:null,idx4>=0?idx4:0);
+  }
+});
+
+async function renderAllOrders(books){
+  var container=document.getElementById('ordersContainer');
+  if(!books.length){
+    container.innerHTML=`<div class="no-rep">找不到預約資料 🐾</div>`;
+    return;
+  }
+
+  // 取出所有訂單的 reviews（用 bookId 對應）
+  let allReviews=[];
+  try{allReviews=await dbGetReviews();}catch(e){}
+
+  container.innerHTML='';
+  for(let i=0;i<books.length;i++){
+    const bk=books[i];
+    const orderNum=`第${['一','二','三','四','五','六','七','八','九','十'][i]||i+1}單`;
+    const isFirst=(i===0);
+    const el=document.createElement('div');
+    el.className='order-accordion';
+    el.id=`order-${bk.id}`;
+
+    // 找此單的 review
+    const myReview=allReviews.find(r=>String(r.book_id||r.bookId)===String(bk.id));
+
+    try{
+      el.innerHTML=buildOrderHTML(bk,orderNum,isFirst,myReview,i);
+    }catch(err){
+      el.innerHTML='<div style="padding:14px;color:red;font-size:.8rem;">訂單載入錯誤：'+err.message+'</div>';
+      console.error('buildOrderHTML error for order',bk.id,err);
+    }
+    container.appendChild(el);
+
+    // 載入回報（非同步）
+    loadOrderReports(bk.id);
+
+    // 若為第一單且有 review，就觸發推薦碼初始化
+    if(i===0) setTimeout(()=>initReferralCode(bk.id),300);
+  }
+}
+
+function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx){
+  var svcNames=(bk.services||[]).map(s=>SVC_NAME[s]||s).join('、')||'—';
+  var sitterSummary=parseAssignedSummary(bk.assignedTo);
+  var openClass=defaultOpen?'open':'';
+
+  // 生成 info grid
+  var infoHTML=`
+    <div class="info-grid">
+      <div><div class="info-label">服務期間</div><div class="info-val">${bk.startDate||'—'} ～ ${bk.endDate||'—'}</div></div>
+      <div><div class="info-label">服務項目</div><div class="info-val">${svcNames}</div></div>
+      <div><div class="info-label">負責保母</div><div class="info-val">${parseAssignedSitters(bk.assignedTo).map(s=>`<span class="sitter-tag">🐾 ${s}</span>`).join('')||'<span style="color:var(--tl);">安排中</span>'}</div></div>
+      <div><div class="info-label">狀態</div><div class="info-val"><span class="badge ${bk.status==='完成'?'b-ok':'b-wait'}">${bk.status||'待確認'}</span></div></div>
+    </div>`;
+
+  // 好評區：有好評顯示內容；完成中/完成 顯示填寫入口
+  var reviewSection='';
+  if(myReview){
+    reviewSection=buildReviewDoneHTML(myReview,bk.id);
+  } else {
+    reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
+      +'<div style="text-align:center;padding:16px 14px;background:linear-gradient(135deg,#FFFDE7,#FFF0F5);border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
+      +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 $50 折抵券！</div>'
+      +'<div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">分享毛孩照護體驗，幫助更多飼主找到好保母 🐾</div>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評</button>'
+      +'</div>';
+  }
+
+  return `
+    <div style="margin-bottom:10px;text-align:center;">
+      <button onclick="repeatOrder('${bk.id}')"
+        style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#FF4F7B,#FF8FAB);color:#fff;border:none;border-radius:30px;font-size:1rem;font-weight:900;cursor:pointer;box-shadow:0 4px 18px rgba(255,79,123,.45);animation:repeatPulse 1.5s infinite;letter-spacing:.05em;width:100%;">
+        🔄 再次預約（一鍵帶入上次資料）
+      </button>
+    </div>
+    <div class="order-header" onclick="toggleOrder('${bk.id}')">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="order-num">📋 ${orderNum}</span>
+        <span class="order-dates">${bk.startDate||''} ～ ${bk.endDate||''}</span>
+        ${bk.status==='完成'?'<span class="badge b-ok" style="font-size:.65rem;">已完成</span>':'<span class="badge b-wait" style="font-size:.65rem;">'+String(bk.status||'待確認')+'</span>'}
+      </div>
+      <div class="order-arrow ${openClass}" id="arrow-${bk.id}">▼</div>
+    </div>
+    <div class="order-body ${openClass}" id="body-${bk.id}">
+      ${infoHTML}
+      <button class="detail-toggle-btn" onclick="event.stopPropagation();toggleDetail('${bk.id}')">
+        <span>💰 費用明細 &amp; 記錄</span>
+        <span class="detail-toggle-arrow" id="darrow-${bk.id}">▼</span>
+      </button>
+      <div class="detail-body" id="detail-${bk.id}">${(function(){try{return buildOwnerDetailHTML(bk);}catch(e){return '<div style="color:red;padding:10px;font-size:.8rem;">費用明細錯誤：'+e.message+'</div>';}})()}</div>
+      <div class="section-sub-title">🐾 保母照護回報</div>
+      <div id="reps-${bk.id}"><div class="no-rep" style="padding:20px;">載入中...</div></div>
+      ${reviewSection}
+    </div>`;
+}
+
+function repeatOrder(bookId){
+  // 用相對路徑，確保跳到同一站台的前台
+  var base=window.location.href.replace(/\/owner\.html.*$/, '/index.html');
+  var url=base+'?from='+encodeURIComponent(String(bookId));
+  window.location.href=url;
+}
+
+async function loadReviewSitters(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var rows=await res.json();
+    var settings={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      try{settings[r.key]=typeof r.value==='string'?JSON.parse(r.value):r.value;}catch(e){settings[r.key]=r.value;}
+    });
+    var sitters=settings.sitters;
+    if(Array.isArray(sitters)&&sitters.length){
+      var row=document.getElementById('rvSitterRow');
+      if(row){
+        var emojis=['🐱','🌟','☁️','🍎','🐶','🌺','🐾','💕'];
+        row.innerHTML='';
+        sitters.forEach(function(name,i){
+          var btn=document.createElement('div');
+          btn.className='rv-sitter'+(i===0?' on':'');
+          btn.setAttribute('data-name',name);
+          btn.textContent=emojis[i%emojis.length]+' '+name;
+          btn.addEventListener('click',function(){setRvSitter(this.getAttribute('data-name'),this);});
+          row.appendChild(btn);
+        });
+        if(sitters[0]) document.getElementById('ownerSitter').value=sitters[0];
+      }
+    }
+  }catch(e){console.warn('loadReviewSitters:',e);}
+}
+
+function closeRvModal(){document.getElementById("rvModal").classList.remove("show");}
+
+function openReviewForm(elOrId){
+  var bookId=typeof elOrId==='object'&&elOrId&&elOrId.dataset?elOrId.dataset.bid:String(elOrId);
+  document.getElementById('rvBookId').value=bookId;
+  // Reset form
+  document.getElementById('reviewFormSection').style.display='block';
+  document.getElementById('ownerCouponBox').style.display='none';
+  loadReviewSitters();
+  document.getElementById('rvCancelBtn').style.display='block';
+  setRvStar(5);
+  var firstSitter=document.querySelector('.rv-sitter');
+  if(firstSitter){document.querySelectorAll('.rv-sitter').forEach(function(s){s.classList.remove('on');});firstSitter.classList.add('on');document.getElementById('ownerSitter').value='Ying';}
+  var firstChip=document.querySelector('.rv-chip');
+  if(firstChip){document.querySelectorAll('.rv-chip').forEach(function(s){s.classList.remove('on');});firstChip.classList.add('on');document.getElementById('ownerBest').value=firstChip.textContent.trim();}
+  document.getElementById('ownerReviewAuthor').value='';
+  document.getElementById('ownerReviewComment').value='';
+  document.getElementById('rvModal').classList.add('show');
+}
+
+function setRvStar(n){
+  var labels=['','😞 有點失望','😐 普通','🙂 還不錯','😊 很滿意！','🥰 非常滿意！'];
+  var stars='';for(var i=1;i<=5;i++) stars+=(i<=n?'★':'☆');
+  document.getElementById('ownerRating').value=stars;
+  document.getElementById('rvStarLabel').textContent=stars+' '+labels[n];
+  document.querySelectorAll('.rv-star').forEach(function(s,i){
+    s.classList.toggle('on',i<n);
+  });
+}
+
+function setRvSitter(name,el){
+  document.getElementById('ownerSitter').value=name;
+  document.querySelectorAll('.rv-sitter').forEach(function(s){s.classList.remove('on');});
+  if(el) el.classList.add('on');
+}
+
+function setRvBest(el){
+  document.querySelectorAll('.rv-chip').forEach(function(s){s.classList.remove('on');});
+  el.classList.add('on');
+  document.getElementById('ownerBest').value=el.textContent.trim();
+}
+
+function copyOwnerCoupon(){
+  var code=document.getElementById('oCpCode').textContent;
+  if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){alert('優惠碼已複製！下次預約時輸入即可享 $50 折扣 🎉');});}
+  else alert('優惠碼：'+code+'（請截圖保存）');
+}
+
+async function submitOwnerReview(){
+  var bookId=document.getElementById('rvBookId').value;
+  var rating=document.getElementById('ownerRating').value||'★★★★★';
+  var comment=document.getElementById('ownerReviewComment').value.trim();
+  var best=document.getElementById('ownerBest').value.trim();
+  var author=document.getElementById('ownerReviewAuthor').value.trim();
+  var sitter=document.getElementById('ownerSitter').value||'';
+  if(!best){alert('請選擇最滿意的一點');return;}
+  try{
+    // 取飼主姓名
+    var ownerName=author||'飼主';
+    if(!author){
+      try{
+        var bkRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+        var bkRows=await bkRes.json();
+        var bkRow=Array.isArray(bkRows)?bkRows[0]:bkRows;
+        if(bkRow) ownerName=bkRow.owner_name||'飼主';
+      }catch(e){}
+    }
+
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        book_id:String(bookId),
+        rating:rating,
+        comment:comment,
+        best:best,
+        author:ownerName,
+        sitter:sitter,
+        approved:false,
+        ts:Date.now()
+      })
+    });
+    var j=await res.json();
+    if(j&&j.error) throw new Error(j.error);
+
+    // 檢查此飼主是否已領過好評優惠券（用手機號碼比對，同手機只給一次）
+    var alreadyHasCoupon=false;
+    var existingCpCode='';
+    try{
+      // 取得此訂單的飼主手機
+      var ownerPhone='';
+      try{
+        var bkRes2=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+        var bkData2=await bkRes2.json();
+        var bkRow2=Array.isArray(bkData2)?bkData2[0]:bkData2;
+        ownerPhone=bkRow2?bkRow2.owner_phone||'':'';
+      }catch(e){}
+
+      // 取所有 review 來源優惠券
+      var cpRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
+      var cpAll=await cpRes.json();
+      if(Array.isArray(cpAll)&&cpAll.length&&ownerPhone){
+        // 取出所有此飼主的訂單 id
+        var myOrdersRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?phone='+encodeURIComponent(ownerPhone));
+        var myOrders=await myOrdersRes.json();
+        var myOrderIds=(Array.isArray(myOrders)?myOrders:[]).map(function(o){return String(o.id);});
+        // 找有沒有 source:'review' 的優惠券屬於此飼主
+        var existingCp=cpAll.find(function(cp){
+          return cp.source==='review'&&myOrderIds.includes(String(cp.book_id||cp.bookId||''));
+        });
+        if(existingCp){
+          alreadyHasCoupon=true;
+          existingCpCode=existingCp.code||'';
+        }
+      }
+    }catch(e){}
+
+    var cpCode='';
+    var expiryStr='';
+    if(!alreadyHasCoupon){
+      // 第一次好評：產生新優惠券
+      cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
+      var expiry=new Date();expiry.setMonth(expiry.getMonth()+3);
+      expiryStr=expiry.toLocaleDateString('zh-TW');
+      try{
+        await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({
+            code:cpCode,amount:50,discount:50,
+            book_id:String(bookId),
+            expired_at:expiry.toISOString().slice(0,10),
+            used:false,source:'review'
+          })
+        });
+      }catch(e){}
+    }
+
+    // 顯示結果
+    document.getElementById('reviewFormSection').style.display='none';
+    document.getElementById('rvCancelBtn').style.display='none';
+    var cpBox=document.getElementById('ownerCouponBox');
+    if(alreadyHasCoupon){
+      // 已有優惠券：顯示提示說明
+      cpBox.innerHTML='<div style="text-align:center;padding:20px;">'
+        +'<div style="font-size:2rem;margin-bottom:10px;">🐾</div>'
+        +'<div style="font-weight:900;font-size:1.05rem;color:var(--pk);margin-bottom:10px;">感謝您的好評！</div>'
+        +'<div style="background:#FFF8F0;border:2px solid #FFD54F;border-radius:14px;padding:14px;font-size:.84rem;color:#8B5000;line-height:1.9;margin-bottom:14px;">'
+        +'⚠️ <strong>優惠碼僅限首次評論獲得</strong><br>'
+        +'您已於首次好評時領取過折抵券<br>'
+        +(existingCpCode?'您的優惠碼：<b style="font-family:monospace;font-size:.95rem;color:#B8860B;letter-spacing:2px;">'+existingCpCode+'</b><br>':'')
+        +'（每張僅限使用一次，可於下次預約輸入）'
+        +'</div>'
+        +'<button onclick="closeRvModal()" '
+        +'style="padding:10px 28px;background:var(--pk4);border:1.5px solid var(--pk3);'
+        +'color:var(--pk);border-radius:16px;font-weight:800;cursor:pointer;">關閉</button>'
+        +'</div>';
+    } else {
+      document.getElementById('oCpCode').textContent=cpCode;
+      document.getElementById('oCpDates').textContent='有效期限：'+expiryStr+' 前';
+    }
+    cpBox.style.display='block';
+
+    // 更新訂單卡片（不 reload）
+    _reviewsCache=null;_reviewsCacheTime=0;
+    setTimeout(async function(){
+      var books=await getB();
+      await renderAllOrders(books);
+    },1000);
+  }catch(e){alert('送出失敗：'+e.message);}
+}
+
+function copyRvCoupon(){
+  var code=document.getElementById('rvCouponCode').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){
+      alert('優惠碼已複製！下次預約時輸入即可享 $50 折扣 🎉');
+    });
+  } else {
+    alert('優惠碼：'+code+'（請截圖保存）');
+  }
+}
+
+function toggleOrder(bookId){
+  var body=document.getElementById(`body-${bookId}`);
+  var arrow=document.getElementById(`arrow-${bookId}`);
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+var SLOT_LABEL_MAP={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
+
+async function loadOrderReports(bookId){
+  var container=document.getElementById(`reps-${bookId}`);
+  if(!container)return;
+  try{
+    // Try both number and string forms of bookId
+    var repsRaw=await getReps(bookId);
+    if(!repsRaw.length) repsRaw=await getReps(String(bookId));
+    const reps=repsRaw.sort((a,b)=>a.ts-b.ts);
+    console.log('[loadReps] bookId='+bookId+' found='+reps.length);
+    if(!reps.length){
+      container.innerHTML=`<div class="no-rep" style="padding:16px;">📝 回報尚未上傳，保母服務後會立即更新 🌸</div>`;
+      return;
+    }
+    container.innerHTML=buildReportAccordion(reps,bookId);
+  }catch(e){
+    container.innerHTML='<div class="no-rep" style="padding:16px;color:red;">錯誤：'+e.message+'</div>';
+    console.error('loadReps error:',e);
+  }
+}
+
+
+function buildReportAccordion(reps,bookId){
+  if(!reps||!reps.length) return '<div class="no-rep">尚無回報</div>';
+  var byDate={};
+  reps.forEach(function(r){
+    var d=(r&&r.date)||'未知日期';
+    if(!byDate[d]) byDate[d]=[];
+    byDate[d].push(r);
+  });
+  var dates=Object.keys(byDate).sort();
+  return dates.map(function(date,di){
+    var dayReps=byDate[date]||[];
+    var isOpenDefault=(di===dates.length-1);
+    var dKey='dr-'+bookId+'-'+date.replace(/-/g,'');
+    var innerHtml='';
+    if(dayReps.length===1){
+      try{ innerHtml=renderReport(dayReps[0]); }
+      catch(e){ innerHtml='<div style="color:red;padding:8px;">回報顯示錯誤：'+e.message+'</div>'; }
+    } else {
+      var tabs=dayReps.map(function(r,si){
+        var slot=r&&r.slot;
+        var slotLabel=(slot&&SLOT_LABEL_MAP[slot])||(r&&r.timeStart)||('第'+(si+1)+'次');
+        return '<button class="slot-tab'+(si===0?' on':'')+'" data-dkey="'+dKey+'" data-si="'+si+'" onclick="switchSlotNew(this.dataset.dkey,parseInt(this.dataset.si))">'+slotLabel+'</button>';
+      }).join('');
+      var panels=dayReps.map(function(r,si){
+        var html='';
+        try{ html=renderReport(r); }
+        catch(e){ html='<div style="color:red;padding:8px;">'+e.message+'</div>'; }
+        return '<div class="slot-panel'+(si===0?'':' hidden')+'" id="sp-'+dKey+'-'+si+'">'+html+'</div>';
+      }).join('');
+      innerHtml='<div class="slot-tabs" id="stabs-'+dKey+'">'+tabs+'</div>'+panels;
+    }
+    var openClass=isOpenDefault?' open':'';
+    return '<div class="date-accordion" id="'+dKey+'-wrap">'
+      +'<div class="date-header" onclick="toggleDateAcc(this.dataset.dkey)" data-dkey="'+dKey+'">'
+      +'<span class="date-header-l">📅 '+date+'（'+dayReps.length+'筆回報）</span>'
+      +'<span class="date-arrow'+openClass+'" id="'+dKey+'-arrow">▼</span>'
+      +'</div>'
+      +'<div class="date-body'+openClass+'" id="'+dKey+'-body">'+innerHtml+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function toggleDateAcc(key){
+  var body=document.getElementById(key+'-body');
+  var arrow=document.getElementById(key+'-arrow');
+  if(!body)return;
+  body.classList.toggle('open');
+  if(arrow)arrow.classList.toggle('open');
+}
+
+function switchSlotNew(dKey,si){
+  // Remove all tab .on
+  var k=0;
+  while(true){
+    var t=document.querySelector('.slot-tab[data-dkey="'+dKey+'"][data-si="'+k+'"]');
+    if(!t)break;
+    t.classList.toggle('on',k===si);
+    k++;
+  }
+  // Toggle panels
+  k=0;
+  while(true){
+    var p=document.getElementById('sp-'+dKey+'-'+k);
+    if(!p)break;
+    p.classList.toggle('hidden',k!==si);
+    k++;
+  }
+  // Keep date-body open
+  var body=document.getElementById(dKey+'-body');
+  if(body)body.classList.add('open');
+}
+
+function switchSlot(dKey,idx,btn){
+  // Switch tab active
+  var tabs=document.getElementById(`stabs-${dKey}`);
+  tabs.querySelectorAll('.slot-tab').forEach((t,i)=>t.classList.toggle('on',i===idx));
+  // Show panel
+  var wrap=document.getElementById(`${dKey}-wrap`);
+  wrap.querySelectorAll('.slot-panel').forEach((p,i)=>p.classList.toggle('hidden',i!==idx));
+}
+
+
+// ── 已填好評 → 顯示好評內容＋券碼 ──
+function buildReviewDoneHTML(rv,bookId){
+  var stars=rv.rating||'★★★★★';
+  var code=rv.coupon_code||rv.couponCode||'';
+  var best=rv.best||'';
+  var comment=rv.comment||'';
+  var author=rv.author||'';
+  var pendingBadge=rv.approved===false?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>':'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
+  return `
+    <div class="section-sub-title">💬 我的好評${pendingBadge}</div>
+    <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
+      <div style="font-size:1.3rem;color:#FFB800;margin-bottom:6px;">${stars}</div>
+      ${best?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${best.split('、').map(b=>`<span class="sitter-tag">${b}</span>`).join('')}</div>`:''}
+      ${comment?`<div style="font-size:.86rem;color:var(--t);line-height:1.7;margin-bottom:6px;">「${comment}」</div>`:''}
+      ${author?`<div style="font-size:.76rem;color:var(--tl);">— ${author}</div>`:''}
+      ${code?`<div style="margin-top:12px;background:#fff;border:2px dashed #FFB800;border-radius:12px;padding:12px;text-align:center;">
+        <div style="font-size:.7rem;color:var(--tl);font-weight:700;margin-bottom:4px;">🎫 您的 $50 折抵券碼</div>
+        <div style="font-family:monospace;font-size:1.1rem;font-weight:900;color:#B8860B;letter-spacing:3px;">${code}</div>
+        <button onclick="navigator.clipboard.writeText('${code}').then(()=>alert('已複製 ✓'))"
+          style="margin-top:8px;padding:6px 18px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:10px;font-size:.8rem;font-weight:800;cursor:pointer;">
+          📋 複製券碼
+        </button>
+      </div>`:''}
+    </div>`;
+}
+
+// ── 未填好評 → 顯示好評填寫表單 ──
+function buildReviewFormHTML(bk,orderIdx){
+  var formId=`rvForm-${bk.id}`;
+  return `
+    <div class="section-sub-title">💬 分享您的好評</div>
+    <div id="${formId}">
+      <div class="rv-hero" style="padding:20px 18px;margin-bottom:14px;">
+        <div class="rv-emoji-row">🐱 💕 🐶</div>
+        <div class="rv-hero-title" style="font-size:1.05rem;">留下您的真實感受 🌸</div>
+        <div class="rv-hero-sub" style="font-size:.8rem;">您的一句話是保母最大鼓勵，也讓更多毛孩家長找到信賴的褓姆！</div>
+        <div class="rv-reward-badge" style="font-size:.85rem;padding:8px 18px;">🎁 留下好評即贈 $50 折抵券</div>
+      </div>
+
+      <!-- 星星：預設5星 -->
+      <div style="background:var(--pk4);border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div class="rv-section-label">⭐ 整體評分（預設五星）</div>
+        <div class="rv-stars" id="stars-${bk.id}">
+          <div class="rv-star" onclick="setStarFor(${bk.id},1)" data-n="1">⭐</div>
+          <div class="rv-star" onclick="setStarFor(${bk.id},2)" data-n="2">⭐</div>
+          <div class="rv-star" onclick="setStarFor(${bk.id},3)" data-n="3">⭐</div>
+          <div class="rv-star" onclick="setStarFor(${bk.id},4)" data-n="4">⭐</div>
+          <div class="rv-star on" onclick="setStarFor(${bk.id},5)" data-n="5">⭐</div>
+        </div>
+        <div class="rv-star-label" id="starLabel-${bk.id}">★★★★★ 非常滿意！</div>
+        <input type="hidden" id="rating-${bk.id}" value="★★★★★">
+      </div>
+
+      <!-- 最滿意：複選最多3項 -->
+      <div style="background:var(--pk4);border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div class="rv-section-label">💬 最滿意的地方（最多選3項）</div>
+        <div class="rv-best-grid" id="best-${bk.id}">
+          <div class="rv-chip on" onclick="toggleBestFor(${bk.id},this)">💝 保母超有愛心</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">📋 回報超詳細放心</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">✨ 毛孩狀態明顯好</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">⏰ 準時又專業</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">📸 照片影片超可愛</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">🏥 對老貓病貓有耐心</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">💰 性價比超高</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">🏠 毛孩被當自家寶貝</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">🧹 清潔前後超用心</div>
+          <div class="rv-chip" onclick="toggleBestFor(${bk.id},this)">👀 習性觀察超細心</div>
+        </div>
+      </div>
+
+      <!-- 文字 -->
+      <div style="background:var(--pk4);border-radius:14px;padding:16px;margin-bottom:12px;">
+        <div class="rv-section-label">✏️ 一句話推薦（選填）</div>
+        <input type="text" class="rv-input" id="author-${bk.id}" placeholder="您的暱稱，例：橘寶媽媽 🐱">
+        <textarea class="rv-input" id="comment-${bk.id}" rows="2"
+          placeholder="超推薦！毛孩很喜歡，保母非常用心！🐾"
+          style="resize:none;line-height:1.7;"></textarea>
+      </div>
+
+      <button class="rv-submit" onclick="submitReviewFor(${bk.id})">
+        🎁 送出好評，立即領取 $50 折抵券！
+      </button>
+    </div>`;
+}
+
+// ── 星星評分（per-order）──
+var STAR_LABELS=['','★ 還需改進','★★ 普通','★★★ 還不錯','★★★★ 很滿意','★★★★★ 非常滿意！'];
+function setStarFor(bookId,n){
+  var container=document.getElementById(`stars-${bookId}`);
+  if(!container)return;
+  container.querySelectorAll('.rv-star').forEach(s=>{
+    s.classList.toggle('on',parseInt(s.dataset.n)<=n);
+  });
+  var map={1:'★',2:'★★',3:'★★★',4:'★★★★',5:'★★★★★'};
+  document.getElementById(`rating-${bookId}`).value=map[n];
+  var lbl=document.getElementById(`starLabel-${bookId}`);
+  if(lbl)lbl.textContent=STAR_LABELS[n]||'';
+}
+
+// ── 最滿意複選（最多3項）──
+function toggleBestFor(bookId,el){
+  var grid=document.getElementById(`best-${bookId}`);
+  var checked=grid.querySelectorAll('.rv-chip.on');
+  if(!el.classList.contains('on')&&checked.length>=3){
+    el.style.animation='shake .3s ease';
+    setTimeout(()=>el.style.animation='',400);
+    return;
+  }
+  el.classList.toggle('on');
+}
+
+// ── 提交好評 ──
+async function submitReviewFor(bookId){
+  var allBooks=await getB();
+  var bk=allBooks.find(x=>x.id===bookId);
+  var petName=bk?.petData?.length?bk.petData.map(p=>p.name).join('、'):(bk?.petName||'毛孩');
+  var author=document.getElementById(`author-${bookId}`).value||`${petName}主人`;
+  var rating=document.getElementById(`rating-${bookId}`).value||'★★★★★';
+  var comment=document.getElementById(`comment-${bookId}`).value||'';
+  var bestEls=document.getElementById(`best-${bookId}`)?.querySelectorAll('.rv-chip.on')||[];
+  var best=[...bestEls].map(e=>e.textContent.trim()).join('、');
+
+  // 生成短券碼（6位英數）
+  var code=Math.random().toString(36).substring(2,8).toUpperCase();
+
+  // 儲存 review 到 Supabase
+  try{
+    await dbInsertReview({
+      book_id:bookId,
+      pet_name:petName,
+      pet_type:(bk?.catCount||0)>0?'🐱 貓咪':'🐶 狗狗',
+      sitter:parseAssignedSitters(bk?.assignedTo).join('、')||'保母',
+      rating,
+      best,
+      comment,
+      author,
+      coupon_code:code,
+      ts:Date.now()
+    });
+  }catch(e){console.error('review save error',e);}
+
+  // 儲存券碼
+  try{
+    const now=new Date();
+    const today=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+    const expire=new Date(now);expire.setFullYear(expire.getFullYear()+1);
+    const expStr=`${expire.getFullYear()}${String(expire.getMonth()+1).padStart(2,'0')}${String(expire.getDate()).padStart(2,'0')}`;
+    await dbInsertCoupon({code,pet_name:petName,amount:50,created:today,expire:expStr,used:false,author});
+  }catch(e){console.error('coupon save error',e);}
+
+  // 更新前台好評（prepend 到 index.html REVIEWS 陣列無法直接做，改為存 Supabase 讓前台讀取）
+  // 已存入 reviews 表，前台下次載入即顯示
+
+  // 替換表單為已填結果
+  var formEl=document.getElementById(`rvForm-${bookId}`);
+  if(formEl){
+    const rv={rating,best,comment,author,coupon_code:code};
+    formEl.outerHTML=buildReviewDoneHTML(rv,bookId).replace(`<div class="section-sub-title">💬 我的好評</div>`,'').trimStart();
+    // 重新插入 section title
+    const body=document.getElementById(`body-${bookId}`);
+    if(body){
+      const done=body.querySelector(`[id^="rvForm-"]`);
+      if(!done){
+        // form was replaced, find the new content
+        const newDoneHTML=buildReviewDoneHTML(rv,bookId);
+        const rvSection=body.querySelector('.section-sub-title:last-of-type');
+        if(rvSection)rvSection.insertAdjacentHTML('afterend',newDoneHTML.replace('<div class="section-sub-title">💬 我的好評</div>',''));
+      }
+    }
+  }
+
+  alert('🎉 感謝您的好評！$50 折抵券碼：'+code);
+}
+
+
+function renderReport(r){
+  var timeStr=r.timeStart?(r.timeStart+(r.timeEnd?' — '+r.timeEnd:'')):'';
+  let html=`<div class="rep-card">
+    <div class="rep-date">📅 ${r.date}${timeStr?' 　🕐 '+timeStr:''} ｜ 保母：${r.sitter}</div>`;
+
+  // 進門前消毒
+  if(r.disinfect?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🧴 進門前消毒準備</div>
+      <div class="check-list">${r.disinfect.map(d=>`<span class="check-ok">✓ ${d}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 每隻寵物個別回報
+  if(r.petReports?.length){
+    r.petReports.forEach(p=>{
+      html+=`<div class="pet-section">
+        <div class="pet-name">🐾 ${p.name}</div>
+        <div class="pet-grid">
+          <div class="pet-item"><div class="pet-item-label">整體精神</div><div class="pet-item-val">${p.spirit||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">眼睛/鼻子</div><div class="pet-item-val">${p.eyes||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">糞便狀況</div><div class="pet-item-val">${p.poop||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">尿液狀況</div><div class="pet-item-val">${p.urine||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">進食狀況</div><div class="pet-item-val">${p.food||'—'}</div></div>
+          <div class="pet-item"><div class="pet-item-label">飲水狀況</div><div class="pet-item-val">${p.water||'—'}</div></div>
+        </div>
+        ${p.emotions?.length?`<div style="margin-top:10px;"><div style="font-size:.72rem;color:var(--tl);font-weight:700;margin-bottom:6px;">💞 今日情緒</div><div>${p.emotions.map(e=>`<span class="tag">${e}</span>`).join('')}</div></div>`:''}
+        ${p.notes?`<div style="margin-top:8px;font-size:.83rem;color:var(--t);background:var(--pk4);border-radius:8px;padding:8px 10px;">✨ ${p.notes}</div>`:''}
+      </div>`;
+    });
+  }
+
+  // 今日服務
+  if(r.services?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🧹 今日服務內容</div>
+      <div class="check-list">${r.services.map(s=>`<span class="check-ok">✔ ${s}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 毛孩照片
+  if(r.petPhotos&&r.petPhotos.length){
+    const carouselId='pc-'+r.ts;
+    const photos=r.petPhotos.map(function(p){
+      // Support both {dataUrl} and {url} and plain string
+      if(typeof p==='string') return p;
+      return p.dataUrl||p.url||'';
+    }).filter(Boolean);
+    if(photos.length) html+=buildPhotoCarousel(carouselId, photos);
+  }
+
+  // 影片（支援多個）
+  var allVideos=(r.videos&&r.videos.length)?r.videos:(r.videoDataUrl||r.videoDataURL?[r.videoDataUrl||r.videoDataURL]:[]);
+  if(allVideos.length){
+    var videoHtml=allVideos.map(function(src,vi){
+      return '<div style="margin-bottom:10px;">'
+        +'<video controls style="width:100%;border-radius:14px;max-height:320px;background:#000;" src="'+src+'"></video>'
+        +'</div>';
+    }).join('');
+    html+='<div class="rblock"><div class="rblock-title">🎬 今日互動影片</div>'+videoHtml+'</div>';
+  }
+
+  // 清潔前後對比照
+  var beforePhotos=r.photos?.filter(p=>p.key.startsWith('before'));
+  var afterPhotos=r.photos?.filter(p=>p.key.startsWith('after'));
+  if(beforePhotos?.length||afterPhotos?.length){
+    const groups=[
+      {label:'貓砂',bKey:'before-litter',aKey:'after-litter'},
+      {label:'食碗/飼料',bKey:'before-food',aKey:'after-food'},
+      {label:'飲水機',bKey:'before-water',aKey:'after-water'},
+    ];
+    const compareHtml=groups.map(g=>{
+      const b=(r.photos||[]).find(p=>p.key===g.bKey);
+      const a=(r.photos||[]).find(p=>p.key===g.aKey);
+      if(!b&&!a)return '';
+      return `<div>
+        <div class="photo-group-label">🔄 ${g.label}清潔前後</div>
+        <div class="compare-row">
+          ${b?`<div class="compare-item"><img src="${b.url}" onclick="openLB(this)"><div class="clabel">清潔前</div></div>`:'<div></div>'}
+          ${a?`<div class="compare-item"><img src="${a.url}" onclick="openLB(this)"><div class="clabel">清潔後 ✅</div></div>`:'<div></div>'}
+        </div></div>`;
+    }).filter(Boolean).join('');
+    if(compareHtml){
+      html+=`<div class="rblock"><div class="rblock-title">📸 清潔前後對比</div>${compareHtml}</div>`;
+    }
+  }
+
+  // 新格式：cleanPhotos 分組顯示
+  if(r.cleanPhotos?.length){
+    // Group by groupIdx
+    const groupMap={};
+    r.cleanPhotos.forEach(p=>{
+      var gIdx=p.groupIdx!=null?p.groupIdx:0;
+      if(!groupMap[gIdx])groupMap[gIdx]={label:p.label||'清潔',before:null,after:null};
+      if(p.side==='before')groupMap[gIdx].before=p.dataUrl;
+      else groupMap[gIdx].after=p.dataUrl;
+    });
+    const groupHtml=Object.entries(groupMap).map(([idx,g])=>`
+      <div style="margin-bottom:12px;">
+        <div class="photo-group-label">🔄 ${g.label}清潔前後</div>
+        <div class="compare-row">
+          ${g.before?`<div class="compare-item"><img src="${g.before}" onclick="openLB(this)"><div class="clabel">清潔前</div></div>`:''}
+          ${g.after?`<div class="compare-item"><img src="${g.after}" onclick="openLB(this)"><div class="clabel">清潔後 ✅</div></div>`:''}
+        </div>
+      </div>`).join('');
+    if(groupHtml.trim()){
+      html+=`<div class="rblock"><div class="rblock-title">📸 清潔前後對比</div>${groupHtml}</div>`;
+    }
+  }
+
+  // 安全巡檢
+  if(r.safety?.length){
+    html+=`<div class="rblock">
+      <div class="rblock-title">🔐 離開前環境安全巡檢</div>
+      <div class="check-list">${r.safety.map(s=>`<span class="check-ok">✔ ${s}</span>`).join('')}</div>
+    </div>`;
+  }
+
+  // 保母心情日記
+  if(r.diary){
+    html+=`<div class="rblock" style="background:linear-gradient(135deg,#FFF0F5,#FFFAF0);">
+      <div class="rblock-title">💌 保母心情日記</div>
+      <div class="rblock-content" style="font-family:'Noto Serif TC','BiauKai','標楷體',serif;font-style:normal;line-height:2;letter-spacing:.04em;">${r.diary.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }
+
+  html+=`</div>`;
+  return html;
+}
+
+
+
+// ── 費用計算（常數已移入 ownerCalcDetail 函式內）──
+
+function ownerCalcDetail(bk){
+  var SVC_P={companion:300,walk:200,both:500};
+  var HOL_P={companion:450,walk:350,both:750};
+  var CNY_P={companion:600,walk:500,both:1000};
+  var CNY_SET=new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);
+  var HOL_SET=new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-12-25","2026-12-26","2026-12-27"]);
+  // 統一價目（含擦藥）
+  var ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  var SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+
+  // 解析 assignedTo 取得每日時段
+  var raw=bk.assignedTo||'';
+  var dateSlots=[];
+  if(raw){try{
+    var p=JSON.parse(raw);
+    if(Array.isArray(p)&&p.length){
+      if(p[0].slot!==undefined) dateSlots=p;
+      else if(p[0].slots!==undefined) p.forEach(function(d){(d.slots||[]).forEach(function(s){dateSlots.push({date:d.date,slot:s});});});
+    }
+  }catch(e){}}
+
+  var total=dateSlots.length||Math.max(1,(bk.tpd||1)*Math.max(1,Math.round((new Date((bk.endDate||'')+' 00:00:00')-new Date((bk.startDate||'')+' 00:00:00'))/86400000)+1));
+  var cny=0,hol=0,norm=0;
+  dateSlots.forEach(function(s){
+    if(CNY_SET.has(s.date)) cny++;
+    else if(HOL_SET.has(s.date)) hol++;
+    else norm++;
+  });
+  if(!dateSlots.length) norm=total;
+
+  var rows=[];
+
+  // ── 服務費用 ──
+  (bk.services||[]).forEach(function(k){
+    var sn=SN[k]||k;
+    if(norm>0) rows.push({label:sn+'（平日）',price:SVC_P[k]||0,times:norm,sub:(SVC_P[k]||0)*norm});
+    if(hol>0)  rows.push({label:sn+'（連假🎊）',price:HOL_P[k]||0,times:hol,sub:(HOL_P[k]||0)*hol});
+    if(cny>0)  rows.push({label:sn+'（春節🧧）',price:CNY_P[k]||0,times:cny,sub:(CNY_P[k]||0)*cny});
+  });
+
+  // ── 寵物服務加購項目（用 addonItems 各自日期）──
+  var addonItems2=bk.addonItems||[];
+  var addonSubtotal=0;
+  if(addonItems2.length){
+    rows.push({label:'🛍 寵物服務加購項目',price:'',times:'',sub:0,isSectionHeader:true});
+    addonItems2.forEach(function(item){
+      if(!item.name) return;
+      var sd2=item.startDate||bk.startDate||'';
+      var ed2=item.endDate||bk.endDate||'';
+      var itemDays=1;
+      if(sd2&&ed2){
+        var d1=new Date(sd2),d2=new Date(ed2);
+        if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1) itemDays=Math.round((d2-d1)/86400000)+1;
+      }
+      var itemSlots2=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+      var itemSessions=itemDays*itemSlots2.length;
+      var unitP=(ADDON_P[item.name]||50)*(item.qty||1);
+      var lbl=item.name+(item.qty>1?'×'+item.qty+'隻':'')+(item.petName?' ('+item.petName+')':'')
+        +' ('+itemSlots2.join('/')+' '+itemDays+'天)';
+      rows.push({label:lbl,price:unitP,times:itemSessions,sub:unitP*itemSessions});
+      addonSubtotal+=unitP*itemSessions;
+    });
+  } else {
+    (bk.addons||[]).forEach(function(a){
+      var m2=a.match(/^(.+?)[×x](\d+)/);
+      var nm=m2?m2[1].trim():a;
+      var qty=m2?parseInt(m2[2]):1;
+      var p2=(ADDON_P[nm]||50)*qty;
+      rows.push({label:a,price:p2,times:total,sub:p2*total});
+      addonSubtotal+=p2*total;
+    });
+  }
+
+  // ── 寵物加收（第4隻起）──
+  var tp=(bk.catCount||0)+(bk.dogCount||0);
+  if(tp>3){
+    var eu=100*(tp-3);
+    rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});
+  }
+
+  // ── 急件 ──
+  if(bk.urgent>0) rows.push({label:'⚡ 急件加收',price:bk.urgent,times:1,sub:bk.urgent});
+
+  // ── 車馬費 ──
+  if(bk.transport>0) rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
+
+  var adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
+  var grandTotal=rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
+    +adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
+  return {rows:rows,adjs:adjs,grandTotal:grandTotal,total:total};
+}
+
+function buildOwnerDetailHTML(bk){
+  var d=ownerCalcDetail(bk);
+  var rowsHTML=d.rows.map(function(r){
+    if(r.isSectionHeader){
+      return '<tr><td colspan="4" style="padding:8px 10px;font-weight:900;font-size:.8rem;background:#FFF9E6;color:#8B6000;border-radius:6px;">'+r.label+'</td></tr>';
+    }
+    return '<tr style="border-bottom:1px solid #FFE8F0;">'
+      +'<td style="padding:8px 10px;">'+r.label+'</td>'
+      +'<td style="padding:8px 10px;color:var(--pk);">$'+r.price+'</td>'
+      +'<td style="padding:8px 10px;color:var(--tl);">× '+r.times+'次</td>'
+      +'<td style="padding:8px 10px;font-weight:800;text-align:right;">$'+r.sub.toLocaleString()+'</td></tr>';
+  }).join('');
+  d.adjs.forEach(function(a){
+    var amt=parseInt(a.amount)||0;
+    if(amt!==0){
+      var col=amt<0?'#06C755':'#E05252';
+      var sign=amt>0?'+':'';
+      rowsHTML+='<tr style="border-bottom:1px solid #FFE8F0;">'
+        +'<td style="padding:8px 10px;">'+(amt<0?'🎫':'➕')+' '+(a.reason||'調整')+'</td>'
+        +'<td colspan="2"></td>'
+        +'<td style="padding:8px 10px;text-align:right;font-weight:900;color:'+col+';">'+sign+amt+'</td></tr>';
+    }
+  });
+
+  // Payment status
+  var paidStatus,paidColor,paidIcon;
+  if(bk.fullPaid){paidStatus='款項全收';paidColor='#06C755';paidIcon='✅';}
+  else if(bk.depositPaid){
+    var remain=Math.max(0,d.grandTotal-(bk.depositAmount||0));
+    paidStatus='已收訂金 $'+(bk.depositAmount||0)+'，剩餘 $'+remain;
+    paidColor='#FF9500';paidIcon='💰';
+  } else {paidStatus='待收款';paidColor='#E05252';paidIcon='⏳';}
+
+  var payMethodStr=bk.payMethod?('　收款方式：'+bk.payMethod):'';
+  var payNoteStr=bk.payNote?('<div style="margin-top:4px;font-size:.76rem;color:var(--tl);">備註：'+bk.payNote+'</div>'):'';
+
+  var sections=[
+    // 寵物照片
+    buildOwnerPetPhotos(bk),
+    // 費用明細
+    '<div style="margin-top:14px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">💰 費用明細</div>',
+    '<div style="overflow-x:auto;">',
+    '<table style="width:100%;border-collapse:collapse;font-size:.82rem;">',
+    '<thead><tr style="background:#FFF5F8;">',
+    '<th style="padding:8px 10px;text-align:left;color:var(--pk);">項目</th>',
+    '<th style="padding:8px 10px;text-align:left;color:var(--tl);">單價</th>',
+    '<th style="padding:8px 10px;text-align:left;color:var(--tl);">次數</th>',
+    '<th style="padding:8px 10px;text-align:right;color:var(--tl);">小計</th>',
+    '</tr></thead>',
+    '<tbody>'+rowsHTML+'</tbody>',
+    '<tfoot><tr style="background:linear-gradient(135deg,#FFF0F5,#FFFAFB);border-top:2px solid var(--pk3);">',
+    '<td colspan="3" style="padding:10px;font-weight:900;color:var(--pk);">💕 總計</td>',
+    '<td style="padding:10px;font-weight:900;color:var(--pk);font-size:1.05rem;text-align:right;">$'+d.grandTotal.toLocaleString()+'</td>',
+    '</tr></tfoot></table></div></div>',
+
+    // 款項狀態
+    '<div style="margin-top:10px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">💳 款項狀態</div>',
+    '<div style="padding:12px 14px;">',
+    '<div style="display:flex;align-items:center;gap:8px;">',
+    '<span style="font-size:1.2rem;">'+paidIcon+'</span>',
+    '<span style="font-weight:800;color:'+paidColor+';font-size:.9rem;">'+paidStatus+'</span>',
+    '</div>',
+    payMethodStr?('<div style="font-size:.78rem;color:var(--tl);margin-top:4px;">'+payMethodStr+'</div>'):'',
+    payNoteStr,
+    '</div></div>',
+
+    // 家訪資訊
+    (bk.visitDate||bk.visitNotes||bk.caution||( bk.visitPhotos&&bk.visitPhotos.length))?[
+      '<div style="margin-top:10px;background:#fff;border:1.5px solid #7DD3FC;border-radius:14px;overflow:hidden;">',
+      '<div style="padding:10px 14px;background:#F0F9FF;font-size:.8rem;font-weight:900;color:#0369A1;">🏠 家訪記錄</div>',
+      '<div style="padding:12px 14px;font-size:.84rem;line-height:1.8;">',
+      bk.visitDate?('<div>📅 家訪日期：<strong>'+bk.visitDate+'</strong></div>'):'',
+      bk.visitNotes?('<div>📝 飼主備註：'+bk.visitNotes.replace(/\n/g,'<br>')+'</div>'):'',
+      bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution.replace(/\n/g,'<br>')+'</div>'):'',
+      (bk.visitPhotos&&bk.visitPhotos.length)?
+        '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
+        +bk.visitPhotos.map(function(p,i){return '<img src="'+p+'" class="pet-thumb" data-name="家訪照片" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">';}).join('')
+        +'</div>':'',
+      '</div></div>'
+    ].join(''):'',
+
+    // ── LINE 即時通知綁定區塊 ──
+    '<div style="margin-top:10px;background:#fff;border:1.5px solid #B7F0C0;border-radius:14px;overflow:hidden;">'
+    +'<div style="padding:10px 14px;background:#F0FFF4;font-size:.8rem;font-weight:900;color:#065F46;">💬 LINE 即時通知</div>'
+    +'<div style="padding:12px 14px;">'
+    +'<div id="lineBindResult-'+bk.id+'" style="display:none;font-size:.82rem;font-weight:800;margin-bottom:8px;"></div>'
+    +(bk.ownerLineId
+      ?'<div style="font-size:.82rem;color:#06C755;font-weight:800;">✅ 已綁定 LINE，保母回報將即時推播通知您 🐾</div>'
+      :'<div style="font-size:.82rem;color:var(--tl);margin-bottom:8px;">綁定 LINE 後，保母每次回報都會立即推播通知您 📩</div>'
+       +'<button onclick="doLineLogin('+bk.id+')" style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:#06C755;color:#fff;border:none;border-radius:10px;font-weight:900;font-size:.88rem;cursor:pointer;font-family:inherit;">'
+       +'<svg width="18" height="18" viewBox="0 0 48 48" fill="white"><path d="M24 4C12.95 4 4 11.82 4 21.4c0 6.1 3.86 11.47 9.7 14.8-.43 1.6-1.56 5.8-1.79 6.7-.28 1.1.4 1.08 1 .75.48-.27 7.64-5.05 10.73-7.1.77.1 1.56.16 2.36.16 11.05 0 20-7.82 20-17.4S35.05 4 24 4z"/></svg>'
+       +'綁定 LINE 帳號</button>'
+    )
+    +'</div></div>',
+
+  ];
+
+  // Contract & Fee table section
+  sections.push(buildContractSection(bk));
+
+  return sections.join('');
+}
+
+function buildContractSection(bk){
+  var contract = bk.contractUrl||'';
+  var feeTable = bk.feeTableUrl||'';
+  if(!contract && !feeTable) return '';
+
+  function renderFile(url, label, filename){
+    if(!url) return '';
+    var isImg = url.startsWith('data:image') || /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+    var isPdf = url.startsWith('data:application/pdf') || /\.pdf$/i.test(url);
+    var isHttp = url.startsWith('http');
+    if(isImg){
+      return '<img src="'+url+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);cursor:pointer;" onclick="openLB(this.src,\''+filename+'\')"><br>'
+        +'<a href="'+url+'" download="'+filename+'" style="font-size:.74rem;color:var(--pk);text-decoration:none;">⬇️ 下載圖片</a>';
+    } else if(isPdf){
+      return '<div style="display:flex;gap:8px;">'
+        +'<a href="'+url+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看'+label+'</a>'
+        +'<a href="'+url+'" download="'+filename+'" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a>'
+        +'</div>';
+    } else if(isHttp){
+      // R2 URL - 嘗試圖片顯示，失敗就改連結
+      return '<img src="'+url+'" class="clickable-img" style="max-width:100%;border-radius:8px;border:1px solid var(--pk3);cursor:pointer;" '
+        +'onclick="openLB(this.src,\''+filename+'\')" '
+        +'onerror="this.style.display=\'none\';this.nextSibling.style.display=\'flex\'">'
+        +'<div style="display:none;gap:8px;margin-top:4px;">'
+        +'<a href="'+url+'" target="_blank" style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:10px;text-decoration:none;color:var(--pk);font-weight:800;font-size:.84rem;">📄 查看'+label+'</a>'
+        +'<a href="'+url+'" download="'+filename+'" style="padding:10px 14px;background:var(--pk);color:#fff;border-radius:10px;font-weight:800;font-size:.84rem;text-decoration:none;">⬇️</a>'
+        +'</div>';
+    }
+    return '<a href="'+url+'" target="_blank" style="color:var(--pk);">查看'+label+'</a>';
+  }
+
+  var html = ['<div style="margin-top:10px;background:#fff;border:1.5px solid var(--pk3);border-radius:14px;overflow:hidden;">',
+    '<div style="padding:10px 14px;background:var(--pk4);font-size:.8rem;font-weight:900;color:var(--pk);">📄 合約 &amp; 費用表</div>',
+    '<div style="padding:12px 14px;display:flex;flex-direction:column;gap:10px;">'];
+  if(contract){
+    html.push('<div><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">📋 服務合約書</div>');
+    html.push(renderFile(contract,'合約書','合約書'));
+    html.push('</div>');
+  }
+  if(feeTable){
+    html.push('<div><div style="font-size:.74rem;font-weight:800;color:var(--tl);margin-bottom:6px;">💰 服務費用表</div>');
+    html.push(renderFile(feeTable,'費用表','費用表'));
+    html.push('</div>');
+  }
+  html.push('</div></div>');
+  return html.join('');
+}
+async function initReferralCode(bookId){
+  if(!bookId)return;
+  var currentBookId=bookId;
+  try{
+    const _opws=await dbGetOwnerPws();
+    const pw=_opws[currentBookId]||'';
+    // Generate ref code seed from pw or bookId
+    const seed=pw||String(currentBookId);
+    const refs=await dbGetRefCodes();
+    // Find existing code for this bookId
+    let myCode=Object.keys(refs).find(k=>refs[k]&&String(refs[k].bookId)===String(currentBookId));
+    if(!myCode){
+      // Create new unique code: REF + seed chars + random
+      const randPart=Math.random().toString(36).substring(2,6).toUpperCase();
+      myCode='REF-'+seed.slice(-3)+randPart;
+      const bk=(await getB()).find(x=>x.id===currentBookId);
+      refs[myCode]={
+        bookId:currentBookId,
+        owner:bk?.ownerName||'飼主',
+        usedBy:null,usedAt:null,
+        created:new Date().toISOString()
+      };
+      await dbInsertRefCode(myCode,currentBookId,bk?.ownerName||'飼主');
+    }
+    const el=document.getElementById('myRefCode');
+    if(el) el.textContent=myCode;
+
+    // Show referral history if any successful referrals
+    const _allO=await getB();
+  const bk2=_allO.find(x=>x.id===currentBookId);
+    const ownerName=bk2?.ownerName||'';
+    const successRefs=Object.entries(refs).filter(([k,v])=>v&&v.owner===ownerName&&v.usedBy);
+    const hist=document.getElementById('refHistory');
+    if(hist){
+      if(successRefs.length>0){
+        hist.innerHTML=`<div style="background:var(--g2);border:1.5px solid var(--g);border-radius:10px;padding:10px 14px;font-size:.8rem;color:#1A7A4A;margin-top:8px;font-weight:700;">
+          ✅ 已成功推薦 ${successRefs.length} 位好友！累積獎勵 $${successRefs.length*100}
+        </div>`;
+      } else {
+        hist.innerHTML='';
+      }
+    }
+  }catch(e){console.error('initReferralCode error:',e);}
+}
+
+function copyRefCode(){
+  var code=document.getElementById('myRefCode').textContent;
+  navigator.clipboard.writeText(code).then(()=>{
+    const msg=document.getElementById('refCopyMsg');
+    msg.textContent='✅ 已複製！快分享給好朋友吧 💕';
+    setTimeout(()=>{msg.textContent='';},3000);
+  });
+}
+
+
+// ── REVIEW UI HELPERS ──
+var RV_STAR_LABELS=['','★ 一般般','★★ 還可以','★★★ 不錯喔','★★★★ 很滿意！','★★★★★ 非常滿意！'];
+let _rvStar=5;
+
+// ── dbGetReviews helper ──
+async function dbGetReviews(){
+  if(typeof _supa==='undefined')return [];
+  try{
+    const {data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
+    if(error)throw error;
+    return data||[];
+  }catch(e){console.error('dbGetReviews',e);return [];}
+}
+
+// CSS shake animation
+var _shakeStyle=document.createElement('style');
+_shakeStyle.textContent='@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}';
+document.head.appendChild(_shakeStyle);
+
+// openLB/closeLB defined above
+// ── AUTO LOGIN FROM INDEX.HTML ──
+(async function autoLoginCheck(){
+  var pw='';
+  var hash=window.location.hash;
+  if(hash && hash.startsWith('#pw=')){
+    pw=decodeURIComponent(hash.slice(4));
+    try{history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){}
+  } else {
+    pw=sessionStorage.getItem('ownerAutoLogin')||'';
+    if(pw) sessionStorage.removeItem('ownerAutoLogin');
+  }
+  if(!pw)return;
+  var inp=document.getElementById('ownerPwIn');
+  if(inp)inp.value=pw;
+  await ownerLogin();
+})();
+
+// LINE Login callback handler (also handles iOS Safari)
+(async function lineCallbackCheck(){
+  // iOS Safari: read params before any redirect
+  var search = window.location.search;
+  var params = new URLSearchParams(search);
+  var code  = params.get('code');
+  var state = params.get('state');
+  if(!code || !state) return;
+
+  // Clear URL immediately (iOS compatible)
+  try{
+    var cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+    window.history.replaceState(null, '', cleanUrl);
+  }catch(e){}
+
+  // Show status
+  function showLineStatus(msg, color){
+    var el = document.getElementById('lineBindStatus');
+    if(el){ el.textContent=msg; el.style.display='block'; el.style.color=color||'#333'; }
+    document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(r){
+      r.textContent=msg; r.style.display='block'; r.style.color=color||'#333';
+    });
+  }
+  showLineStatus('⏳ LINE 綁定中...', '#888');
+
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/line-callback', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({code:code, bookId:state})
+    });
+    var raw = await res.text();
+    var data = {};
+    try{ data = JSON.parse(raw); }catch(e){ data = {error: raw}; }
+    if(data.success){
+      showLineStatus('✅ LINE 綁定成功！正在進入毛孩專區...', '#06C755');
+      // 綁定成功：自動取得密碼並登入
+      setTimeout(async function(){
+        try{
+          // 從 owner_passwords 取得此訂單的密碼
+          var pwRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(state));
+          var pwRows=await pwRes.json();
+          var pw=Array.isArray(pwRows)&&pwRows[0]?pwRows[0].password:'';
+          if(pw){
+            // 自動填入密碼並登入
+            var input=document.getElementById('ownerPwIn');
+            if(input) input.value=pw;
+            await ownerLogin();
+          } else {
+            showLineStatus('✅ LINE 綁定成功！密碼將透過 LINE 傳送給您，請使用密碼登入 🐾','#06C755');
+          }
+        }catch(e){
+          showLineStatus('✅ LINE 綁定成功！請使用密碼登入 🐾','#06C755');
+        }
+      }, 1200);
+    } else {
+      showLineStatus('❌ 綁定失敗：'+(data.error||'未知錯誤 status='+res.status), '#E05252');
+    }
+  }catch(e){
+    showLineStatus('❌ 網路錯誤：'+e.message, '#E05252');
+  }
+})();
+
+// ── LINE Login 回調處理 ──
+
+
+
+function doLineLogin(bookId){
+  var channelId=LINE_LOGIN_CHANNEL_ID;
+  // Use clean URL without hash for iOS Safari compatibility
+  var cleanBase=window.location.protocol+'//'+window.location.host+window.location.pathname;
+  var redirectUri=encodeURIComponent(cleanBase);
+  var state=String(bookId);
+  var scope=encodeURIComponent('profile openid');
+  var url='https://access.line.me/oauth2/v2.1/authorize'
+    +'?response_type=code'
+    +'&client_id='+channelId
+    +'&redirect_uri='+redirectUri
+    +'&state='+state
+    +'&scope='+scope
+    +'&bot_prompt=normal';
+  window.location.href=url;
+}
+function showLineBindResult(msg, color){
+  // Find all lineBindResult elements
+  document.querySelectorAll('[id^="lineBindResult-"]').forEach(function(el){
+    el.textContent=msg;
+    el.style.display='block';
+    el.style.color=color||'#333';
+  });
+  var el=document.getElementById('lineBindResult');
+  if(el){el.textContent=msg;el.style.display='block';el.style.color=color||'#333';}
+}
+
+</script>
+
+<div class="lb-overlay" id="lbOverlay" onclick="lbOverlayClick(event)">
+  <div style="position:fixed;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(0,0,0,.5);z-index:10;">
+    <button onclick="closeLB()" style="background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;font-weight:800;">← 返回</button>
+    <span id="lbCount" style="color:rgba(255,255,255,.8);font-size:.84rem;font-weight:700;"></span>
+    <a id="lbDownload" download="照片.jpg" style="background:linear-gradient(135deg,var(--pk),var(--pk2));color:#fff;border:none;border-radius:8px;padding:6px 14px;font-size:.84rem;font-weight:800;text-decoration:none;cursor:pointer;">⬇️ 下載</a>
+  </div>
+  <div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding-top:60px;padding-bottom:50px;box-sizing:border-box;position:relative;">
+    <button id="lbPrev" onclick="lbNav(-1)" style="position:absolute;left:8px;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:2rem;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:5;">‹</button>
+    <img id="lbImg" src="" alt="" style="max-width:92vw;max-height:calc(100vh - 120px);border-radius:10px;object-fit:contain;display:block;">
+    <button id="lbNext" onclick="lbNav(1)" style="position:absolute;right:8px;background:rgba(255,255,255,.25);border:none;color:#fff;font-size:2rem;width:44px;height:44px;border-radius:50%;cursor:pointer;display:none;align-items:center;justify-content:center;z-index:5;">›</button>
+  </div>
+  <div id="lbDots" style="position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10;"></div>
+</div>
+
+<div class="modal-ov" id="rvModal" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="modal" style="max-width:440px;max-height:90vh;overflow-y:auto;">
+    <input type="hidden" id="rvBookId">
+
+    <!-- 填寫表單 -->
+    <div id="reviewFormSection">
+      <!-- Hero -->
+      <div class="rv-hero">
+        <div class="rv-emoji-row">🐱 💕 🐶</div>
+        <div class="rv-hero-title">毛孩回來還好嗎？<br>留下您的真實感受 🌸</div>
+        <div class="rv-hero-sub">您的一句話，是保母最大的鼓勵 💪<br>也讓更多毛孩家長找到值得信賴的褓姆！</div>
+        <div class="rv-reward-badge">🎁 留下好評即贈 <span style="font-size:1.1rem;margin:0 4px;">$50</span> 折抵券</div>
+      </div>
+
+      <!-- Step 1: 星星評分 -->
+      <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+        <div class="rv-section-label">⭐ STEP 1 · 整體評分</div>
+        <div class="rv-stars">
+          <div class="rv-star on" onclick="setRvStar(1)" id="rvs1">⭐</div>
+          <div class="rv-star on" onclick="setRvStar(2)" id="rvs2">⭐</div>
+          <div class="rv-star on" onclick="setRvStar(3)" id="rvs3">⭐</div>
+          <div class="rv-star on" onclick="setRvStar(4)" id="rvs4">⭐</div>
+          <div class="rv-star on" onclick="setRvStar(5)" id="rvs5">⭐</div>
+        </div>
+        <div class="rv-star-label" id="rvStarLabel">★★★★★ 非常滿意！</div>
+        <input type="hidden" id="ownerRating" value="★★★★★">
+      </div>
+
+      <!-- Step 2: 選保母 -->
+      <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+        <div class="rv-section-label">🧡 STEP 2 · 服務的保母</div>
+        <div class="rv-sitter-row">
+          <div id="rvSitterRow">
+            <div class="rv-sitter on" onclick="setRvSitter('Ying',this)">🐱 Ying</div>
+            <div class="rv-sitter" onclick="setRvSitter('小語',this)">🌟 小語</div>
+            <div class="rv-sitter" onclick="setRvSitter('小汶',this)">☁️ 小汶</div>
+            <div class="rv-sitter" onclick="setRvSitter('菓菓',this)">🍎 菓菓</div>
+            <div class="rv-sitter" onclick="setRvSitter('小茹',this)">🐶 小茹</div>
+            <div class="rv-sitter" onclick="setRvSitter('阿瑛',this)">🌺 阿瑛</div>
+          </div>
+        </div>
+        <input type="hidden" id="ownerSitter" value="Ying">
+      </div>
+
+      <!-- Step 3: 最滿意 -->
+      <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+        <div class="rv-section-label">💬 STEP 3 · 最滿意的一點</div>
+        <div class="rv-best-grid" id="rvBestGrid">
+          <div class="rv-chip on" onclick="setRvBest(this)">💝 保母超有愛心，毛孩很喜歡</div>
+          <div class="rv-chip" onclick="setRvBest(this)">📋 回報超詳細，出門放心</div>
+          <div class="rv-chip" onclick="setRvBest(this)">✨ 毛孩回來狀態明顯很好</div>
+          <div class="rv-chip" onclick="setRvBest(this)">⏰ 很準時，態度超專業</div>
+          <div class="rv-chip" onclick="setRvBest(this)">📸 照片影片拍得好可愛</div>
+          <div class="rv-chip" onclick="setRvBest(this)">🏥 對老貓/病貓特別有耐心</div>
+          <div class="rv-chip" onclick="setRvBest(this)">💰 服務性價比超高</div>
+          <div class="rv-chip" onclick="setRvBest(this)">🏠 毛孩被當自家寶貝對待</div>
+          <div class="rv-chip" onclick="setRvBest(this)">🧹 清潔前後對比超用心</div>
+          <div class="rv-chip" onclick="setRvBest(this)">👀 保母對習性觀察超細心</div>
+        </div>
+        <input type="hidden" id="ownerBest" value="保母超有愛心，毛孩很喜歡">
+      </div>
+
+      <!-- Step 4: 文字 -->
+      <div style="background:var(--pk4);border-radius:16px;padding:18px;margin-bottom:14px;">
+        <div class="rv-section-label">✏️ STEP 4 · 留下您的話（選填）</div>
+        <input type="text" class="rv-input" id="ownerReviewAuthor" placeholder="您的暱稱，例：橘寶媽媽 🐱">
+        <textarea class="rv-input" id="ownerReviewComment" rows="3"
+          placeholder="一句話推薦給其他毛孩家長吧！&#10;例：超推薦！毛孩很喜歡，保母非常用心！🐾"
+          style="resize:none;line-height:1.7;"></textarea>
+      </div>
+
+      <button class="rv-submit" onclick="submitOwnerReview()">
+        🎁 送出好評，立即領取 $50 折抵券！
+      </button>
+    </div>
+
+    <!-- 優惠券（送出後顯示）-->
+    <div id="ownerCouponBox" class="rv-coupon">
+      <div style="font-size:2.4rem;margin-bottom:6px;">🎉</div>
+      <div style="font-size:1.1rem;font-weight:900;color:#8B6000;margin-bottom:4px;">感謝您的好評！</div>
+      <div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 $50 折抵券碼</div>
+      <div class="rv-coupon-amount">折 $50</div>
+      <div class="rv-coupon-code" id="oCpCode"></div>
+      <div id="oCpDates" style="font-size:.7rem;color:var(--tl);margin-bottom:16px;"></div>
+      <button onclick="copyOwnerCoupon()"
+        style="padding:12px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:16px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 6px 18px rgba(255,184,0,.35);">
+        📋 複製券碼
+      </button>
+      <button onclick="document.getElementById('rvModal').classList.remove('show')"
+        style="display:block;margin:14px auto 0;background:none;border:none;color:var(--tl);font-size:.82rem;cursor:pointer;">
+        關閉
+      </button>
+    </div>
+
+    <button onclick="document.getElementById('rvModal').classList.remove('show')" class="modal-close" style="margin-top:10px;" id="rvCancelBtn">取消</button>
+  </div>
+</div>
+</body>
+</html>

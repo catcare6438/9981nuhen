@@ -315,9 +315,11 @@ async function dbMarkCouponUsed(code){
   if(error)console.error('markCouponUsed:',_errMsg(error));
 }
 async function dbGetReviews(){
-  const{data,error}=await _supa.from('reviews').select('*').order('ts',{ascending:false});
-  if(error){console.error('getReviews:',_errMsg(error));return[];}
-  return data||[];
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews');
+    var data=await res.json();
+    return Array.isArray(data)?data:[];
+  }catch(e){console.error('getReviews:',e.message);return[];}
 }
 async function dbInsertReview(rv){
   const{error}=await _supa.from('reviews').insert([rv]);
@@ -1576,21 +1578,19 @@ const PER_PAGE=6;
 
 // 將 Supabase review row 轉成 {s,t,a,p} 格式
 function dbReviewToCard(r){
-  const stars='★'.repeat(Math.min(5,Math.max(1,(r.rating||'').length||5)));
-  const petType=r.pet_type||'🐾';
-  const sitter=r.sitter?` ｜ 保母：${r.sitter}`:'';
-  return {
-    s: r.rating||'★★★★★',
-    t: r.comment||r.best||'非常滿意！推薦給大家 🐾',
-    a: r.author||r.pet_name+'主人',
-    p: `${petType} ${r.pet_name||'毛孩'}${sitter}`
-  };
+  // 支援 owner.html submitReview 存的格式
+  var rating=r.rating||'★★★★★';
+  var comment=r.comment||r.best||'非常滿意！推薦給大家 🐾';
+  var author=r.author||r.owner_name||'飼主';
+  var petInfo=r.pet_type?r.pet_type+' '+(r.pet_name||'毛孩'):'🐾 毛孩寶貝';
+  var sitter=r.sitter?' ｜ 保母：'+r.sitter:'';
+  return {s:rating, t:comment, a:author, p:petInfo+sitter};
 }
 
 // 合併 Supabase 好評（最新在前）+ 靜態好評
 var _allReviews=null;
-async function getAllReviews(){
-  if(_allReviews)return _allReviews;
+async function getAllReviews(forceRefresh){
+  if(_allReviews&&!forceRefresh)return _allReviews;
   let dbRevs=[];
   try{dbRevs=await dbGetReviews();}catch(e){}
   const dbCards=dbRevs.map(dbReviewToCard);

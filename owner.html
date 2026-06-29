@@ -1316,30 +1316,34 @@ async function submitOwnerReview(){
   var author=document.getElementById('ownerReviewAuthor').value.trim();
   var sitter=document.getElementById('ownerSitter').value||'';
   if(!best){alert('請選擇最滿意的一點');return;}
-  var stars=rating;
   try{
-    // 取得飼主姓名（從登入的訂單）
-    var ownerName='飼主';
-    try{
-      var bkRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
-      var bkRows=await bkRes.json();
-      var bkRow=Array.isArray(bkRows)?bkRows[0]:bkRows;
-      if(bkRow) ownerName=bkRow.owner_name||'飼主';
-    }catch(e){}
-    await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews',{
+    // 取飼主姓名
+    var ownerName=author||'飼主';
+    if(!author){
+      try{
+        var bkRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bookId)));
+        var bkRows=await bkRes.json();
+        var bkRow=Array.isArray(bkRows)?bkRows[0]:bkRows;
+        if(bkRow) ownerName=bkRow.owner_name||'飼主';
+      }catch(e){}
+    }
+
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         book_id:String(bookId),
-        rating:stars,
+        rating:rating,
         comment:comment,
         best:best,
-        author:author||ownerName,
+        author:ownerName,
         sitter:sitter,
+        approved:false,
         ts:Date.now()
       })
     });
-    _reviewsCache=null;_reviewsCacheTime=0;
+    var j=await res.json();
+    if(j&&j.error) throw new Error(j.error);
 
     // 產生優惠券
     var cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
@@ -1358,7 +1362,6 @@ async function submitOwnerReview(){
       });
     }catch(e){}
 
-    // 顯示優惠券（不關 modal）
     // 顯示優惠券
     document.getElementById('oCpCode').textContent=cpCode;
     document.getElementById('oCpDates').textContent='有效期限：'+expiryStr+' 前';
@@ -1366,7 +1369,8 @@ async function submitOwnerReview(){
     document.getElementById('rvCancelBtn').style.display='none';
     document.getElementById('ownerCouponBox').style.display='block';
 
-    // 重新渲染訂單列表（不 reload）
+    // 更新訂單卡片（不 reload）
+    _reviewsCache=null;_reviewsCacheTime=0;
     setTimeout(async function(){
       var books=await getB();
       await renderAllOrders(books);
@@ -1504,8 +1508,9 @@ function buildReviewDoneHTML(rv,bookId){
   var best=rv.best||'';
   var comment=rv.comment||'';
   var author=rv.author||'';
+  var pendingBadge=rv.approved===false?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>':'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
   return `
-    <div class="section-sub-title">💬 我的好評</div>
+    <div class="section-sub-title">💬 我的好評${pendingBadge}</div>
     <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
       <div style="font-size:1.3rem;color:#FFB800;margin-bottom:6px;">${stars}</div>
       ${best?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${best.split('、').map(b=>`<span class="sitter-tag">${b}</span>`).join('')}</div>`:''}

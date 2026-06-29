@@ -1616,7 +1616,7 @@ async function renderReviews6(){
   if(countEl)countEl.textContent=all.length;
   grid.innerHTML=all.slice(0,6).map(r=>`
     <div class="review-c" style="${r.real?'border-color:var(--p1);box-shadow:0 4px 16px rgba(255,143,163,.18);':''}">
-      ${r.real?'<div style="font-size:.68rem;font-weight:800;color:var(--p1);margin-bottom:4px;letter-spacing:.5px;">✅ 真實飼主好評</div>':''}
+
       <div class="review-stars">${r.s}</div>
       <div class="review-txt">「${r.t}」</div>
       <div class="review-author">— ${r.a}</div>

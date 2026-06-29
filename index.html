@@ -1943,3 +1943,624 @@ initFromSiteSettings();
 
 </body>
 </html>
+/* REVIEW FORM */
+.rev-form{background:linear-gradient(135deg,var(--p4),#FFF9E8);border:2.5px solid var(--p2);border-radius:18px;padding:24px;margin-top:24px;}
+.rev-form-title{font-size:1rem;font-weight:900;color:var(--p1);margin-bottom:16px;font-family:'Nunito',sans-serif;}
+.rev-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+@media(max-width:500px){.rev-grid{grid-template-columns:1fr;}}
+.rev-submit-btn{width:100%;padding:13px;margin-top:16px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:14px;font-size:.95rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 6px 18px rgba(255,184,0,.3);transition:all .2s;}
+.rev-submit-btn:hover{transform:translateY(-2px);}
+
+/* COUPON */
+.coupon-wrap{display:none;margin-top:20px;background:linear-gradient(135deg,#FFF8E1,#FFFDE7);border:3px dashed #FFB800;border-radius:18px;padding:24px;text-align:center;}
+.coupon-wrap.show{display:block;animation:popIn .4s ease;}
+@keyframes popIn{from{transform:scale(.85);opacity:0;}to{transform:scale(1);opacity:1;}}
+.coupon-title{font-size:1.1rem;font-weight:900;color:#B8860B;margin-bottom:12px;font-family:'Nunito',sans-serif;}
+.coupon-card{background:#fff;border:2px solid #FFB800;border-radius:14px;padding:20px;max-width:380px;margin:0 auto;box-shadow:0 4px 16px rgba(255,184,0,.2);position:relative;overflow:hidden;}
+.coupon-card::before,.coupon-card::after{content:'';position:absolute;width:24px;height:24px;background:var(--p5);border-radius:50%;top:50%;transform:translateY(-50%);border:2px solid #FFB800;}
+.coupon-card::before{left:-13px;}
+.coupon-card::after{right:-13px;}
+.coupon-amount{font-size:2.4rem;font-weight:900;color:#B8860B;font-family:'Nunito',sans-serif;}
+.coupon-pet{font-size:1rem;font-weight:800;color:var(--p1);margin:4px 0;font-family:'Nunito',sans-serif;}
+.coupon-code{font-size:.78rem;color:var(--tl);letter-spacing:1px;margin:8px 0 4px;font-family:monospace;}
+.coupon-dates{font-size:.72rem;color:var(--tl);}
+.coupon-copy-btn{margin-top:14px;padding:10px 24px;background:var(--p1);color:#fff;border:none;border-radius:12px;font-size:.85rem;font-weight:800;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;}
+.coupon-copy-btn:hover{background:#FF6B8A;}
+
+/* LIVE */
+
+@keyframes slideIn{from{transform:translateX(-20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.live-item:last-child{border:none;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(1.5);}}
+.live-badge{background:var(--p1);color:#fff;font-size:.62rem;padding:2px 7px;border-radius:10px;font-weight:800;font-family:'Nunito',sans-serif;white-space:nowrap;}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(6px);}
+.modal-ov.show{display:flex;}
+.modal{background:#fff;border-radius:26px;padding:38px 32px;text-align:center;max-width:420px;width:94%;box-shadow:0 28px 70px rgba(255,107,138,.28);animation:popIn .3s ease;}
+.modal-ico{font-size:4rem;margin-bottom:10px;}
+.modal-title{font-size:1.3rem;font-weight:900;color:var(--p1);margin-bottom:10px;font-family:'Nunito',sans-serif;}
+.modal-msg{font-size:.9rem;color:var(--tl);line-height:1.85;margin-bottom:18px;}
+.modal-line{background:#F0FFF5;border:2.5px solid #06C755;border-radius:16px;padding:15px;margin-bottom:18px;}
+.modal-line p{font-size:.8rem;color:#047A36;font-weight:800;margin-bottom:10px;font-family:'Nunito',sans-serif;}
+.line-join{display:inline-flex;align-items:center;gap:8px;background:#06C755;color:#fff;padding:11px 24px;border-radius:30px;font-weight:800;font-size:.92rem;text-decoration:none;font-family:'Nunito',sans-serif;}
+.modal-close{width:100%;padding:13px;background:var(--p1);color:#fff;border:none;border-radius:30px;font-size:.95rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;transition:all .2s;}
+.modal-close:hover{background:#FF5C7D;}
+
+footer{background:linear-gradient(135deg,var(--p3),#FFECF0);text-align:center;padding:34px 20px;border-top:4px dashed var(--p2);font-size:.84rem;color:var(--tl);position:relative;z-index:1;}
+footer .ft{font-weight:900;font-size:1.1rem;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;}
+
+/* ── REVIEWS MODAL ── */
+.rev-modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:999;
+  align-items:flex-start;justify-content:center;backdrop-filter:blur(5px);overflow-y:auto;padding:16px 0 24px;}
+.rev-modal-ov.show{display:flex;}
+.rev-modal-box{background:#fff;border:3px solid var(--p3);border-radius:26px;
+  padding:28px 22px;width:900px;max-width:98vw;margin:auto;box-shadow:0 20px 60px rgba(255,143,163,.25);}
+.rev-modal-title{font-family:'Nunito',sans-serif;font-size:1.1rem;font-weight:900;color:var(--p1);
+  margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.rev-pages-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-bottom:20px;}
+.rev-pagination{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:22px;}
+.rev-page-btn{padding:7px 14px;border:2.5px solid var(--p3);border-radius:20px;cursor:pointer;
+  font-size:.8rem;font-weight:800;background:#fff;color:var(--tl);font-family:'Nunito',sans-serif;transition:all .2s;}
+.rev-page-btn.on{background:linear-gradient(135deg,var(--p1),#FF5C7D);color:#fff;border-color:transparent;}
+/* separator */
+.rev-separator{border-top:3px dashed var(--p3);margin:20px 0;padding-top:20px;}
+/* owner login modal */
+.owner-login-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:999;
+  align-items:center;justify-content:center;backdrop-filter:blur(5px);}
+.owner-login-ov.show{display:flex;}
+.owner-login-box{background:#fff;border:3px solid var(--p3);border-radius:24px;
+  padding:36px 30px;text-align:center;max-width:380px;width:94%;box-shadow:0 20px 60px rgba(255,143,163,.25);}
+
+/* ── DATE SLOTS ── */
+.ds-row{background:var(--p4);border:2px solid var(--p3);border-radius:14px;
+  padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.ds-date{font-weight:800;color:var(--p1);font-family:'Nunito',sans-serif;
+  font-size:.9rem;min-width:90px;}
+.ds-slots{display:flex;gap:8px;flex-wrap:wrap;flex:1;}
+.ds-slot{display:flex;align-items:center;gap:5px;padding:7px 14px;
+  border:2px solid var(--p3);border-radius:24px;background:#fff;
+  cursor:pointer;transition:all .18s;font-size:.82rem;font-weight:700;
+  color:var(--tl);user-select:none;}
+.ds-slot input{display:none;}
+.ds-slot.on{background:linear-gradient(135deg,rgba(255,143,163,.12),rgba(255,224,102,.1));
+  border-color:var(--p1);color:var(--p1);}
+.ds-del{margin-left:auto;background:none;border:none;cursor:pointer;
+  color:var(--tl);font-size:1rem;padding:4px;transition:color .15s;}
+.ds-del:hover{color:var(--r);}
+
+/* ── CALC BREAKDOWN ── */
+.calc-section{margin:10px 0 4px;padding:10px 14px;background:rgba(255,143,163,.06);border-left:3px solid var(--p2);border-radius:0 8px 8px 0;}
+.calc-section-title{font-size:.7rem;font-weight:800;color:var(--tl);font-family:'Nunito',sans-serif;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px;}
+.sum-divider{border:none;border-top:1.5px dashed var(--p3);margin:8px 0;}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+
+
+// Safe error message extractor — never touches Headers or non-serialisable fields
+function _errMsg(e){
+  if(!e) return 'unknown error';
+  if(typeof e==='string') return e;
+  // Extract only plain-string fields
+  const msg=e.message||e.msg||'';
+  const code=e.code||e.status_code||'';
+  const hint=e.hint||e.details||'';
+  return [msg,code?`[${code}]`:'',hint].filter(Boolean).join(' ').trim()||'Supabase error';
+}
+
+// ── Supabase helpers ──
+async function dbGetOrders(){
+  const{data,error}=await _supa.from('orders').select('*').order('id',{ascending:false});
+  if(error){console.error('getOrders:',_errMsg(error));return[];}
+  return(data||[]).map(dbRowToOrder);
+}
+async function dbInsertOrder(b){
+  const row=orderToDbRow(b);
+  const{error}=await _supa.from('orders').insert([row]);
+  if(error){const m=_errMsg(error);console.error('insertOrder:',m);throw new Error(m);}
+}
+async function dbUpdateOrder(id,fields){
+  const row={};
+  if(fields.status!==undefined)row.status=fields.status;
+  if(fields.assigned_to!==undefined)row.assigned_to=fields.assigned_to;
+  const{error}=await _supa.from('orders').update(row).eq('id',id);
+  if(error)console.error('updateOrder:',_errMsg(error));
+}
+async function dbDeleteOrder(id){
+  const{error}=await _supa.from('orders').delete().eq('id',id);
+  if(error)console.error('deleteOrder:',_errMsg(error));
+}
+async function dbGetReports(bookId){
+  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
+  if(bookId)q=q.eq('book_id',bookId);
+  const{data,error}=await q;
+  if(error){console.error('getReports:',_errMsg(error));return[];}
+  return(data||[]).map(r=>({
+    ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,
+    date:r.date,timeStart:r.time_start,timeEnd:r.time_end,
+    petReports:r.pet_reports||[],services:r.services||[],
+    disinfect:r.disinfect||[],safety:r.safety||[],diary:r.diary||'',
+    hasVideo:false,videoDataURL:null,videoName:'',videoDuration:0
+  }));
+}
+async function dbInsertReport(r){
+  const{error}=await _supa.from('reports').insert([{
+    ts:r.ts,book_id:r.bookId,book_name:r.bookName,sitter:r.sitter,
+    date:r.date,time_start:r.timeStart,time_end:r.timeEnd,
+    pet_reports:r.petReports,services:r.services,
+    disinfect:r.disinfect,safety:r.safety,diary:r.diary
+  }]);
+  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+}
+async function dbGetCoupons(){
+  const{data,error}=await _supa.from('coupons').select('*');
+  if(error){console.error('getCoupons:',_errMsg(error));return[];}
+  return data||[];
+}
+async function dbInsertCoupon(cp){
+  const{error}=await _supa.from('coupons').insert([cp]);
+  if(error)console.error('insertCoupon:',_errMsg(error));
+}
+async function dbMarkCouponUsed(code){
+  const{error}=await _supa.from('coupons').update({used:true}).eq('code',code);
+  if(error)console.error('markCouponUsed:',_errMsg(error));
+}
+async function dbGetReviews(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews');
+    var data=await res.json();
+    return Array.isArray(data)?data:[];
+  }catch(e){console.error('getReviews:',e.message);return[];}
+}
+async function dbInsertReview(rv){
+  const{error}=await _supa.from('reviews').insert([rv]);
+  if(error)console.error('insertReview:',_errMsg(error));
+}
+async function dbGetOwnerPws(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords');
+    var rows=await res.json();
+    var map={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      map[String(r.book_id||'')]=r.password;
+    });
+    return map;
+  }catch(e){console.error('getOwnerPws:',e.message);return{};}
+}
+async function dbSetOwnerPw(bookId,pw){
+  const{error}=await _supa.from('owner_passwords').upsert([{book_id:bookId,password:pw}]);
+  if(error)console.error('setOwnerPw:',_errMsg(error));
+}
+async function dbGetRefCodes(){
+  const{data,error}=await _supa.from('referral_codes').select('*');
+  if(error){console.error('getRefCodes:',_errMsg(error));return{};}
+  const map={};(data||[]).forEach(r=>{map[r.code]={bookId:r.book_id,owner:r.owner,usedBy:r.used_by,usedAt:r.used_at};}); return map;
+}
+async function dbInsertRefCode(code,bookId,owner){
+  const{error}=await _supa.from('referral_codes').insert([{code,book_id:bookId,owner,used_by:null,used_at:null}]);
+  if(error)console.error('insertRefCode:',_errMsg(error));
+}
+async function dbMarkRefCodeUsed(code,usedBy){
+  const{error}=await _supa.from('referral_codes').update({used_by:usedBy,used_at:new Date().toISOString()}).eq('code',code);
+  if(error)console.error('markRefCodeUsed:',_errMsg(error));
+}
+
+// ── Row ↔ Object converters ──
+function orderToDbRow(b){
+  return{
+    id:b.id,ts:b.ts,
+    owner_name:b.ownerName,owner_phone:b.ownerPhone,
+    owner_line:b.ownerLine||'',owner_addr:b.ownerAddr||'',
+    pet_data:b.petData||[],cat_count:b.catCount||0,dog_count:b.dogCount||0,
+    pet_notes:b.petNotes||'',
+    start_date:b.startDate,end_date:b.endDate,
+    days:b.days||1,tpd:b.tpd||1,
+    services:b.services||[],addons:b.addons||[],
+    urgent:b.urgent||0,distance:b.distance||0,
+    transport:b.transport||0,transport_total:b.transportTotal||0,
+    is_holiday:b.isHoliday||false,
+    coupon_used:b.couponUsed||'',ref_code:b.refCode||'',
+    discounts:b.discounts||0,total:b.total||0,
+    status:b.status||'待確認',
+    assigned_to:b.assignedTo||''
+  };
+}
+function dbRowToOrder(r){
+  return{
+    id:r.id,ts:r.ts,
+    ownerName:r.owner_name,ownerPhone:r.owner_phone,
+    ownerLine:r.owner_line,ownerAddr:r.owner_addr,
+    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petNotes:r.pet_notes||'',
+    startDate:r.start_date,endDate:r.end_date,
+    days:r.days||1,tpd:r.tpd||1,
+    services:r.services||[],addons:r.addons||[],
+    urgent:r.urgent||0,distance:r.distance||0,
+    transport:r.transport||0,transportTotal:r.transport_total||0,
+    isHoliday:r.is_holiday||false,
+    couponUsed:r.coupon_used||'',refCode:r.ref_code||'',
+    discounts:r.discounts||0,total:r.total||0,
+    status:r.status||'待確認',assignedTo:r.assigned_to||'',
+    slotData:(()=>{
+      const v=r.assigned_to||'';
+      if(!v) return [];
+      try{const p=JSON.parse(v);
+        // If it's array of {date,slot,sitter} it's assignment data — handled by admin
+        // If it's array of {date,slots:[]} it's the original slot selection
+        if(Array.isArray(p)&&p.length&&p[0].slots) return p;
+      }catch(e){}
+      return [];
+    })()
+  };
+}
+</script>
+</head>
+<body>
+
+<!-- HOLIDAY BANNER -->
+<div class="holiday-banner" id="holidayBanner">🎉 連續假期特別服務期間，主要服務調整為假日價格，感謝您的支持！</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="paw-deco" id="pawDeco" style="inset:0;position:absolute;"></div>
+  <div class="hero-inner">
+    <div class="hero-deco">🐱 🐾 🐶</div>
+    <div class="hero-title">貓窩裏<br>到府寵物褓姆</div>
+    <p class="hero-sub">🌸 專業到府照顧，讓毛孩在家也被溫柔包圍</p>
+    <a class="hero-cta" href="https://line.me/R/ti/p/@099nuhen" target="_blank">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.02 2 11c0 4.18 2.76 7.73 6.76 9.29L8 22l2.09-1.28C10.7 20.88 11.35 21 12 21c5.52 0 10-4.02 10-9s-4.48-9-10-9z"/></svg>
+      加入 LINE @099nuhen
+    </a>
+  </div>
+</div>
+
+
+<!-- NAV -->
+<nav>
+  <a onclick="goTo('booking')">📋 立即預約</a>
+  <a onclick="goTo('services')">🛁 服務說明</a>
+  <a onclick="goTo('team')">👩‍⚕️ 保母團隊</a>
+  <a onclick="goTo('reviews')">⭐ 飼主好評</a>
+  <a onclick="goTo('feedback')">💌 留下好評</a>
+  <a href="admin.html">🔐 後台</a>
+  <a href="sitter.html">👩 保母登入</a>
+  <a onclick="openOwnerLogin()">🏠 毛孩爸媽</a>
+</nav>
+
+<!-- BOOKING -->
+<div class="wrap" id="booking">
+
+  <div class="card">
+    <div class="card-title">📝 飼主 & 寵物資料</div>
+    <div class="grid2">
+      <div class="field"><label>飼主姓名 <span class="req">*</span></label><input type="text" id="ownerName" placeholder="您的稱呼"></div>
+      <div class="field"><label>聯絡電話 <span class="req">*</span></label><input type="tel" id="ownerPhone" placeholder="0912-345-678"></div>
+      <div class="field"><label>LINE 暱稱或名稱</label><input type="text" id="ownerLine" placeholder="您的 LINE 顯示名稱（加好友後我們才能找到您）"></div>
+      <div class="field full"><label>服務地址 <span class="req">*</span></label>
+        <input type="text" id="ownerAddr" placeholder="例：高雄市楠梓區惠民路76號3樓">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- PET SECTION CARD -->
+  <div class="card" id="petCard">
+    <div class="card-title">🐾 寵物資料</div>
+    <!-- Pet count selectors -->
+    <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:18px;">
+      <div class="field">
+        <label>🐱 貓咪數量</label>
+        <div class="num-row" style="margin-top:5px;">
+          <button class="nbtn" onclick="adjustPetCount('cat',-1)">−</button>
+          <span class="nval" id="catCountDisp">0</span>
+          <button class="nbtn" onclick="adjustPetCount('cat',1)">＋</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>🐶 狗狗數量</label>
+        <div class="num-row" style="margin-top:5px;">
+          <button class="nbtn" onclick="adjustPetCount('dog',-1)">−</button>
+          <span class="nval" id="dogCountDisp">0</span>
+          <button class="nbtn" onclick="adjustPetCount('dog',1)">＋</button>
+        </div>
+      </div>
+    </div>
+    <!-- Dynamic pet info forms -->
+    <div id="catForms"></div>
+    <div id="dogForms"></div>
+    <!-- Extra pet surcharge notice -->
+    <div id="extraPetNotice" style="display:none;background:var(--p4);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--tl);margin-top:10px;">
+      🐾 第四隻起加收 <strong style="color:var(--p1);">+$100 / 次</strong>（已反映在費用試算）
+    </div>
+    <!-- Attention notes -->
+    <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--p3);">
+      <div class="field">
+        <label>📝 注意事項（想提醒保母的毛孩狀況）</label>
+        <textarea id="petNotes" rows="3" placeholder="例：橘寶不喜歡被碰肚子、小黑進食慢請耐心等待、花花看到陌生人會躲起來..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📅 預約日期 &amp; 每日時段</div>
+    <!-- 選開始/結束日期 -->
+    <div class="date-row" style="margin-bottom:14px;">
+      <div class="date-f">
+        <label>開始日期</label>
+        <input type="date" id="startDate" onchange="onDateRangeChange()" style="width:100%;padding:11px 14px;border:2.5px solid var(--p3);border-radius:12px;font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;transition:border .2s;" onfocus="this.style.borderColor='var(--p1)'" onblur="this.style.borderColor='var(--p3)'">
+      </div>
+      <div class="date-f">
+        <label>結束日期</label>
+        <input type="date" id="endDate" onchange="onDateRangeChange()" style="width:100%;padding:11px 14px;border:2.5px solid var(--p3);border-radius:12px;font-family:inherit;font-size:.88rem;color:var(--t);background:#fff;outline:none;transition:border .2s;" onfocus="this.style.borderColor='var(--p1)'" onblur="this.style.borderColor='var(--p3)'">
+      </div>
+    </div>
+    <div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">
+      💡 選好日期範圍後，為每天個別勾選需要的時段，每個時段計費一次
+    </div>
+    <!-- 每日時段列 (自動生成) -->
+    <div id="dateSlots" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div class="date-info" id="dateInfo" style="margin-top:12px;">請選擇日期範圍</div>
+    <div id="urgentAutoNote" style="display:none;background:var(--y2);border:1.5px solid var(--y1);
+      border-radius:10px;padding:8px 12px;font-size:.8rem;color:#7A5C00;font-weight:700;margin-top:8px;">
+      ⚡ 有日期在48小時內，將自動加計急件費用
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🐾 主要服務</div>
+    <div class="hprice-note" id="holidayNote">🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000</div>
+    <div class="svc-grid">
+      <div class="svc on" data-key="companion" data-base="300" onclick="toggleSvc(this)">
+        <div class="svc-ico">🏠</div>
+        <div class="svc-name">到府陪伴</div>
+        <div class="svc-price" id="priceCompanion">$300 / 0.5H</div>
+        <div class="svc-original" id="origCompanion"></div>
+        <div class="svc-desc">餵食・清潔・陪玩・健康觀察</div>
+      </div>
+      <div class="svc" data-key="walk" data-base="200" onclick="toggleSvc(this)">
+        <div class="svc-ico">🦮</div>
+        <div class="svc-name">散步服務</div>
+        <div class="svc-price" id="priceWalk">$200 / 0.5H</div>
+        <div class="svc-original" id="origWalk"></div>
+        <div class="svc-desc">安全外出・適度運動</div>
+      </div>
+      <div class="svc" data-key="both" data-base="500" onclick="toggleSvc(this)">
+        <div class="svc-ico">🏠🦮</div>
+        <div class="svc-name">到府＋遛狗</div>
+        <div class="svc-price" id="priceBoth">$500 / 45min</div>
+        <div class="svc-original" id="origBoth"></div>
+        <div class="svc-desc">到府陪伴＋散步/45分鐘</div>
+      </div>
+    </div>
+    <div style="font-size:.76rem;color:var(--tl);">※ 可複選多項服務</div>
+    <div id="petCountWarning" style="display:none;margin-top:8px;padding:8px 12px;background:#FFF0F5;border:1.5px solid var(--p3);border-radius:10px;font-size:.8rem;font-weight:800;color:var(--p1);"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✨ 加購服務（每次計費，多天每天收）</div>
+    <div class="pills" id="addonPills">
+      <div class="pill-qty">
+        <input type="checkbox" id="addon-feed" value="50" data-name="餵藥" onchange="updateFeedAddon()">
+        <label for="addon-feed" style="cursor:pointer;">💊 餵藥 <strong>+$50</strong>/隻</label>
+        <span class="pill-qty-label">需餵藥</span>
+        <input type="number" class="pill-qty-num" id="feed-qty" min="1" max="10" value="1" oninput="updateFeedAddon()">
+        <span class="pill-qty-label">隻</span>
+      </div>
+      <div class="pill-qty">
+        <input type="checkbox" id="addon-drop" value="50" data-name="點藥" onchange="updateDropAddon()">
+        <label for="addon-drop" style="cursor:pointer;">💧 點藥 <strong>+$50</strong>/隻</label>
+        <span class="pill-qty-label">需點藥</span>
+        <input type="number" class="pill-qty-num" id="drop-qty" min="1" max="10" value="1" oninput="updateDropAddon()">
+        <span class="pill-qty-label">隻</span>
+      </div>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="100" data-name="舒緩按摩">💆 舒緩按摩 <strong>+$100</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="剪指甲">✂️ 剪指甲 <strong>+$50</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="80" data-name="協助排便導尿">🚿 排便導尿 <strong>+$80</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="30" data-name="收信">📮 收信 <strong>+$30</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="30" data-name="澆花">🌿 澆花 <strong>+$30</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="倒垃圾">🗑️ 倒垃圾 <strong>+$50</strong></label>
+    </div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1.5px dashed var(--p3);">
+      <!-- 急件自動判斷（系統自動加計，備註顯示） -->
+      <input type="radio" name="urgent" value="0" checked style="display:none;">
+      <input type="radio" name="urgent" value="100" style="display:none;">
+      <input type="radio" name="urgent" value="200" style="display:none;">
+      <div id="urgentInfo" style="display:none;background:#FFF3CD;border:2px solid #FFB300;border-radius:10px;padding:10px 14px;font-size:.84rem;color:#7A5C00;font-weight:800;margin-top:8px;">
+        ⚡ <span id="urgentInfoText"></span>
+        <div style="font-size:.74rem;font-weight:600;margin-top:3px;color:#A07000;">費用已自動加入下方試算明細 👇</div>
+      </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🚗 車馬費計算</div>
+    <div style="margin-bottom:10px;"><a class="map-a" href="https://maps.google.com" target="_blank">🗺️ 開啟 Google Maps 查距離</a></div>
+    <div style="margin-bottom:8px;font-size:.76rem;color:var(--tl);">
+      <strong style="color:var(--p1);">📍 附近參考地標：</strong>
+    </div>
+    <div id="landmarkHints2" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <span style="font-size:.76rem;color:var(--tl);">🏥 小港醫院</span>
+      <span style="font-size:.76rem;color:var(--tl);">🪷 左營蓮池潭</span>
+      <span style="font-size:.76rem;color:var(--tl);">🌳 橋頭甲園公園</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:.86rem;color:var(--tl);">單程距離</span>
+      <input class="dist-in" type="number" id="dist" placeholder="0" min="0" step="0.1" oninput="calc()">
+      <span style="font-size:.86rem;color:var(--tl);">公里</span>
+      <span id="distLabel" style="font-size:.85rem;color:var(--p1);font-weight:800;font-family:'Nunito',sans-serif;"></span>
+    </div>
+    <div style="margin-top:9px;font-size:.76rem;color:var(--tl);" id="transportHint">🐾 5km 以內免收 ｜ 超過 5km 每多 1km 加 $50</div>
+    <div id="landmarkHints" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;">
+      <!-- 地標由後台動態載入（含 km 距離） -->
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎟 優惠 / 推薦</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="field">
+        <label>優惠券編碼（選填）</label>
+        <input type="text" id="couponCode" placeholder="輸入折抵券編碼" style="letter-spacing:1px;" oninput="calc()">
+        <div id="couponMsg" style="font-size:.74rem;color:var(--p1);font-weight:700;margin-top:4px;"></div>
+      </div>
+      <div class="field">
+        <label>好友推薦碼（選填）</label>
+        <input type="text" id="refCode" placeholder="輸入好友推薦碼" style="letter-spacing:1px;" oninput="checkRefCode()">
+        <div id="refMsg" style="font-size:.74rem;color:var(--p1);font-weight:700;margin-top:4px;"></div>
+      </div>
+    </div>
+    <div style="margin-top:12px;background:var(--y2);border:1.5px dashed var(--y1);border-radius:10px;padding:10px 14px;font-size:.78rem;color:#7A5C00;line-height:1.8;">
+      💡 首單完成後於毛孩爸媽系統留下好評即贈 <strong>$50 優惠券</strong>，可供下次使用！<br>
+      🎁 有好友推薦碼可輸入享 <strong>$50 折扣</strong>
+    </div>
+    <input type="hidden" id="notes" value="">
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧾 費用試算</div>
+    <div class="sum-box" id="sumBox"><div class="sum-row"><span>請填寫以上資料後自動計算</span><span></span></div></div>
+    <button class="submit-btn" onclick="submitBook()">🐾 送出預約申請 🐾</button>
+  </div>
+</div>
+
+<!-- SERVICES -->
+<div class="wrap" id="services" style="padding-top:0;">
+  <div class="card">
+    <div class="card-title">🛁 服務項目一覽</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+      <div style="background:var(--p4);border-radius:16px;padding:18px;">
+        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableCompanion">🏠 到府陪伴 $300/0.5H</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 餵食<br>✦ 環境清潔<br>✦ 陪玩互動<br>✦ 身體狀況觀察</div>
+      </div>
+      <div style="background:var(--p4);border-radius:16px;padding:18px;">
+        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableWalk">🦮 散步服務 $200/0.5H</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 安全外出散步<br>✦ 適度運動消耗<br>✦ 社交互動觀察</div>
+      </div>
+      <div style="background:#FFF7E0;border-radius:16px;padding:18px;">
+        <div style="font-weight:900;color:#B8860B;margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableBoth">🏠🦮 到府＋遛狗 $500/45min</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 以上服務全包<br>✦ 超值組合方案</div>
+      </div>
+      <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
+        <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
+        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);" id="svcTableAddon">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前3隻免加收 ｜ 第4隻起 +$100/隻</div>
+      </div>
+    </div>
+    <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
+      ⚡ 急件加收：24-48H +$100 ｜ 24H內 +$200<br>🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000<br>💬 其他服務歡迎 LINE 詳談：<strong>@099nuhen</strong>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM -->
+<div class="wrap" id="team" style="padding-top:0;">
+  <div class="card">
+    <div class="card-title">👩‍⚕️ 保母團隊介紹</div>
+    <div class="team-grid">
+      <div class="team-c"><div class="team-av">👩‍⚕️</div><div class="team-name">May</div><div class="team-badge consult">✦ 醫療顧問 不接案</div><div class="team-desc">現役護理師，擁有數十年豐富的貓咪照護資歷。醫療背景讓她能精準判斷毛孩健康狀況，是全團隊最強力的諮詢後盾。</div></div>
+      <div class="team-c"><div class="team-av">🐱</div><div class="team-name">Ying</div><div class="team-badge">資深貓咪照護</div><div class="team-desc">深耕貓咪日常照護逾10年，老年貓照護實戰經驗豐富，曾協助多位飼主學習居家皮下點滴，溫柔有耐心是她的招牌。</div></div>
+      <div class="team-c"><div class="team-av">🐶</div><div class="team-name">小語</div><div class="team-badge">資深犬貓保母</div><div class="team-desc">多年犬系照護，以細膩之心奶大無數幼貓。堅持一匙匙親手餵食，專屬一對一陪伴，建立毛孩信任並精準把關健康。用認真專業的態度對待每位毛孩。</div></div>
+      <div class="team-c"><div class="team-av">🌟</div><div class="team-name">小汶</div><div class="team-badge">老年寵物照護</div><div class="team-desc">前安養機構寵物照護助理，擅長評估老齡毛孩生活需求，日常輔助與情緒陪伴細膩到位，讓毛孩安心又舒適。</div></div>
+      <div class="team-c"><div class="team-av">🍎</div><div class="team-name">菓菓</div><div class="team-badge">中途志工</div><div class="team-desc">家中養有四隻貓，中途期間磨練出餵藥、清潔消毒、環境管理等多樣技能，衛生觀念一流，飼主最放心的夥伴。</div></div>
+      <div class="team-c"><div class="team-av">🐕</div><div class="team-name">小茹</div><div class="team-badge">中途志工</div><div class="team-desc">家有一隻狗狗的愛心志工，貓狗日常照護均有充足實際操作經驗，天生溫柔讓毛孩很快對她卸下心防。</div></div>
+      <div class="team-c"><div class="team-av">🌺</div><div class="team-name">阿瑛</div><div class="team-badge">中途志工</div><div class="team-desc">長期深耕中途志工服務，對貓狗習性與情緒變化觀察敏銳，照顧時細心謹慎，讓每隻毛孩都感受到被認真對待的溫暖。</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- REVIEWS -->
+<div class="wrap" id="reviews" style="padding-top:0;">
+  <div class="card">
+    <div class="card-title">⭐ 飼主真實好評</div>
+    <div class="reviews-grid" id="reviewsGrid6"></div>
+    <div style="text-align:center;margin-top:18px;">
+      <button onclick="openReviewsModal()" style="padding:11px 28px;background:linear-gradient(135deg,var(--p1),#FF5C7D);color:#fff;border:none;border-radius:24px;font-size:.88rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 4px 14px rgba(255,92,125,.28);transition:all .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">
+        查看更多好評 →
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="ft">🐾 貓窩裏 到府寵物褓姆</div>
+  <div>LINE 官方帳號：<strong>@099nuhen</strong></div>
+  <div style="margin-top:6px;font-size:.76rem;">© 2025 貓窩裏 · 讓每隻毛孩都被溫柔對待 💕</div>
+</footer>
+
+<div class="modal-ov" id="modalOv">
+  <div class="modal">
+    <div class="modal-ico">🐾</div>
+    <div class="modal-title">預約申請已送出！</div>
+    <div class="modal-msg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出！3秒後將自動跳轉 LINE 授權，完成綁定後即可查看每日照護回報 🐾</div>
+    <div class="modal-line"><a class="line-join" href="https://line.me/R/ti/p/@099nuhen" target="_blank" style="font-size:1rem;padding:14px 28px;display:inline-flex;align-items:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.02 2 11c0 4.18 2.76 7.73 6.76 9.29L8 22l2.09-1.28C10.7 20.88 11.35 21 12 21c5.52 0 10-4.02 10-9s-4.48-9-10-9z"/></svg>加入 @099nuhen</a>
+    <div style="background:linear-gradient(135deg,#F0FFF4,#FFFDE7);border:2px solid #4CAF50;border-radius:14px;padding:14px 16px;margin-top:12px;font-size:.84rem;color:#1a1a1a;line-height:2;">
+      <div style="font-weight:900;font-size:.95rem;color:#2E7D32;margin-bottom:6px;">📲 即將跳轉綁定 LINE</div>
+      <div style="color:#555;">綁定後您將能即時收到：</div>
+      <div>🔵 &nbsp;保母<strong>到達</strong>通知</div>
+      <div>🔴 &nbsp;保母<strong>離開</strong>通知</div>
+      <div>📋 &nbsp;每日<strong>毛孩照護回報</strong>完成通知</div>
+      <div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px dashed #4CAF50;font-size:.78rem;color:#666;">
+        ⏱ <span id="lineBindCountdown">10</span> 秒後自動跳轉 LINE 授權頁面<br>
+        （授權後即可第一時間收到毛孩消息 🐾）
+      </div>
+    </div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">好的，謝謝 🌸</button>
+  </div>
+</div>
+
+
+
+<!-- PET COUNT MODAL -->
+<div class="modal-ov" id="petCountModal">
+  <div class="modal">
+    <div class="modal-ico">🐾</div>
+    <div class="modal-title">寵物數量提醒</div>
+    <div class="modal-msg" id="petCountModalText" style="font-size:.95rem;line-height:1.8;color:#333;"></div>
+    <div style="margin-top:12px;padding:10px 14px;background:#FFF0F5;border-radius:10px;font-size:.8rem;color:var(--p1);font-weight:800;">
+      5～8隻寵物 → 請選「🏠🦮 到府+遛狗（1小時）」<br>
+      此方案不另加收寵物加收費 🎉
+    </div>
+    <button class="modal-close" onclick="document.getElementById('petCountModal').classList.remove('show')" style="margin-top:14px;">了解，我去選一小時方案 🐾</button>
+  </div>
+</div>
+
+<!-- REVIEWS MODAL -->
+<div class="rev-modal-ov" id="revModalOv">
+  <div class="rev-modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <div class="rev-modal-title">⭐ 飼主好評（共 50 則）</div>
+      <button onclick="document.getElementById('revModalOv').classList.remove('show')" style="background:var(--p4);border:2px solid var(--p3);border-radius:20px;padding:6px 14px;font-size:.8rem;font-weight:800;cursor:pointer;color:var(--tl);">✕ 關閉</button>
+    </div>
+    <div class="rev-pagination" id="revPagination"></div>
+    <div class="rev-pages-grid" id="revModalGrid"></div>
+    <div class="rev-separator">
+      <div style="font-size:.9rem;font-weight:800;color:var(--p1);text-align:center;padding:10px;font-family:'Nunito',sans-serif;">
+        💌 成為會員後（毛孩爸媽系統）即可留下好評並獲得 $50 折抵券！
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OWNER LOGIN MODAL -->
+<div class="owner-login-ov" id="ownerLoginOv">
+  <div class="owner-login-box">
+    <div style="font-size:2.8rem;margin-bottom:10px;">🏠</div>
+    <div style="font-family:'Nunito',sans-serif;font-size:1.3rem;font-weight:900;color:var(--p1);margin-bottom:8px;">毛孩爸媽專區</div>
+    <div style="background:var(--p4);border:1.5px solid var(--p3);border-radius:12px;padding:12px;font-size:.8rem;color:var(--tl);margin-bottom:18px;line-height:1.6;">
+      📢 請加入 LINE 官方帳號取得登入密碼<br>
+      <strong style="color:#06C755;">@099nuhen</strong><br>
+      <span style="color:#C05000;font-size:.74rem;">下單預約成功才有會員哦～</span>
+    </div>
+    <input type="text" id="ownerPwField" placeholder="輸入您的專屬密碼" onkeydown="if(event.key==='Enter')doOwnerLogin()"
+      style="width:100%;padding:12px 16px;border:2.5px solid var(--p3);border-radius:12px;font-size:.95rem;font-family:inherit;text-align:center;letter-spacing:3px;outline:none;margin-bottom:10px;">
+    <div id="ownerPwErr" style="color:#F87171;font-size:.78rem;margin-bottom:10px;"></div>
+    <button onclick="doOwnerLogin()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF5C7D,var(--p1));color:#fff;border:none;border-radius:12px;font-size:1rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;margin-bottom:8px;">進入毛孩專區 🐱</button>
+    <button onclick="closeOwnerLogin()" style="width:100%;padding:10px;background:var(--p4);border:2px solid var(--p3);border-radius:12px;font-size:.85rem;font-weight:700;font-family:'Nunito',sans-serif;cursor:pointer;color:var(--tl);">取消</button>
+  </div>
+</div>
+
+</body>
+</html>

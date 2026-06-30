@@ -717,7 +717,7 @@ function dbRowToOrder(r){
 
 <script>
 // ── 全域費用設定（由後台 site_settings 動態更新）──
-// BASES 已移除，改用 SVCBASE
+// SVCBASE 已移除，改用 SVCBASE
 var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
 
@@ -1036,27 +1036,27 @@ function updateHolidayUI(){
   if(banner) banner.style.display=isHoliday?'block':'none';
   if(note) note.classList.toggle('show',isHoliday);
 
-  // 費用設定由全域 BASES/ADDON_PRICES/TRANSPORT_RATES 提供
+  // 費用設定由全域 SVCBASE/ADDON_PRICES/TRANSPORT_RATES 提供
   const NAMES={companion:'priceCompanion',walk:'priceWalk',both:'priceBoth'};
   const ORIGS={companion:'origCompanion',walk:'origWalk',both:'origBoth'};
   const LABELS={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
-  Object.keys(BASES).forEach(k=>{
+  Object.keys(SVCBASE).forEach(k=>{
     const el=document.getElementById(NAMES[k]);
     const orig=document.getElementById(ORIGS[k]);
       const hasCny=dateSlots.some(d=>CNY_HOLIDAYS.has(d.date));
     const hasOtherHol=!hasCny&&dateSlots.some(d=>OTHER_HOLIDAYS.has(d.date));
-    const p=hasCny?CNY_PRICES[k]:hasOtherHol?HOLIDAY_PRICES[k]:BASES[k];
+    const p=hasCny?CNY_PRICES[k]:hasOtherHol?HOLIDAY_PRICES[k]:SVCBASE[k];
     const unit=k==='both'?'/45min':'/0.5H';
     if(hasCny){
       el.textContent=`$${p} ${unit}`;
-      orig.textContent=`平日 $${BASES[k]}`;
+      orig.textContent=`平日 $${SVCBASE[k]}`;
       orig.style.display='block';
     } else if(hasOtherHol){
       el.textContent=`$${p} ${unit}`;
-      orig.textContent=`平日 $${BASES[k]}`;
+      orig.textContent=`平日 $${SVCBASE[k]}`;
       orig.style.display='block';
     } else {
-      el.textContent=`$${BASES[k]} ${unit}`;
+      el.textContent=`$${SVCBASE[k]} ${unit}`;
       orig.style.display='none';
     }
   });
@@ -1717,10 +1717,22 @@ async function initFromSiteSettings(){
     // ── 服務價格 ──
     if(settings.svc_prices&&Array.isArray(settings.svc_prices)){
       var normal=settings.svc_prices.find(function(p){return p.label==='平日';});
+      var holiday=settings.svc_prices.find(function(p){return p.label==='連假';});
+      var cny=settings.svc_prices.find(function(p){return p.label==='春節';});
       if(normal){
         SVCBASE.companion=Number(normal.companion)||300;
         SVCBASE.walk=Number(normal.walk)||200;
         SVCBASE.both=Number(normal.both)||500;
+      }
+      if(holiday){
+        HOLIDAY_PRICES.companion=Number(holiday.companion)||450;
+        HOLIDAY_PRICES.walk=Number(holiday.walk)||350;
+        HOLIDAY_PRICES.both=Number(holiday.both)||750;
+      }
+      if(cny){
+        CNY_PRICES.companion=Number(cny.companion)||600;
+        CNY_PRICES.walk=Number(cny.walk)||500;
+        CNY_PRICES.both=Number(cny.both)||1000;
       }
       var cpEl=document.getElementById('priceCompanion');
       var wkEl=document.getElementById('priceWalk');

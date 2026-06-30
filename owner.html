@@ -1369,7 +1369,17 @@ function openReviewForm(elOrId){
   document.getElementById('rvBookId').value=bookId;
   // Reset form
   document.getElementById('reviewFormSection').style.display='block';
-  document.getElementById('ownerCouponBox').style.display='none';
+  var cpBoxReset=document.getElementById('ownerCouponBox');
+  cpBoxReset.style.display='none';
+  // 重置優惠券區塊內容，避免上次「已有優惠券」分支殘留的 HTML 蓋掉原本的 #oCpCode/#oCpDates 結構
+  cpBoxReset.innerHTML='<div style="font-size:2.4rem;margin-bottom:6px;">🎉</div>'
+    +'<div style="font-size:1.1rem;font-weight:900;color:#8B6000;margin-bottom:4px;">感謝您的好評！</div>'
+    +'<div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 $50 折抵券碼</div>'
+    +'<div class="rv-coupon-amount">折 $50</div>'
+    +'<div class="rv-coupon-code" id="oCpCode"></div>'
+    +'<div id="oCpDates" style="font-size:.7rem;color:var(--tl);margin-bottom:16px;"></div>'
+    +'<button onclick="copyOwnerCoupon()" style="padding:12px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:16px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 6px 18px rgba(255,184,0,.35);">📋 複製券碼</button>'
+    +'<button onclick="document.getElementById(\'rvModal\').classList.remove(\'show\')" style="display:block;margin:14px auto 0;background:none;border:none;color:var(--tl);font-size:.82rem;cursor:pointer;">關閉</button>';
   loadReviewSitters();
   document.getElementById('rvCancelBtn').style.display='block';
   setRvStar(5);
@@ -1533,8 +1543,10 @@ async function submitOwnerReview(){
         +'color:var(--pk);border-radius:16px;font-weight:800;cursor:pointer;">關閉</button>'
         +'</div>';
     } else {
-      document.getElementById('oCpCode').textContent=cpCode;
-      document.getElementById('oCpDates').textContent='有效期限：'+expiryStr+' 前';
+      var cpCodeEl=document.getElementById('oCpCode');
+      var cpDatesEl=document.getElementById('oCpDates');
+      if(cpCodeEl) cpCodeEl.textContent=cpCode;
+      if(cpDatesEl) cpDatesEl.textContent='有效期限：'+expiryStr+' 前';
     }
     cpBox.style.display='block';
 

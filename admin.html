@@ -2853,7 +2853,7 @@ function goPage(page,el){
 async function loadSiteSettings(){
   if(!_siteSettings) _siteSettings={};
   try{
-    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?_t='+Date.now(),{cache:'no-store'});
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{cache:'no-store'});
     var data=await res.json();
     if(!Array.isArray(data)){
       console.warn('loadSiteSettings: 回傳格式異常',data);
@@ -3017,7 +3017,7 @@ async function savePrices(){
     await saveSiteSetting('svc_prices',val);
 
     // 驗證：重新從 Worker 撈取確認資料真的寫入
-    var verifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key=svc_prices');
+    var verifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key=svc_prices',{cache:'no-store'});
     var verifyData=await verifyRes.json();
     console.log('[savePrices] 驗證寫入結果:',JSON.stringify(verifyData));
 

@@ -1955,7 +1955,19 @@ function renderSettingsPage(){
     +'</div>'
     +'</div>';
 
-  // 地標
+  // ── 價目補充說明（急件加收／連假特別價／春節過年／其他服務聯絡方式）──
+  var extraNoticeHtml=(typeof _siteSettings.extra_notice_html==='string'&&_siteSettings.extra_notice_html)
+    ? _siteSettings.extra_notice_html
+    : '⚡ 急件加收：24-48H +$100 ｜ 24H內 +$200<br>🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000<br>💬 其他服務歡迎 LINE 詳談：<strong>@099nuhen</strong>';
+  html+='<div class="detail-section">'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">📋 價目補充說明（首頁服務價目下方小提示）</div>'
+    +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:8px;">可使用 &lt;br&gt; 換行、&lt;strong&gt;文字&lt;/strong&gt; 加粗，會直接顯示在首頁服務價目卡片下方的提示框內。</div>'
+    +'<textarea id="extra-notice-input" rows="4" style="width:100%;padding:8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.84rem;box-sizing:border-box;font-family:inherit;">'+extraNoticeHtml.replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'
+    +'<div style="margin-top:10px;">'
+    +'<button onclick="saveExtraNotice()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="extra-notice-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
+    +'</div>';
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">📍 附近參考地標</div>';
   html+='<div id="lm-list">';
   lmP.forEach(function(l,i){
@@ -3157,6 +3169,16 @@ async function savePetFees(){
   try{
     await saveSiteSetting('pet_extra_fees',{free:freeCount,unit:unitPrice});
     var msg=document.getElementById('pet-fee-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+
+async function saveExtraNotice(){
+  var el=document.getElementById('extra-notice-input');
+  if(!el) return;
+  try{
+    await saveSiteSetting('extra_notice_html', el.value);
+    var msg=document.getElementById('extra-notice-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
 }

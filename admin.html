@@ -1840,6 +1840,43 @@ function renderSettingsPage(){
     +'<button onclick="savePrices()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存價格</button>'
     +'<span id="sp-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
 
+  // ── 服務項目內容編輯（圖示/名稱/小字說明/一覽表細項）──
+  var svcItems=_siteSettings.svc_items||[
+    {key:'companion',icon:'🏠',name:'到府陪伴',desc:'餵食・清潔・陪玩・健康觀察',unit:'/0.5H',
+     detailTitle:'🏠 到府陪伴',detailItems:['餵食','環境清潔','陪玩互動','身體狀況觀察']},
+    {key:'walk',icon:'🦮',name:'散步服務',desc:'安全外出・適度運動',unit:'/0.5H',
+     detailTitle:'🦮 散步服務',detailItems:['安全外出散步','適度運動消耗','社交互動觀察']},
+    {key:'both',icon:'🏠🦮',name:'到府＋遛狗',desc:'到府陪伴＋散步/45分鐘',unit:'/45min',
+     detailTitle:'🏠🦮 到府＋遛狗',detailItems:['以上服務全包','超值組合方案']}
+  ];
+
+  html+='<div class="detail-section">'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🛁 服務項目內容編輯</div>'
+    +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">編輯每項服務的圖示、名稱、小字說明，以及「服務項目一覽」區塊顯示的詳細內容</div>'
+    +'<div id="svc-item-list">';
+  svcItems.forEach(function(item,i){
+    var detailStr=(item.detailItems||[]).join('、');
+    html+='<div class="svc-item-row" data-key="'+item.key+'" style="background:#fff;border:1.5px solid var(--pk3);border-radius:12px;padding:14px;margin-bottom:10px;">'
+      +'<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+      +'<input type="text" class="si-icon" value="'+(item.icon||'')+'" placeholder="圖示" style="width:60px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;text-align:center;font-size:.95rem;">'
+      +'<input type="text" class="si-name" value="'+(item.name||'')+'" placeholder="服務名稱" style="flex:1;min-width:100px;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.86rem;font-weight:700;">'
+      +'<input type="text" class="si-unit" value="'+(item.unit||'')+'" placeholder="單位 例:/0.5H" style="width:110px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;">'
+      +'<input type="text" class="si-key" value="'+(item.key||'')+'" placeholder="代碼(英文,唯一)" style="width:110px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;font-family:monospace;">'
+      +'<button onclick="removeSvcItemRow(this)" style="padding:6px 12px;background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;font-size:.76rem;cursor:pointer;">✕ 刪除</button>'
+      +'</div>'
+      +'<input type="text" class="si-desc" value="'+(item.desc||'')+'" placeholder="卡片小字說明(如:餵食・清潔・陪玩)" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;margin-bottom:6px;box-sizing:border-box;">'
+      +'<input type="text" class="si-details" value="'+detailStr+'" placeholder="一覽表細項(用、分隔，如:安全外出散步、適度運動消耗)" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.78rem;box-sizing:border-box;">'
+      +'</div>';
+  });
+  html+='</div>'
+    +'<div style="margin-top:8px;">'
+    +'<button onclick="addSvcItemRow()" style="padding:7px 16px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;margin-right:8px;">＋ 新增服務項目</button>'
+    +'<button onclick="saveSvcItems2()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存服務內容</button>'
+    +'<span id="si-msg2" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
+    +'</div>';
+
+
   // 附加服務
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">➕ 附加服務項目與價格</div>';
   html+='<div id="addon-list" style="overflow-x:auto;">';
@@ -2995,6 +3032,56 @@ function addSvcPriceRow(){
     +'<td style="padding:4px;border:1px solid var(--pk3);text-align:center;">'
     +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:3px 8px;cursor:pointer;font-size:.72rem;">刪除</button></td>';
   tbody.appendChild(tr);
+}
+
+function addSvcItemRow(){
+  var list=document.getElementById('svc-item-list');
+  if(!list) return;
+  var div=document.createElement('div');
+  div.className='svc-item-row';
+  div.style.cssText='background:#fff;border:1.5px solid var(--pk3);border-radius:12px;padding:14px;margin-bottom:10px;';
+  div.innerHTML='<div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">'
+    +'<input type="text" class="si-icon" placeholder="圖示" style="width:60px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;text-align:center;font-size:.95rem;">'
+    +'<input type="text" class="si-name" placeholder="服務名稱" style="flex:1;min-width:100px;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.86rem;font-weight:700;">'
+    +'<input type="text" class="si-unit" placeholder="單位 例:/0.5H" style="width:110px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;">'
+    +'<input type="text" class="si-key" placeholder="代碼(英文,唯一)" style="width:110px;padding:6px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;font-family:monospace;">'
+    +'<button onclick="removeSvcItemRow(this)" style="padding:6px 12px;background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;font-size:.76rem;cursor:pointer;">✕ 刪除</button>'
+    +'</div>'
+    +'<input type="text" class="si-desc" placeholder="卡片小字說明(如:餵食・清潔・陪玩)" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.8rem;margin-bottom:6px;box-sizing:border-box;">'
+    +'<input type="text" class="si-details" placeholder="一覽表細項(用、分隔)" style="width:100%;padding:6px 10px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.78rem;box-sizing:border-box;">';
+  list.appendChild(div);
+}
+
+function removeSvcItemRow(btn){
+  var row=btn.closest('.svc-item-row');
+  if(row) row.remove();
+}
+
+async function saveSvcItems2(){
+  try{
+    var rows=document.querySelectorAll('#svc-item-list .svc-item-row');
+    var items=[];
+    rows.forEach(function(row){
+      var icon=row.querySelector('.si-icon').value.trim();
+      var name=row.querySelector('.si-name').value.trim();
+      var unit=row.querySelector('.si-unit').value.trim();
+      var key=row.querySelector('.si-key').value.trim();
+      var desc=row.querySelector('.si-desc').value.trim();
+      var detailsStr=row.querySelector('.si-details').value.trim();
+      if(!name||!key) return;
+      items.push({
+        key:key,icon:icon,name:name,unit:unit,desc:desc,
+        detailTitle:icon+' '+name,
+        detailItems:detailsStr?detailsStr.split('、').map(function(s){return s.trim();}).filter(Boolean):[]
+      });
+    });
+    if(!items.length){alert('至少需要一項服務');return;}
+    await saveSiteSetting('svc_items',items);
+
+    // 同步更新 svc_prices 的 label 對應（確保價格表跟服務項目 key 一致）
+    var msg=document.getElementById('si-msg2');
+    if(msg){msg.textContent='✅ 已儲存 '+items.length+' 項服務';setTimeout(function(){msg.textContent='';},2500);}
+  }catch(e){alert('儲存失敗:'+e.message);}
 }
 
 async function savePrices(){

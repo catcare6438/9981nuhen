@@ -1701,7 +1701,7 @@ renderReviews6();
 // ── 從後台載入費用設定 ──
 async function initFromSiteSettings(){
   try{
-    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?_t='+Date.now(),{cache:'no-store'});
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{cache:'no-store'});
     var rows=await res.json();
     if(!Array.isArray(rows)||!rows.length) return;
     var settings={};

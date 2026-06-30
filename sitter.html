@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1782786233 -->
+<!-- build:1782787166 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1078,10 +1078,14 @@ function calcSitterSalary(b){
     },0);
     addonTotal=addonPerSession*sessions;
   }
+  // 後台加的保母附加費（服務費+代購）
+  var myName=ME?ME.name:'';
+  var extraFees=(b.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===myName;});
+  var extraTotal=extraFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
   const myTransport=ME?.name?getMyTransport(b,ME.name):(b.transport||0);
   const transportTotal=myTransport*sessions;
-  const total=svcTotal+addonTotal+transportTotal;
-  return{sessions,svcRate,svcTotal,addonTotal,transport:myTransport,transportTotal,total};
+  const total=svcTotal+addonTotal+extraTotal+transportTotal;
+  return{sessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
 const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 

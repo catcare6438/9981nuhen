@@ -814,6 +814,15 @@ function dbRowToOrder(r){
         <div class="order-list" id="orderList"></div>
       </div>
 
+      <!-- 已完成訂單（折疊區） -->
+      <div class="panel" style="margin-top:16px;">
+        <div class="panel-header" onclick="toggleDoneOrders()" style="cursor:pointer;">
+          <div class="panel-title">✅ 已完成訂單 <span id="doneCount" style="font-size:.78rem;color:var(--tl);"></span></div>
+          <span id="doneToggleIcon" style="font-size:.9rem;">▼</span>
+        </div>
+        <div id="doneOrderList" style="display:none;"></div>
+      </div>
+
       <!-- SALARY -->
       <div id="page-salary" style="display:none;">
         <div class="panel">
@@ -1540,17 +1549,36 @@ function toggleOrderCard(id){
   if(toggle)toggle.classList.toggle('open',isCollapsed);
 }
 async function renderOrders(){
-  let b=await getB();
+  let allB=await getB();
   const q=document.getElementById('searchQ').value.toLowerCase();
-  if(q)b=b.filter(x=>[x.ownerName,x.ownerPhone,x.petName||''].join(' ').toLowerCase().includes(q));
-  if(curFilter)b=b.filter(x=>x.status===curFilter);
-  b.sort(function(a,z){var ai=String(a.id),zi=String(z.id);return zi>ai?1:zi<ai?-1:0;});
+  if(q)allB=allB.filter(x=>[x.ownerName,x.ownerPhone,x.petName||''].join(' ').toLowerCase().includes(q));
+
+  // 分離已完成與未完成
+  var doneB=allB.filter(function(x){return x.status==='已完成';});
+  var activeB=allB.filter(function(x){return x.status!=='已完成';});
+
+  if(curFilter)activeB=activeB.filter(x=>x.status===curFilter);
+
+  // 未完成：依下單日期排序（ts 欄位，舊到新或新到舊都可，這裡新到舊）
+  activeB.sort(function(a,z){
+    var at=a.ts?new Date(a.ts).getTime():0;
+    var zt=z.ts?new Date(z.ts).getTime():0;
+    return zt-at;
+  });
+  // 已完成：依下單日期排序
+  doneB.sort(function(a,z){
+    var at=a.ts?new Date(a.ts).getTime():0;
+    var zt=z.ts?new Date(z.ts).getTime():0;
+    return zt-at;
+  });
+
+  var b=activeB;
   const list=document.getElementById('orderList');
-  if(!b.length){list.innerHTML=`<div class="empty-msg">目前沒有符合的預約 🐾</div>`;return;}
+  if(!b.length){list.innerHTML='<div class="empty-msg">目前沒有符合的預約 🐾</div>';}
   const sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
   const dt=ts=>new Date(ts).toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   const ownerPws=await getOwnerPws();
-  list.innerHTML=b.map(function(bk){
+  if(b.length) list.innerHTML=b.map(function(bk){
     try{ return buildOrderCard(bk,sCls,ownerPws); }
     catch(e){ console.error('[buildOrderCard] id='+bk.id,e); return '<div style="color:red;padding:10px;border:1px solid red;border-radius:8px;margin:4px;">訂單 '+bk.id+' 載入錯誤：'+e.message+'</div>'; }
   }).join('');

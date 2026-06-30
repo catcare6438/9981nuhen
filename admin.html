@@ -2405,31 +2405,119 @@ async function renderOwners(){
 // ── SALARY ──
 async function renderSalary(){
   const month=document.getElementById('salMonth').value;
-  const b=await getB();
-  document.getElementById('sitterGrid').innerHTML=SITTERS_LIST.map(s=>{
-    const cases=b.filter(x=>{
-    if(!month||x.startDate?.startsWith(month)){
-      // Check both old string format and new JSON format
-      const assigns=parseAssignments(x.assignedTo);
-      if(assigns.length) return assigns.some(a=>a.sitter===s);
-      return x.assignedTo===s;
+  const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+
+  // 計算單筆薪資（與保母端 calcSitterSalary 相同邏輯）
+  function calcOneSalary(bk, sitterName){
+    // 取得此保母的 sessions
+    var assigns=[];
+    try{
+      var p=JSON.parse(bk.assignedTo||'[]');
+      if(Array.isArray(p)&&p.length&&p[0].sitter!==undefined) assigns=p;
+    }catch(e){}
+    var mySess=0;
+    if(assigns.length){
+      assigns.forEach(function(a){
+        if(a.sitter===sitterName) mySess+=(a.slots||[]).length||1;
+      });
     }
-    return false;
-  });
-    const done=cases.filter(x=>x.status==='已完成');
-    const sessions=done.reduce((sum,x)=>sum+(x.days||0)*(x.tpd||1),0);
-    const sal=sessions*SITTER_RATE+done.reduce((sum,x)=>sum+(x.transport||0)*(x.days||0)*(x.tpd||1),0);
-    return `<div class="sc">
-      <div class="sc-head"><div class="sc-av">${AVA[s]||'🐾'}</div>
-        <div><div class="sc-name">${s}</div><div class="sc-role">${ROLES[s]||''}</div></div>
-      </div>
-      <div class="sc-row"><span class="sc-l">全部案件</span><span class="sc-v">${cases.length} 件</span></div>
-      <div class="sc-row"><span class="sc-l">已完成</span><span class="sc-v">${done.length} 件</span></div>
-      <div class="sc-row"><span class="sc-l">服務次數</span><span class="sc-v">${sessions} 次</span></div>
-      <div class="sc-row"><span class="sc-l">本期薪資</span><span class="sc-v">$${sal.toLocaleString()}</span></div>
-      <button class="sc-exp" onclick="exportSitter(''+(s)+'')">📄 匯出薪資明細</button>
-    </div>`;
-  }).join('');
+    var sessions=mySess||((bk.days||1)*(bk.tpd||1));
+    var svcTotal=200*sessions;
+    // 附加服務（同保母端邏輯）
+    var addonTotal=0;
+    var addonItems=bk.addonItems||[];
+    if(addonItems.length){
+      addonItems.forEach(function(item){
+        if(!item.name)return;
+        var sd=item.startDate||bk.startDate||'';
+        var ed=item.endDate||bk.endDate||'';
+        var itemDays=1;
+        if(sd&&ed){var d1=new Date(sd),d2=new Date(ed);if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1)itemDays=Math.round((d2-d1)/86400000)+1;}
+        var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];
+        addonTotal+=(ADDON_P[item.name]||50)*(item.qty||1)*itemDays*slots.length;
+      });
+    } else {
+      var perSess=(bk.addons||[]).reduce(function(s,a){var m=a.match(/^(.+?)×(\d+)/);var nm=m?m[1]:a;var qty=m?parseInt(m[2]):1;return s+(ADDON_P[nm]||50)*qty;},0);
+      addonTotal=perSess*sessions;
+    }
+    // 保母附加費（後台加的）
+    var extraFees=(bk.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===sitterName;});
+    var extraTotal=extraFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+    // 車馬費
+    var transport=0;
+    try{
+      var assigns2=JSON.parse(bk.assignedTo||'[]');
+      if(Array.isArray(assigns2)){
+        var mySlot=assigns2.find(function(a){return a.sitter===sitterName;});
+        if(mySlot&&mySlot.transport) transport=parseInt(mySlot.transport)||0;
+      }
+    }catch(e){}
+    var transportTotal=transport*sessions;
+    var total=svcTotal+addonTotal+extraTotal+transportTotal;
+    return{sessions,svcTotal,addonTotal,extraTotal,transportTotal,total};
+  }
+
+  (async()=>{
+    const b=await getB();
+    // 載入薪資支付記錄
+    var salaryPaid={};
+    var salaryNotes={};
+    try{
+      var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+      var spRows=await spRes.json();
+      (Array.isArray(spRows)?spRows:[]).forEach(function(r){
+        if(r.key==='salary_paid'){try{salaryPaid=JSON.parse(r.value||'{}');}catch(e){}}
+        if(r.key==='salary_notes'){try{salaryNotes=JSON.parse(r.value||'{}');}catch(e){}}
+      });
+    }catch(e){}
+
+    document.getElementById('sitterGrid').innerHTML=SITTERS_LIST.map(function(s){
+      var cases=b.filter(function(x){
+        if(month&&!((x.startDate||'').startsWith(month))) return false;
+        var assigns=[];
+        try{var p=JSON.parse(x.assignedTo||'[]');if(Array.isArray(p)&&p.length&&p[0]&&p[0].sitter!==undefined)assigns=p;}catch(e){}
+        if(assigns.length) return assigns.some(function(a){return a.sitter===s;});
+        return x.assignedTo===s;
+      });
+      if(!cases.length) return '';
+      var grandTotal=0;
+      var rows=cases.map(function(bk){
+        var sal=calcOneSalary(bk,s);
+        grandTotal+=sal.total;
+        var key=s+'_'+bk.id;
+        var isPaid=!!(salaryPaid[key]);
+        var note=salaryNotes[key]||'';
+        return '<div style="background:#fff;border:1.5px solid var(--pk3);border-radius:12px;padding:12px 14px;margin-bottom:8px;">'
+          +'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">'
+          +'<div>'
+          +'<div style="font-weight:800;font-size:.88rem;">訂單#'+bk.id+' ｜ '+( bk.ownerName||'飼主')+'</div>'
+          +'<div style="font-size:.74rem;color:var(--tl);">'+( bk.startDate||'')+(bk.endDate&&bk.endDate!==bk.startDate?' ~ '+bk.endDate:'')+' ｜ '+sal.sessions+'次</div>'
+          +'<div style="font-size:.74rem;color:var(--tl);">服務$'+sal.svcTotal+(sal.addonTotal?' + 加購$'+sal.addonTotal:'')+(sal.extraTotal?' + 後台費$'+sal.extraTotal:'')+(sal.transportTotal?' + 車馬$'+sal.transportTotal:'')+'</div>'
+          +'</div>'
+          +'<div style="font-size:1.1rem;font-weight:900;color:var(--pk);">$'+sal.total.toLocaleString()+'</div>'
+          +'</div>'
+          +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">'
+          +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:700;">'
+          +'<input type="checkbox" '+(isPaid?'checked':'')+' data-s="'+s+'" data-bid="'+bk.id+'" onchange="toggleSalaryPaid(this.dataset.s,this.dataset.bid,this.checked)" style="width:16px;height:16px;accent-color:var(--g);">'
+          +(isPaid?'<span style="color:var(--g);">✅ 已支付</span>':'<span style="color:var(--tl);">未支付</span>')
+          +'</label>'
+          +'<input type="text" value="'+note+'" placeholder="備註（給薪日期或明細）" data-s="'+s+'" data-bid="'+bk.id+'" onblur="saveSalaryNote(this.dataset.s,this.dataset.bid,this.value)" '
+          +'style="flex:1;min-width:140px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.78rem;">'
+          +'</div>'
+          +'</div>';
+      }).join('');
+      return '<div class="cpn-card" style="flex-direction:column;align-items:stretch;">'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+        +'<div style="font-weight:900;font-size:1rem;">👩 '+s+'</div>'
+        +'<div style="font-size:1.2rem;font-weight:900;color:var(--pk);">本月 $'+grandTotal.toLocaleString()+'</div>'
+        +'</div>'
+        +rows
+        +'</div>';
+    }).filter(Boolean).join('');
+    if(!document.getElementById('sitterGrid').innerHTML){
+      document.getElementById('sitterGrid').innerHTML='<div class="empty-msg">此月無薪資記錄</div>';
+    }
+  })();
 }
 
 function exportSitter(name){
@@ -3019,6 +3107,37 @@ async function deleteReview(id){
     await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews?id='+encodeURIComponent(String(id)),{method:'DELETE'});
     loadReviewsMgmt();
   }catch(e){alert('刪除失敗：'+e.message);}
+}
+
+async function toggleSalaryPaid(sitter, bookId, checked){
+  try{
+    var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var spRows=await spRes.json();
+    var salaryPaid={};
+    (Array.isArray(spRows)?spRows:[]).forEach(function(r){
+      if(r.key==='salary_paid'){try{salaryPaid=JSON.parse(r.value||'{}');}catch(e){}}
+    });
+    var key=sitter+'_'+bookId;
+    if(checked) salaryPaid[key]=new Date().toISOString().slice(0,10);
+    else delete salaryPaid[key];
+    await saveSiteSetting('salary_paid',salaryPaid);
+    renderSalary();
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
+
+async function saveSalaryNote(sitter, bookId, note){
+  try{
+    var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var spRows=await spRes.json();
+    var salaryNotes={};
+    (Array.isArray(spRows)?spRows:[]).forEach(function(r){
+      if(r.key==='salary_notes'){try{salaryNotes=JSON.parse(r.value||'{}');}catch(e){}}
+    });
+    var key=sitter+'_'+bookId;
+    if(note) salaryNotes[key]=note;
+    else delete salaryNotes[key];
+    await saveSiteSetting('salary_notes',salaryNotes);
+  }catch(e){}
 }
 
 async function saveLandmarks(){

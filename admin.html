@@ -1584,6 +1584,37 @@ async function renderOrders(){
   }).join('');
 }
 
+function toggleDoneOrders(){
+  var list=document.getElementById('doneOrderList');
+  var icon=document.getElementById('doneToggleIcon');
+  if(!list) return;
+  var show=list.style.display==='none';
+  list.style.display=show?'block':'none';
+  if(icon) icon.textContent=show?'▲':'▼';
+}
+
+async function renderDoneOrders(){
+  var b=await getB();
+  var doneB=b.filter(function(x){return x.status==='已完成';});
+  doneB.sort(function(a,z){
+    var at=a.ts?new Date(a.ts).getTime():0;
+    var zt=z.ts?new Date(z.ts).getTime():0;
+    return zt-at;
+  });
+  var doneCountEl=document.getElementById('doneCount');
+  if(doneCountEl) doneCountEl.textContent='（'+doneB.length+'筆）';
+  var doneListEl=document.getElementById('doneOrderList');
+  if(!doneListEl) return;
+  if(!doneB.length){doneListEl.innerHTML='<div class="empty-msg" style="padding:14px;">尚無已完成訂單</div>';return;}
+  var sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
+  var ownerPws=await getOwnerPws();
+  doneListEl.innerHTML=doneB.map(function(bk){
+    try{ return buildOrderCard(bk,sCls,ownerPws); }
+    catch(e){ return ''; }
+  }).join('');
+}
+
+
 
 
 
@@ -4844,6 +4875,7 @@ async function refreshAll(){
     await loadSittersList();
     await renderStats();
     await renderOrders();
+    await renderDoneOrders();
   }catch(e){
     console.error('[refreshAll]',e.message);
     alert('後台載入失敗：'+e.message);

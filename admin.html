@@ -895,17 +895,7 @@ function dbRowToOrder(r){
       </div>
       </div>
       <!-- PASSWORDS -->
-      <div <div id="page-reviews" style="display:none;">
-        <div class="panel">
-          <div class="panel-header">
-            <div class="panel-title">⭐ 好評管理</div>
-            <button onclick="loadReviewsMgmt()" style="background:var(--pk4);border:1.5px solid var(--pk3);color:var(--pk);border-radius:8px;padding:6px 14px;font-weight:800;font-size:.8rem;cursor:pointer;">🔄 重新整理</button>
-          </div>
-          <div id="reviewsMgmtList" style="padding:8px 0;"><div style="color:var(--tl);padding:20px;text-align:center;">按右上角重新整理載入</div></div>
-        </div>
-      </div>
-
-      id="page-passwords" style="display:none;">
+      <div id="page-passwords" style="display:none;">
         <div class="panel">
           <div class="panel-header"><div class="panel-title">🔐 所有密碼總覽</div>
             <button class="btn btn-pk btn-sm" onclick="refreshPasswords()">🔄 重整</button>
@@ -1116,7 +1106,8 @@ function calcBv2(bk){
     addonSub=addon*totalSessions;
   }
   const totalPets=(bk.catCount||0)+(bk.dogCount||0);
-  const extra=totalPets>3?(totalPets-3)*50:0;
+  const _pf1=getPetExtraFee();
+  const extra=totalPets>_pf1.free?(totalPets-_pf1.free)*_pf1.unit:0;
   let normSvcSub=0,holSvcSub=0,cnySvcSub=0;
   (bk.services||[]).forEach(k=>{
     normSvcSub+=(SVC_PRICE[k]||0)*normSessions;
@@ -1714,7 +1705,8 @@ function buildOrderCard(bk, sCls, ownerPws){
   } else {
     petSummary='貓'+(bk.catCount||0)+'隻 狗'+(bk.dogCount||0)+'隻';
   }
-  const extraPetBadge=(bk.catCount||0)+(bk.dogCount||0)>3?'<span style="color:var(--r);font-size:.76rem;font-weight:800;">⚡第4隻起+$50/次</span>':'';
+  const _pfBadge=getPetExtraFee();
+  const extraPetBadge=(bk.catCount||0)+(bk.dogCount||0)>_pfBadge.free?'<span style="color:var(--r);font-size:.76rem;font-weight:800;">⚡第'+(_pfBadge.free+1)+'隻起+$'+_pfBadge.unit+'/次</span>':'';
   const assigns=parseAssignments(bk.assignedTo);
   const slots=buildSlotList(bk);
   let slotSection='';
@@ -1796,6 +1788,13 @@ function buildOrderCard(bk, sCls, ownerPws){
 
 // settings page above
 var _siteSettings={};
+
+// 共用：取得寵物加收設定（免費隻數 free、超額單價 unit），統一從後台設定讀取，
+// 避免各處寫死數字導致後台改了設定卻沒同步生效。
+function getPetExtraFee(){
+  var p=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
+  return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:100)};
+}
 
 function renderSettingsPage(){
   if(!_siteSettings) _siteSettings={};
@@ -1938,14 +1937,14 @@ function renderSettingsPage(){
     +'</div>';
 
     // ── 寵物加收設定 ──
-  var petFeeP=_siteSettings.pet_extra_fees||{free:3,unit:100};
+  var petFeeP=getPetExtraFee();
   html+='<div class="detail-section">'
     +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF8F0;padding:12px;border-radius:10px;">'
     +'<span style="font-size:.82rem;color:var(--tl);">前</span>'
-    +'<input type="number" id="pet-free-count" oninput="var d=document.getElementById(&quot;pet-free-count-display&quot;);if(d)d.value=parseInt(this.value||0)+1;" value="'+(petFeeP.free||3)+'" min="0" max="10" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;">'
+    +'<input type="number" id="pet-free-count" oninput="var d=document.getElementById(&quot;pet-free-count-display&quot;);if(d)d.value=parseInt(this.value||0)+1;" value="'+(petFeeP.free||2)+'" min="0" max="10" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;">'
     +'<span style="font-size:.82rem;color:var(--tl);">隻免費，第</span>'
-    +'<input type="number" id="pet-free-count-display" value="'+(( petFeeP.free||3)+1)+'" min="1" max="11" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;" disabled>'
+    +'<input type="number" id="pet-free-count-display" value="'+(( petFeeP.free||2)+1)+'" min="1" max="11" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;" disabled>'
     +'<span style="font-size:.82rem;color:var(--tl);">隻起每隻加收 $</span>'
     +'<input type="number" id="pet-unit-price" value="'+(petFeeP.unit||100)+'" min="0" step="10" style="width:70px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;">'
     +'<span style="font-size:.82rem;color:var(--tl);">/ 次</span>'
@@ -2161,10 +2160,11 @@ function showDetail(bookId){
     });
   }
   var totalPets=(bk.catCount||0)+(bk.dogCount||0);
-  if(totalPets>3){
-    var overPets=totalPets-3;
-    var eu=50*overPets;
-    rows+=R('第4隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$50）',eu,'× '+totalSessions+'次',eu*totalSessions);
+  var _pf2=getPetExtraFee();
+  if(totalPets>_pf2.free){
+    var overPets=totalPets-_pf2.free;
+    var eu=_pf2.unit*overPets;
+    rows+=R('第'+(_pf2.free+1)+'隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$'+_pf2.unit+'）',eu,'× '+totalSessions+'次',eu*totalSessions);
   }
   if(urgent>0) rows+=R('急件加收',urgent,'×1',urgent);
   if(bk.transport>0) rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
@@ -3151,7 +3151,7 @@ async function savePetFees(){
   var unitEl=document.getElementById('pet-unit-price');
   var displayEl=document.getElementById('pet-free-count-display');
   if(!freeEl||!unitEl) return;
-  var freeCount=parseInt(freeEl.value)||3;
+  var freeCount=parseInt(freeEl.value)||2;
   var unitPrice=parseInt(unitEl.value)||100;
   if(displayEl) displayEl.value=freeCount+1;
   try{
@@ -3606,7 +3606,8 @@ function updateEditPetCount(){
   if(cnt){
     const cats=[...rows].filter(r=>r.querySelector('[data-field="type"]')?.value==='cat').length;
     const dogs=[...rows].filter(r=>r.querySelector('[data-field="type"]')?.value==='dog').length;
-    cnt.textContent='目前：🐱 '+cats+'隻 🐶 '+dogs+'隻（共'+(cats+dogs)+'隻）'+(cats+dogs>3?' ⚡第4隻起+$50/次':'');
+    var _pf3=getPetExtraFee();
+    cnt.textContent='目前：🐱 '+cats+'隻 🐶 '+dogs+'隻（共'+(cats+dogs)+'隻）'+(cats+dogs>_pf3.free?' ⚡第'+(_pf3.free+1)+'隻起+$'+_pf3.unit+'/次':'');
   }
 }
 

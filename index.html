@@ -655,7 +655,7 @@ function dbRowToOrder(r){
         <div style="font-size:.76rem;line-height:1.9;color:var(--tl);" id="svcTableAddon">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前2隻免加收 ｜ 第3隻起 +$100/隻</div>
       </div>
     </div>
-    <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
+    <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;" id="extraPriceNotice">
       ⚡ 急件加收：24-48H +$100 ｜ 24H內 +$200<br>🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000<br>💬 其他服務歡迎 LINE 詳談：<strong>@099nuhen</strong>
     </div>
   </div>
@@ -1905,6 +1905,11 @@ async function initFromSiteSettings(){
         var pf=settings.pet_extra_fees;
         petNoteEl.innerHTML='🐾 前'+(pf.free||2)+'隻免加收 ｜ 第'+(( pf.free||2)+1)+'隻起 +$'+(pf.unit||100)+'/ 次';
       }
+    }
+    // 價目補充說明（急件加收／連假特別價／春節過年／其他服務聯絡方式，後台可編輯）
+    if(typeof settings.extra_notice_html==='string'&&settings.extra_notice_html){
+      var noticeEl=document.getElementById('extraPriceNotice');
+      if(noticeEl) noticeEl.innerHTML=settings.extra_notice_html;
     }
     calc();
     console.log('[settings] 載入完成', Object.keys(settings));

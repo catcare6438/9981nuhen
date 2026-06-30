@@ -2687,7 +2687,7 @@ async function renderCoupons(){
       return '<div class="cpn-card">'
         +'<div>'
         +'<div class="cpn-code">'+(rc.code||'')+'</div>'
-        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">擁有者：'+( rc.owner||'-')+' ｜ 使用次數：'+usedCount+'</div>'
+        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">擁有者：'+( rc.owner||'-')+' ｜ 電話：'+( rc.phone||'-')+' ｜ 使用次數：'+usedCount+'</div>'
         +'</div>'
         +'<div class="'+(rc.used_by?'cpn-used':'cpn-ok')+'" style="font-size:.7rem;">'+usedBadge+'</div>'
         +'</div>';
@@ -2853,16 +2853,16 @@ function goPage(page,el){
 async function loadSiteSettings(){
   if(!_siteSettings) _siteSettings={};
   try{
-    var res=await _supa.from('site_settings').select('*');
-    if(res.error){
-      console.warn('loadSiteSettings error:', res.error.message);
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?_t='+Date.now(),{cache:'no-store'});
+    var data=await res.json();
+    if(!Array.isArray(data)){
+      console.warn('loadSiteSettings: 回傳格式異常',data);
       return;
     }
-    (res.data||[]).forEach(function(row){
+    data.forEach(function(row){
       if(_siteSettings) _siteSettings[row.key]=row.value;
     });
-    // If table is empty, insert defaults
-    if(!res.data||!res.data.length){
+    if(!data.length){
       await initDefaultSiteSettings();
     }
   }catch(e){console.error('loadSiteSettings:',e.message);}
@@ -3001,17 +3001,32 @@ async function savePrices(){
   try{
     var rows=document.querySelectorAll('#svc-price-list tr');
     var val=[];
-    rows.forEach(function(tr,i){
-      var l=tr.querySelector('[id^="svl-"]');
-      var comp=tr.querySelector('[id^="svc-"]');
-      var walk=tr.querySelector('[id^="svw-"]');
-      var both=tr.querySelector('[id^="svb-"]');
-      if(l&&l.value.trim()) val.push({label:l.value.trim(),companion:parseInt(comp?comp.value:0)||0,walk:parseInt(walk?walk.value:0)||0,both:parseInt(both?both.value:0)||0});
+    rows.forEach(function(tr){
+      var l=tr.querySelector('input[id^="svl-"]');
+      var comp=tr.querySelector('input[id^="svc-"]');
+      var walk=tr.querySelector('input[id^="svw-"]');
+      var both=tr.querySelector('input[id^="svb-"]');
+      if(l&&l.value.trim()) val.push({
+        label:l.value.trim(),
+        companion:parseInt(comp?comp.value:0)||0,
+        walk:parseInt(walk?walk.value:0)||0,
+        both:parseInt(both?both.value:0)||0
+      });
     });
+    console.log('[savePrices] 準備儲存:',JSON.stringify(val));
     await saveSiteSetting('svc_prices',val);
+
+    // 驗證：重新從 Worker 撈取確認資料真的寫入
+    var verifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key=svc_prices');
+    var verifyData=await verifyRes.json();
+    console.log('[savePrices] 驗證寫入結果:',JSON.stringify(verifyData));
+
     var msg=document.getElementById('sp-msg');
-    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
-  }catch(e){alert('儲存失敗:'+e.message);}
+    if(msg){msg.textContent='✅ 已儲存（前台將於下次載入時更新）';setTimeout(function(){msg.textContent='';},3000);}
+  }catch(e){
+    console.error('[savePrices] 失敗:',e);
+    alert('儲存失敗:'+e.message);
+  }
 }
 async function saveAddons(){
   try{

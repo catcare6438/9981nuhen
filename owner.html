@@ -1066,14 +1066,17 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 
 async function initOwnerRefCode(books){
-  if(!books||!books.length) return;
+  console.log('[推薦碼] initOwnerRefCode 開始, books=',books);
+  if(!books||!books.length){console.log('[推薦碼] 無訂單資料，中止');return;}
   var phone=(books[0].ownerPhone||books[0].owner_phone||'').replace(/[^0-9]/g,'');
-  if(!phone) return;
+  console.log('[推薦碼] 飼主電話=',phone);
+  if(!phone){console.log('[推薦碼] 無電話，中止');return;}
 
   try{
     // 飼主端只「查詢」推薦碼，不自己生成 — 以後台/系統建立的紀錄為準
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes?phone='+encodeURIComponent(phone));
     var rows=await res.json();
+    console.log('[推薦碼] 查詢既有推薦碼結果:',rows);
     var mine=(Array.isArray(rows)?rows:[]).find(function(r){return r.phone===phone;});
 
     if(mine){
@@ -1083,12 +1086,14 @@ async function initOwnerRefCode(books){
       window._ownerRefCode=mine.code;
     } else {
       // 沒有的話，向 Worker 申請建立（Worker 端用電話查重，確保同電話僅一組）
+      console.log('[推薦碼] 沒有現成推薦碼，呼叫 issue endpoint');
       var createRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes/issue',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({phone:phone,book_id:String(books[0].id||''),owner:books[0].ownerName||'飼主'})
       });
       var createData=await createRes.json();
+      console.log('[推薦碼] issue 結果:',createData);
       if(createData&&createData.code){
         document.getElementById('ownerRefCodeDisplay').textContent=createData.code;
         document.getElementById('ownerRefCodeBar').style.display='block';
@@ -1444,6 +1449,7 @@ async function submitOwnerReview(){
 
     // 檢查此飼主是否曾留過評論（reviews table，不管 approved）
     // 有留過 = 不給優惠碼
+    console.log('[好評優惠券] 開始檢查 bookId=',bookId);
     var alreadyHasCoupon=false;
     var existingCpCode='';
     try{
@@ -1464,6 +1470,7 @@ async function submitOwnerReview(){
             var hasOtherReview=allRevD.some(function(r){
               return myIdsD.includes(String(r.book_id||''))&&String(r.book_id||'')!==String(bookId);
             });
+            console.log('[好評優惠券] myPhone=',myPhoneD,'myIds=',myIdsD,'hasOtherReview=',hasOtherReview);
             if(hasOtherReview){
               alreadyHasCoupon=true;
               // 找現有優惠碼
@@ -1486,6 +1493,7 @@ async function submitOwnerReview(){
       cpCode='CAT'+Math.random().toString(36).toUpperCase().substring(2,8);
       var expiry=new Date();expiry.setMonth(expiry.getMonth()+3);
       expiryStr=expiry.toLocaleDateString('zh-TW');
+      console.log('[好評優惠券] 準備建立新券:',cpCode);
       try{
         var cpCreateRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{
           method:'POST',
@@ -1498,6 +1506,7 @@ async function submitOwnerReview(){
           })
         });
         var cpCreateJson=await cpCreateRes.json();
+        console.log('[好評優惠券] 建立結果:',cpCreateJson);
         if(cpCreateJson&&cpCreateJson.error){
           console.error('[優惠券建立失敗]',cpCreateJson.error);
         }

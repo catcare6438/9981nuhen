@@ -1098,6 +1098,25 @@ const EMOTIONS20=[
 
 let ME=null;
 let currentBookId=null;
+
+// ── 後台網站設定快取（用於寵物加收門檻等動態設定）──
+var _sitterSiteSettings={};
+(async function loadSitterSiteSettings(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{cache:'no-store'});
+    var rows=await res.json();
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      var v=r.value;
+      if(typeof v==='string'){try{v=JSON.parse(v);}catch(e){}}
+      _sitterSiteSettings[r.key]=v;
+    });
+  }catch(e){console.warn('[loadSitterSiteSettings]',e.message);}
+})();
+// 共用：取得寵物加收設定（免費隻數 free、超額單價 unit）。
+function getPetExtraFee(){
+  var p=(_sitterSiteSettings&&_sitterSiteSettings.pet_extra_fees)||{};
+  return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:100)};
+}
 let petData={};
 let videoDataURL=null;
 let reportVideos=[];
@@ -1331,7 +1350,8 @@ async function renderCases(){
 
         // ── 計算照護小計 ──
         var careTotal=200*sal.sessions;
-        if(petCount>3) careTotal+=(petCount-3)*50*sal.sessions; // 第4隻起$50/隻
+        var _pfSal=getPetExtraFee();
+        if(petCount>_pfSal.free) careTotal+=(petCount-_pfSal.free)*_pfSal.unit*sal.sessions; // 動態：第N隻起加收
         if(sal.transport>0) careTotal+=sal.transportTotal;
 
         // ── 計算附加服務小計（優先用 addonItems 日期，否則用整單天數）──
@@ -1375,11 +1395,12 @@ async function renderCases(){
         row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐾 到府照護</span><span style="font-family:Nunito;">$200 × '+sal.sessions+'次 = <strong style="color:var(--pk);">$'+(200*sal.sessions).toLocaleString()+'</strong></span></div>';
 
         if(petCount>1){
-          if(petCount>3){
-            var petExtra=(petCount-3)*50;
-            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐱 寵物加收（第'+petCount+'隻，超過3隻 $50/隻）</span><span style="font-family:Nunito;">$'+petExtra+' × '+sal.sessions+'次 = <strong>$'+(petExtra*sal.sessions).toLocaleString()+'</strong></span></div>';
+          var _pfDisp=getPetExtraFee();
+          if(petCount>_pfDisp.free){
+            var petExtra=(petCount-_pfDisp.free)*_pfDisp.unit;
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐱 寵物加收（第'+petCount+'隻，超過'+_pfDisp.free+'隻 $'+_pfDisp.unit+'/隻）</span><span style="font-family:Nunito;">$'+petExtra+' × '+sal.sessions+'次 = <strong>$'+(petExtra*sal.sessions).toLocaleString()+'</strong></span></div>';
           } else {
-            row+='<div style="color:var(--g);padding:3px 0;font-size:.76rem;">✅ 寵物3隻內免加收</div>';
+            row+='<div style="color:var(--g);padding:3px 0;font-size:.76rem;">✅ 寵物'+_pfDisp.free+'隻內免加收</div>';
           }
         }
 

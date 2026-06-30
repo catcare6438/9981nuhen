@@ -242,6 +242,29 @@ async function pushOwnerNotify(bookId, type, timeStr){
   }
 }
 
+
+async function loadSalaryPaidStatus(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var rows=await res.json();
+    var salaryPaid={};
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      if(r.key==='salary_paid'){
+        salaryPaid=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+      }
+    });
+    var myName=ME?ME.name:'';
+    document.querySelectorAll('[id^="paid-badge-"]').forEach(function(el){
+      var bookId=el.id.replace('paid-badge-','');
+      var key=myName+'_'+bookId;
+      if(salaryPaid[key]){
+        el.innerHTML='<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:8px;font-weight:800;">✅ 已支付</span>';
+      } else {
+        el.innerHTML='<span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:800;">⏳ 未支付</span>';
+      }
+    });
+  }catch(e){console.warn('loadSalaryPaidStatus:',e);}
+}
 function showCheckinToast(msg, color){
   var existing=document.getElementById('checkin-toast');
   if(existing) existing.remove();
@@ -1286,6 +1309,7 @@ async function renderCases(){
         <div style="min-width:0;flex-shrink:0;text-align:right;">
           <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
           <div style="font-size:.72rem;color:var(--tl);">💰 本單薪資</div>
+          <div id="paid-badge-${b.id}" style="font-size:.7rem;margin-top:2px;"></div>
         </div>
         ${buildVisitHtml(b)}
       </div>
@@ -1460,6 +1484,8 @@ async function renderCases(){
       </div>
     </div>`;
   }).join('');
+
+  setTimeout(loadSalaryPaidStatus, 300);
 }
 
 

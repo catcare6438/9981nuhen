@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1780710124 -->
+<!-- v1782811120 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>貓窩裏 🐾 到府寵物褓姆</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -1715,10 +1715,12 @@ async function initFromSiteSettings(){
     });
 
     // ── 服務價格 ──
-    if(settings.svc_prices&&Array.isArray(settings.svc_prices)){
-      var normal=settings.svc_prices.find(function(p){return p.label==='平日';});
-      var holiday=settings.svc_prices.find(function(p){return p.label==='連假';});
-      var cny=settings.svc_prices.find(function(p){return p.label==='春節';});
+    if(settings.svc_prices&&Array.isArray(settings.svc_prices)&&settings.svc_prices.length){
+      console.log('[settings] svc_prices 讀取:',JSON.stringify(settings.svc_prices));
+      // 優先用 label 比對，比對不到則用陣列順序 fallback（第1筆=平日,第2筆=連假,第3筆=春節）
+      var normal=settings.svc_prices.find(function(p){return (p.label||'').indexOf('平')>=0;})||settings.svc_prices[0];
+      var holiday=settings.svc_prices.find(function(p){return (p.label||'').indexOf('連')>=0||(p.label||'').indexOf('假')>=0;})||settings.svc_prices[1];
+      var cny=settings.svc_prices.find(function(p){return (p.label||'').indexOf('春')>=0||(p.label||'').indexOf('年')>=0;})||settings.svc_prices[2];
       if(normal){
         SVCBASE.companion=Number(normal.companion)||300;
         SVCBASE.walk=Number(normal.walk)||200;

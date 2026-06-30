@@ -1069,24 +1069,30 @@ async function initOwnerRefCode(books){
   if(!books||!books.length) return;
   var phone=(books[0].ownerPhone||books[0].owner_phone||'').replace(/[^0-9]/g,'');
   if(!phone) return;
-  // 推薦碼 = REF + 手機後6碼
-  var code='REF'+phone.slice(-6).toUpperCase();
-  document.getElementById('ownerRefCodeDisplay').textContent=code;
-  document.getElementById('ownerRefCodeBar').style.display='block';
-  window._ownerRefCode=code;
-  // 確保推薦碼存在 referral_codes table
+
   try{
-    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');
+    // 飼主端只「查詢」推薦碼，不自己生成 — 以後台/系統建立的紀錄為準
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes?phone='+encodeURIComponent(phone));
     var rows=await res.json();
-    if(Array.isArray(rows)){
-      var exists=rows.find(function(r){return (r.code||'').toUpperCase()===code.toUpperCase();});
-      if(!exists){
-        // 新增推薦碼
-        await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body:JSON.stringify({code:code,book_id:String(books[0].id||''),owner:books[0].ownerName||'飼主',used_count:0})
-        });
+    var mine=(Array.isArray(rows)?rows:[]).find(function(r){return r.phone===phone;});
+
+    if(mine){
+      // 已有推薦碼，直接顯示
+      document.getElementById('ownerRefCodeDisplay').textContent=mine.code;
+      document.getElementById('ownerRefCodeBar').style.display='block';
+      window._ownerRefCode=mine.code;
+    } else {
+      // 沒有的話，向 Worker 申請建立（Worker 端用電話查重，確保同電話僅一組）
+      var createRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes/issue',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({phone:phone,book_id:String(books[0].id||''),owner:books[0].ownerName||'飼主'})
+      });
+      var createData=await createRes.json();
+      if(createData&&createData.code){
+        document.getElementById('ownerRefCodeDisplay').textContent=createData.code;
+        document.getElementById('ownerRefCodeBar').style.display='block';
+        window._ownerRefCode=createData.code;
       }
     }
   }catch(e){console.warn('refcode:',e);}

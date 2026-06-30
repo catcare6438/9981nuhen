@@ -652,7 +652,7 @@ function dbRowToOrder(r){
       </div>
       <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
-        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);" id="svcTableAddon">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前3隻免加收 ｜ 第4隻起 +$100/隻</div>
+        <div style="font-size:.76rem;line-height:1.9;color:var(--tl);" id="svcTableAddon">💊 餵藥 +$50 ｜ 💧 點藥 +$50<br>💆 舒緩按摩 +$100<br>✂️ 剪指甲 +$80 ｜ 🚿 排便導尿 +$80<br>📮 收信 +$30 ｜ 🌿 澆花 +$30<br>🗑️ 倒垃圾 +$50 ｜ 🐾 前2隻免加收 ｜ 第3隻起 +$100/隻</div>
       </div>
     </div>
     <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;">
@@ -782,7 +782,8 @@ function adjustPetCount(type,delta){
 function checkExtraPetNotice(){
   const total=petCounts.cat+petCounts.dog;
   const notice=document.getElementById('extraPetNotice');
-  if(notice)notice.style.display=total>3?'block':'none';
+  const _pfNotice=window._petExtraFees||{free:2,unit:100};
+  if(notice)notice.style.display=total>_pfNotice.free?'block':'none';
 }
 
 function renderPetForms(){
@@ -1145,7 +1146,7 @@ async function giveReferralReward(ownerName){
 async function checkRefCode(){
   const ref=(document.getElementById('refCode')?.value||'').trim().toUpperCase();
   const msg=document.getElementById('refMsg');
-  if(!ref){if(msg)msg.textContent='';calc();return;}
+  if(!ref){if(msg)msg.textContent='';window._refValid=false;calc();return;}
   if(msg)msg.textContent='⏳ 驗證中...';
   try{
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');
@@ -1153,11 +1154,14 @@ async function checkRefCode(){
     var found=(Array.isArray(rows)?rows:[]).find(function(r){return (r.code||'').toUpperCase()===ref;});
     if(found){
       if(msg){msg.textContent='✅ 推薦碼有效！預約可折扣 $50';msg.style.color='#06C755';}
+      window._refValid=true;
     } else {
       if(msg){msg.textContent='❌ 推薦碼無效';msg.style.color='#F87171';}
+      window._refValid=false;
     }
   }catch(e){
     if(msg){msg.textContent='⚠️ 驗證失敗，請稍後再試';msg.style.color='#F87171';}
+    window._refValid=false;
   }
   calc();
 }
@@ -1329,7 +1333,7 @@ function calc(){
   const totalPets=petCounts.cat+petCounts.dog;
   // 前三隻免費，第四隻起每隻 +$100
   // 從後台設定讀取寵物加收
-  var _petFee=window._petExtraFees||{free:3,unit:100};
+  var _petFee=window._petExtraFees||{free:2,unit:100};
   const extra=totalPets>_petFee.free?(totalPets-_petFee.free)*_petFee.unit:0;
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
@@ -1370,7 +1374,9 @@ function calc(){
   const cnySvcSub =(cnyBase+addonExtra)*cnySessions;
   const svcSub    =normSvcSub+holSvcSub+cnySvcSub;
   const transportTotal=dc*totalSess;
-  const total=svcSub+transportTotal+urg-disc;
+  const refCodeVal=(document.getElementById('refCode')?.value||'').trim();
+  const refDisc=(refCodeVal&&window._refValid)?50:0;
+  const total=svcSub+transportTotal+urg-disc-refDisc;
 
   let html='';
 
@@ -1382,7 +1388,7 @@ function calc(){
       html+=`<div class="calc-section-title">📋 一般日照護（${normSessions} 次）</div>`;
       html+=R(svcLabel,`$${baseNormal}/次 × ${normSessions}次 = $${baseNormal*normSessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${normSessions}次 = $${addon*normSessions}`);
-      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
+      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
       html+=R('小計',`$${normSvcSub}`,'bold');
       html+=`</div>`;
     }
@@ -1394,7 +1400,7 @@ function calc(){
       html+=`<div class="calc-section-title" style="color:#C05000;">🎊 連假照護（${holSessions} 次）<span style="font-size:.65rem;margin-left:6px;">${holDateStr}</span></div>`;
       html+=R(`${svcLabel}（連假價）`,`$${holBase}/次 × ${holSessions}次 = $${holBase*holSessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${holSessions}次 = $${addon*holSessions}`);
-      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
+      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
       html+=R('小計',`$${holSvcSub}`,'bold','color:#C05000;');
       html+=`</div>`;
     }
@@ -1406,12 +1412,12 @@ function calc(){
       html+=`<div class="calc-section-title" style="color:#B00010;">🧧 春節照護（${cnySessions} 次）<span style="font-size:.65rem;margin-left:6px;">${cnyDateStr}</span></div>`;
       html+=R(`${svcLabel}（過年價）`,`$${cnyBase}/次 × ${cnySessions}次 = $${cnyBase*cnySessions}`);
       if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon}/次 × ${cnySessions}次 = $${addon*cnySessions}`);
-      if(extra>0) html+=R(`第4隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
+      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
       html+=R('小計',`$${cnySvcSub}`,'bold','color:#B00010;');
       html+=`</div>`;
     }
 
-    const hasOther=dc>0||urg>0||disc>0;
+    const hasOther=dc>0||urg>0||disc>0||refDisc>0;
     if(hasOther){
       html+=`<hr class="sum-divider">`;
       if(dc>0){
@@ -1424,6 +1430,7 @@ function calc(){
         html+=R(urgLabel,'<strong style="color:#FF6B00;">+$'+urg+'</strong>','','color:#FF6B00;');
       }
       if(disc>0) html+=R(`🎫 優惠券折抵`,`-$${disc}`,'','color:#06C755;font-weight:800;');
+      if(refDisc>0) html+=R(`🎁 推薦碼折抵`,`-$${refDisc}`,'','color:#06C755;font-weight:800;');
     }
     html+=`<hr class="sum-divider">`;
     html+=`<div class="sum-total"><span>💕 照護總計為</span><span>$${Math.max(0,total)}</span></div>`;
@@ -1436,7 +1443,7 @@ function calc(){
     html+=R(`${svcLabel2}（一般連假）`,`$${svcKeys.reduce((s,k)=>s+(HOLIDAY_PRICES[k]||0),0)} / 次`);
     html+=R(`${svcLabel2}（春節過年）`,`$${svcKeys.reduce((s,k)=>s+(CNY_PRICES[k]||0),0)} / 次`);
     if(addon>0) html+=R(`加購（${addonNames.join('、')}）`,`$${addon} / 次`);
-    if(extra>0) html+=R(`第4隻起加收`,`$${extra} / 次`);
+    if(extra>0) html+=R(`第3隻起加收`,`$${extra} / 次`);
     if(dc>0){
       var _dci2=dcostInfo(km);
       html+=R(`🚗 車馬費（${km}km，超${_dci2.freeKm}km×$${_dci2.perKm}/km）`,`$${dc} / 次`);
@@ -1491,7 +1498,8 @@ async function submitBook(){
     addons.push(qty>1?name+'×'+qty+'隻':name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
-  let extra=0; if(totalPets>3)extra=(totalPets-3)*50;
+  var _pfSubmit=window._petExtraFees||{free:2,unit:100};
+  let extra=0; if(totalPets>_pfSubmit.free)extra=(totalPets-_pfSubmit.free)*_pfSubmit.unit;
   const sessions=getTotalSessions();
   const sub=(base+addon+extra)*sessions;
   const cc=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
@@ -1505,10 +1513,8 @@ async function submitBook(){
       if(!confirm('⚠️ 優惠券碼「'+cc+'」無效或已使用，確定繼續下單（不套用折扣）？')) return;
     }
   }
-  const total=Math.max(0,sub+dc*sessions+urg-disc);
-  const pets=getPetData();
   const ref=document.getElementById('refCode')?.value.trim()||'';
-  // referral discount
+  // referral discount（須在 total 計算前先算出，否則折扣不會真的從金額扣除）
   let refDisc=0;
   if(ref){
     const refs=await dbGetRefCodes();
@@ -1516,6 +1522,8 @@ async function submitBook(){
     const rc=refs.find(r=>(r.code||'').toUpperCase()===refUpper);
     if(rc)refDisc=50;
   }
+  const total=Math.max(0,sub+dc*sessions+urg-disc-refDisc);
+  const pets=getPetData();
   const b={
     id:Date.now(),
     ts:new Date().toISOString(),
@@ -1882,7 +1890,8 @@ async function initFromSiteSettings(){
           var em=a.emoji||'🐾';
           return em+' '+a.key+' +$'+a.price;
         });
-        addonLines.push('🐾 前3隻免加收 ｜ 第4隻起 +$100/隻');
+        var pf2=(settings.pet_extra_fees&&typeof settings.pet_extra_fees==='object')?settings.pet_extra_fees:{free:2,unit:100};
+        addonLines.push('🐾 前'+(pf2.free||2)+'隻免加收 ｜ 第'+((pf2.free||2)+1)+'隻起 +$'+(pf2.unit||100)+'/隻');
         addonTableEl.innerHTML=addonLines.join(' ｜ ');
       }
     }
@@ -1894,7 +1903,7 @@ async function initFromSiteSettings(){
       var petNoteEl=document.querySelector('.pet-extra-note');
       if(petNoteEl){
         var pf=settings.pet_extra_fees;
-        petNoteEl.innerHTML='🐾 前'+(pf.free||3)+'隻免加收 ｜ 第'+(( pf.free||3)+1)+'隻起 +$'+(pf.unit||100)+'/ 次';
+        petNoteEl.innerHTML='🐾 前'+(pf.free||2)+'隻免加收 ｜ 第'+(( pf.free||2)+1)+'隻起 +$'+(pf.unit||100)+'/ 次';
       }
     }
     calc();
@@ -1961,11 +1970,13 @@ async function prefillFromOldOrder(){
     var dogs=pd.filter(function(p){return p.type==='dog';});
     var catCount=cats.length||1;
     var dogCount=dogs.length||0;
-    // 更新計數
+    // 更新計數（petCounts 為模組層級 let 變數，不會掛在 window 上，需直接賦值）
+    petCounts.cat=catCount;
+    petCounts.dog=dogCount;
     if(window._S){window._S.cat=catCount;window._S.dog=dogCount;}
-    if(window.petCounts){window.petCounts.cat=catCount;window.petCounts.dog=dogCount;}
-    var catEl=document.getElementById('catVal');var dogEl=document.getElementById('dogVal');
+    var catEl=document.getElementById('catCountDisp');var dogEl=document.getElementById('dogCountDisp');
     if(catEl)catEl.textContent=catCount;if(dogEl)dogEl.textContent=dogCount;
+    if(typeof checkExtraPetNotice==='function') checkExtraPetNotice();
     // 重新渲染寵物表單，再填入詳細資料
     if(typeof renderPetForms==='function') renderPetForms();
     setTimeout(function(){

@@ -1165,9 +1165,11 @@ async function ownerLogin(){
   document.getElementById('ownerDisplayName').textContent=(firstBook.ownerName||'')+'家的毛孩';
   window._ownerLoggedIn=true;
 
+  // 推薦碼初始化獨立執行，不受 renderAllOrders 影響
+  initOwnerRefCode(myBooks).catch(function(e){console.warn('[推薦碼] 初始化失敗:',e);});
+
   try{
     await renderAllOrders(myBooks);
-    initOwnerRefCode(myBooks);
   }catch(e){
     // Keep mainScreen visible even on error
     document.getElementById('loginScreen').style.display='none';

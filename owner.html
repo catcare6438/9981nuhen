@@ -1156,6 +1156,7 @@ async function ownerLogin(){
 
   try{
     await renderAllOrders(myBooks);
+    initOwnerRefCode(myBooks);
   }catch(e){
     // Keep mainScreen visible even on error
     document.getElementById('loginScreen').style.display='none';
@@ -1646,19 +1647,12 @@ function switchSlot(dKey,idx,btn){
 // ── 已填好評 → 顯示好評內容＋券碼 ──
 function buildReviewDoneHTML(rv,bookId){
   var stars=rv.rating||'★★★★★';
-  var code=rv.coupon_code||rv.couponCode||'';
   var best=rv.best||'';
   var comment=rv.comment||'';
   var author=rv.author||'';
   var pendingBadge=rv.approved===false?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>':'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
-  // 持續顯示優惠碼（從 coupons table 取得）
-  var couponHtml=rv._couponCode?('<div style="background:linear-gradient(135deg,#FFFDE7,#FFF8E1);border:2px dashed #FFB800;border-radius:12px;padding:12px 14px;margin-top:10px;text-align:center;">'
-    +'<div style="font-size:.78rem;color:#8B6000;margin-bottom:4px;">🎁 您的好評折抵券（下次預約使用）</div>'
-    +'<div style="font-family:monospace;font-size:1.2rem;font-weight:900;color:#B8860B;letter-spacing:3px;">'+rv._couponCode+'</div>'
-    +'<div style="font-size:.72rem;color:var(--tl);margin-top:4px;">'+(rv._couponExpiry?'有效至：'+rv._couponExpiry:'有效期3個月')+'</div>'
-    +'<button onclick="copyCouponCode(this.dataset.code)" data-code="'+rv._couponCode+'" '
-    +'style="margin-top:6px;padding:5px 16px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.78rem;cursor:pointer;">📋 複製券碼</button>'
-    +'</div>'):'';
+  var code=rv._couponCode||'';
+  var expiry=rv._couponExpiry||'';
   return `
     <div class="section-sub-title">💬 我的好評${pendingBadge}</div>
     <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
@@ -1667,9 +1661,10 @@ function buildReviewDoneHTML(rv,bookId){
       ${comment?`<div style="font-size:.86rem;color:var(--t);line-height:1.7;margin-bottom:6px;">「${comment}」</div>`:''}
       ${author?`<div style="font-size:.76rem;color:var(--tl);">— ${author}</div>`:''}
       ${code?`<div style="margin-top:12px;background:#fff;border:2px dashed #FFB800;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:.7rem;color:var(--tl);font-weight:700;margin-bottom:4px;">🎫 您的 $50 折抵券碼</div>
+        <div style="font-size:.7rem;color:var(--tl);font-weight:700;margin-bottom:4px;">🎫 您的 $50 折抵券碼（首次好評贈送）</div>
         <div style="font-family:monospace;font-size:1.1rem;font-weight:900;color:#B8860B;letter-spacing:3px;">${code}</div>
-        <button onclick="navigator.clipboard.writeText('${code}').then(()=>alert('已複製 ✓'))"
+        ${expiry?`<div style="font-size:.7rem;color:var(--tl);margin-top:4px;">有效至：${expiry}</div>`:''}
+        <button onclick="copyCouponCode('${code}')"
           style="margin-top:8px;padding:6px 18px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:10px;font-size:.8rem;font-weight:800;cursor:pointer;">
           📋 複製券碼
         </button>

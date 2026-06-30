@@ -701,8 +701,7 @@ function dbRowToOrder(r){
   <div class="modal">
     <div class="modal-ico">🐾</div>
     <div class="modal-title">預約申請已送出！</div>
-    <div class="modal-msg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出！3秒後將自動跳轉 LINE 授權，完成綁定後即可查看每日照護回報 🐾</div>
-    <div class="modal-line"><a class="line-join" href="https://line.me/R/ti/p/@099nuhen" target="_blank" style="font-size:1rem;padding:14px 28px;display:inline-flex;align-items:center;gap:10px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 2C6.48 2 2 6.02 2 11c0 4.18 2.76 7.73 6.76 9.29L8 22l2.09-1.28C10.7 20.88 11.35 21 12 21c5.52 0 10-4.02 10-9s-4.48-9-10-9z"/></svg>加入 @099nuhen</a>
+    <div class="modal-msg" id="modalMsg" style="font-size:1.05rem;line-height:1.8;color:#333;">🎉 預約已送出！即將跳轉綁定 LINE 🐾</div>
     <div style="background:linear-gradient(135deg,#F0FFF4,#FFFDE7);border:2px solid #4CAF50;border-radius:14px;padding:14px 16px;margin-top:12px;font-size:.84rem;color:#1a1a1a;line-height:2;">
       <div style="font-weight:900;font-size:.95rem;color:#2E7D32;margin-bottom:6px;">📲 即將跳轉綁定 LINE</div>
       <div style="color:#555;">綁定後您將能即時收到：</div>
@@ -710,12 +709,9 @@ function dbRowToOrder(r){
       <div>🔴 &nbsp;保母<strong>離開</strong>通知</div>
       <div>📋 &nbsp;每日<strong>毛孩照護回報</strong>完成通知</div>
       <div style="margin-top:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px dashed #4CAF50;font-size:.78rem;color:#666;">
-        ⏱ <span id="lineBindCountdown">10</span> 秒後自動跳轉 LINE 授權頁面<br>
-        （授權後即可第一時間收到毛孩消息 🐾）
+        ⏱ <span id="lineBindCountdown">5</span> 秒後自動跳轉 LINE 授權頁面
       </div>
     </div>
-    </div>
-    <button class="modal-close" onclick="closeModal()">好的，謝謝 🌸</button>
   </div>
 </div>
 
@@ -1551,7 +1547,7 @@ async function submitBook(){
       return;
     }
     var _orderId = String(b.id);
-    var _countdown = 10;
+    var _countdown = 5;
     var _countEl = document.getElementById('lineBindCountdown');
     var _countTimer = setInterval(function(){
       _countdown--;

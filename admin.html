@@ -2466,8 +2466,12 @@ async function renderSalary(){
       var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
       var spRows=await spRes.json();
       (Array.isArray(spRows)?spRows:[]).forEach(function(r){
-        if(r.key==='salary_paid'){try{salaryPaid=JSON.parse(r.value||'{}');}catch(e){}}
-        if(r.key==='salary_notes'){try{salaryNotes=JSON.parse(r.value||'{}');}catch(e){}}
+        if(r.key==='salary_paid'){
+          salaryPaid=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+        }
+        if(r.key==='salary_notes'){
+          salaryNotes=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+        }
       });
     }catch(e){}
 
@@ -3115,13 +3119,21 @@ async function toggleSalaryPaid(sitter, bookId, checked){
     var spRows=await spRes.json();
     var salaryPaid={};
     (Array.isArray(spRows)?spRows:[]).forEach(function(r){
-      if(r.key==='salary_paid'){try{salaryPaid=JSON.parse(r.value||'{}');}catch(e){}}
+      if(r.key==='salary_paid'){
+        // value 可能已經是物件（jsonb），也可能是字串
+        salaryPaid=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+      }
     });
     var key=sitter+'_'+bookId;
     if(checked) salaryPaid[key]=new Date().toISOString().slice(0,10);
     else delete salaryPaid[key];
     await saveSiteSetting('salary_paid',salaryPaid);
-    renderSalary();
+    // 不整頁重render，只更新該筆 UI（避免跳動）
+    var cb=document.querySelector('input[data-s="'+sitter+'"][data-bid="'+bookId+'"]');
+    if(cb){
+      var label=cb.nextElementSibling||cb.parentElement.querySelector('span');
+      if(label) label.outerHTML=checked?'<span style="color:var(--g);">✅ 已支付</span>':'<span style="color:var(--tl);">未支付</span>';
+    }
   }catch(e){alert('儲存失敗:'+e.message);}
 }
 

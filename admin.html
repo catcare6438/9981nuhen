@@ -2408,20 +2408,32 @@ async function renderSalary(){
   const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
 
   // 計算單筆薪資（與保母端 calcSitterSalary 相同邏輯）
-  function calcOneSalary(bk, sitterName){
-    // 取得此保母的 sessions
-    var assigns=[];
-    try{
-      var p=JSON.parse(bk.assignedTo||'[]');
-      if(Array.isArray(p)&&p.length&&p[0].sitter!==undefined) assigns=p;
-    }catch(e){}
-    var mySess=0;
-    if(assigns.length){
-      assigns.forEach(function(a){
-        if(a.sitter===sitterName) mySess+=(a.slots||[]).length||1;
-      });
+  // 完全對齊 sitter.html 的 parseAssignments / getMySessions / getMyTransport 邏輯
+  function parseAssignmentsAdmin(assignedTo){
+    if(!assignedTo) return [];
+    if(typeof assignedTo==='string'&&assignedTo.startsWith('[')){
+      try{var arr=JSON.parse(assignedTo);return Array.isArray(arr)?arr:[];}catch(e){return[];}
     }
-    var sessions=mySess||((bk.days||1)*(bk.tpd||1));
+    if(Array.isArray(assignedTo)) return assignedTo;
+    return [];
+  }
+  function getMySessionsAdmin(bk,myName){
+    var assigns=parseAssignmentsAdmin(bk.assignedTo);
+    if(!assigns.length) return bk.assignedTo===myName?(bk.tpd||1):0;
+    if(assigns[0]&&assigns[0].slot!==undefined){
+      return assigns.filter(function(a){return a.sitter===myName;}).length;
+    }
+    return assigns.reduce(function(s,d){return s+(d.slots||[]).length;},0);
+  }
+  function getMyTransportAdmin(bk,myName){
+    var assigns=parseAssignmentsAdmin(bk.assignedTo);
+    if(!assigns.length) return bk.assignedTo===myName?(bk.transport||0):0;
+    var mine=assigns.find(function(a){return a.sitter===myName;});
+    return mine?(mine.transport||0):0;
+  }
+
+  function calcOneSalary(bk, sitterName){
+    var sessions=getMySessionsAdmin(bk,sitterName)||((bk.days||1)*(bk.tpd||1));
     var svcTotal=200*sessions;
     // 附加服務（同保母端邏輯）
     var addonTotal=0;
@@ -2443,15 +2455,8 @@ async function renderSalary(){
     // 保母附加費（後台加的）
     var extraFees=(bk.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===sitterName;});
     var extraTotal=extraFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
-    // 車馬費
-    var transport=0;
-    try{
-      var assigns2=JSON.parse(bk.assignedTo||'[]');
-      if(Array.isArray(assigns2)){
-        var mySlot=assigns2.find(function(a){return a.sitter===sitterName;});
-        if(mySlot&&mySlot.transport) transport=parseInt(mySlot.transport)||0;
-      }
-    }catch(e){}
+    // 車馬費（同保母端 getMyTransport）
+    var transport=getMyTransportAdmin(bk,sitterName);
     var transportTotal=transport*sessions;
     var total=svcTotal+addonTotal+extraTotal+transportTotal;
     return{sessions,svcTotal,addonTotal,extraTotal,transportTotal,total};
@@ -2583,21 +2588,54 @@ async function renderCoupons(){
   const f=document.getElementById('couponFilter').value;
   if(f==='valid')c=c.filter(x=>!x.used);
   if(f==='used')c=c.filter(x=>x.used);
-  c.sort((a,b)=>b.code.localeCompare(a.code));
+  c.sort((a,b)=>(b.code||'').localeCompare(a.code||''));
   const grid=document.getElementById('couponGrid');
-  if(!c.length){grid.innerHTML=`<div class="empty-msg">尚無折抵券 🎟</div>`;return;}
-  grid.innerHTML=c.map(cp=>{
-    var sourceBadge=cp.source==='review'?'<span style="font-size:.7rem;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:800;margin-left:4px;">好評贈券</span>':'';
-    var expiry=cp.expired_at||cp.expire||'';
-    var discount=cp.discount||cp.amount||50;
-    return '<div class="cpn-card">'
-      +'<div>'
-      +'<div class="cpn-code">'+cp.code+sourceBadge+'</div>'
-      +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">折 $'+discount+' ｜ '+( cp.book_id?'訂單#'+cp.book_id:'')+' ｜ 到期 '+expiry+'</div>'
-      +'</div>'
-      +'<div class="'+(cp.used?'cpn-used':'cpn-ok')+'">'+(cp.used?'已使用':'有效')+'</div>'
-      +'</div>';
-  }).join('');
+
+  // 同時載入推薦碼使用狀況
+  var refCodes=[];
+  try{
+    var rfRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');
+    var rfData=await rfRes.json();
+    refCodes=Array.isArray(rfData)?rfData:[];
+  }catch(e){}
+
+  var html='';
+  if(!c.length&&!refCodes.length){
+    grid.innerHTML='<div class="empty-msg">尚無折抵券 🎟</div>';return;
+  }
+
+  if(c.length){
+    html+='<div style="font-weight:900;font-size:.9rem;color:var(--pk);margin-bottom:8px;">🎟 折抵券（好評贈送）</div>';
+    html+=c.map(function(cp){
+      var sourceBadge=cp.source==='review'?'<span style="font-size:.7rem;background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:8px;font-weight:800;margin-left:4px;">好評贈券</span>':'';
+      var expiry=cp.expired_at||cp.expire||'';
+      var discount=cp.discount||cp.amount||50;
+      return '<div class="cpn-card">'
+        +'<div>'
+        +'<div class="cpn-code">'+(cp.code||'')+sourceBadge+'</div>'
+        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">折 $'+discount+' ｜ '+( cp.book_id?'訂單#'+cp.book_id:'')+' ｜ 到期 '+expiry+'</div>'
+        +'</div>'
+        +'<div class="'+(cp.used?'cpn-used':'cpn-ok')+'">'+(cp.used?'已使用':'有效')+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  if(refCodes.length){
+    html+='<div style="font-weight:900;font-size:.9rem;color:var(--pk);margin:16px 0 8px;">👥 推薦碼（飼主分享碼）</div>';
+    html+=refCodes.map(function(rc){
+      var usedBadge=rc.used_by?('已被 '+rc.used_by+' 使用'):'尚未被使用';
+      var usedCount=rc.used_count||0;
+      return '<div class="cpn-card">'
+        +'<div>'
+        +'<div class="cpn-code">'+(rc.code||'')+'</div>'
+        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">擁有者：'+( rc.owner||'-')+' ｜ 使用次數：'+usedCount+'</div>'
+        +'</div>'
+        +'<div class="'+(rc.used_by?'cpn-used':'cpn-ok')+'" style="font-size:.7rem;">'+usedBadge+'</div>'
+        +'</div>';
+    }).join('');
+  }
+
+  grid.innerHTML=html;
 }
 
 // ── REVIEWS ──

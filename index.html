@@ -1142,18 +1142,24 @@ async function giveReferralReward(ownerName){
   await dbInsertCoupon({code,pet_name:ownerName,amount:100,created:today,expire:expStr,used:false,author:'推薦獎勵'});
 }
 
-function checkRefCode(){
-  const ref=document.getElementById('refCode')?.value.trim()||'';
+async function checkRefCode(){
+  const ref=(document.getElementById('refCode')?.value||'').trim().toUpperCase();
   const msg=document.getElementById('refMsg');
-  if(!ref){if(msg)msg.textContent='';return;}
-  const refs=JSON.parse(localStorage.getItem('referralCodes')||'{}');
-  if(refs[ref]&&!refs[ref].usedBy){
-    if(msg){msg.textContent='✅ 推薦碼有效！預約可折扣 $50';msg.style.color='#06C755';}
-  } else if(refs[ref]&&refs[ref].usedBy){
-    if(msg){msg.textContent='❌ 此推薦碼已使用過';msg.style.color='#F87171';}
-  } else {
-    if(msg){msg.textContent='❌ 推薦碼無效';msg.style.color='#F87171';}
+  if(!ref){if(msg)msg.textContent='';calc();return;}
+  if(msg)msg.textContent='⏳ 驗證中...';
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');
+    var rows=await res.json();
+    var found=(Array.isArray(rows)?rows:[]).find(function(r){return (r.code||'').toUpperCase()===ref;});
+    if(found){
+      if(msg){msg.textContent='✅ 推薦碼有效！預約可折扣 $50';msg.style.color='#06C755';}
+    } else {
+      if(msg){msg.textContent='❌ 推薦碼無效';msg.style.color='#F87171';}
+    }
+  }catch(e){
+    if(msg){msg.textContent='⚠️ 驗證失敗，請稍後再試';msg.style.color='#F87171';}
   }
+  calc();
 }
 function closeModal(){document.getElementById('modalOv').classList.remove('show');}
 
@@ -1503,7 +1509,8 @@ async function submitBook(){
   let refDisc=0;
   if(ref){
     const refs=await dbGetRefCodes();
-    const rc=refs.find(r=>r.code===ref&&!r.used_by);
+    const refUpper=ref.toUpperCase();
+    const rc=refs.find(r=>(r.code||'').toUpperCase()===refUpper);
     if(rc)refDisc=50;
   }
   const b={

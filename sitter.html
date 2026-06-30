@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
-<!-- build:1782731118 -->
+<!-- build:1782786233 -->
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -1210,16 +1210,15 @@ async function renderMain(){
   console.log('allB count:', allB.length, 'ME:', ME?.name);
   allB.forEach(b=>console.log('  order', b.id, 'assignedTo:', b.assignedTo?.substring(0,80)));
   const myCases=allB.filter(b=>{
+    if(b.status==='已完成') return false; // 已完成移到薪資查詢分頁
     const raw=b.assignedTo||'';
     if(!raw) return false;
     const assigns=parseAssignments(raw);
     if(!assigns.length) return raw===ME.name; // old string format
-    // Format2: explicitly assigned slots
     if(assigns[0]&&assigns[0].slot!==undefined){
       const match=assigns.some(a=>a.sitter===ME.name);
       return match;
     }
-    // Format1: not yet assigned by admin
     return false;
   });
   console.log('myCases:', myCases.length);
@@ -1252,16 +1251,15 @@ async function renderCases(){
   console.log('allB count:', allB.length, 'ME:', ME?.name);
   allB.forEach(b=>console.log('  order', b.id, 'assignedTo:', b.assignedTo?.substring(0,80)));
   const myCases=allB.filter(b=>{
+    if(b.status==='已完成') return false; // 已完成移到薪資查詢分頁
     const raw=b.assignedTo||'';
     if(!raw) return false;
     const assigns=parseAssignments(raw);
     if(!assigns.length) return raw===ME.name; // old string format
-    // Format2: explicitly assigned slots
     if(assigns[0]&&assigns[0].slot!==undefined){
       const match=assigns.some(a=>a.sitter===ME.name);
       return match;
     }
-    // Format1: not yet assigned by admin
     return false;
   });
   console.log('myCases:', myCases.length);
@@ -1468,10 +1466,10 @@ async function renderCases(){
         return row;
       })()}
       <div class="checkin-row">
-        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')">
+        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${b.status==='已完成'?'disabled style="background:#ccc;cursor:not-allowed;opacity:.6;"':''}>
           🔵 我已抵達
         </button>
-        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')">
+        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${b.status==='已完成'?'disabled style="background:#ccc;cursor:not-allowed;opacity:.6;"':''}>
           🔴 照顧結束
         </button>
       </div>
@@ -1700,29 +1698,58 @@ async function renderSalaryView(){
     const assigns=parseAssignments(b.assignedTo);
     if(assigns.length) return assigns.some(a=>a.sitter===ME.name);
     return b.assignedTo===ME.name;
-  });
+  }).sort((a,z)=>String(z.id).localeCompare(String(a.id)));
+
   const sv=document.getElementById('salView');
-  if(!done.length){sv.innerHTML=`<div class="empty">尚無已完成案件 🐾</div>`;return;}
-  const grand=done.reduce((s,b)=>{const sess=(b.days||0)*(b.tpd||1);return s+sess*SITTER_RATE+(b.transport||0);},0);
-  sv.innerHTML=`
-    <div class="sal-card">
-      <div class="sal-row"><span class="sal-l">計費方式</span><span class="sal-v">$${SITTER_RATE}/次</span></div>
-      <div class="sal-row"><span class="sal-l">已完成案件</span><span class="sal-v">${done.length} 件</span></div>
-      <div class="sal-row"><span class="sal-l">服務次數</span><span class="sal-v">${done.reduce((s,b)=>s+(b.days||0)*(b.tpd||1),0)} 次</span></div>
-      <div class="sal-row" style="padding-top:8px;border-top:2px dashed var(--pk3);margin-top:4px;">
-        <span class="sal-l" style="font-size:1rem;font-weight:900;">累計薪資</span>
-        <span class="sal-v" style="font-size:1.1rem;">$${grand.toLocaleString()}</span>
-      </div>
-    </div>
-    ${done.map((b,i)=>{const sess=(b.days||0)*(b.tpd||1);const sal=sess*SITTER_RATE+(b.transport||0);
-      return `<div class="sal-card">
-        <div style="font-weight:900;color:var(--pk);margin-bottom:10px;font-family:'Nunito',sans-serif;">[${i+1}] ${b.petName||'寵物'} — ${b.ownerName}</div>
-        <div class="sal-row"><span class="sal-l">日期</span><span class="sal-v">${b.startDate}～${b.endDate}</span></div>
-        <div class="sal-row"><span class="sal-l">服務次數</span><span class="sal-v">${b.days}天×${b.tpd}次=${sess}次</span></div>
-        <div class="sal-row"><span class="sal-l">服務費</span><span class="sal-v">$${sess*SITTER_RATE}</span></div>
-        <div class="sal-row"><span class="sal-l">車馬費</span><span class="sal-v">$${b.transport||0}</span></div>
-        <div class="sal-row"><span class="sal-l">本單合計</span><span class="sal-v">$${sal}</span></div>
-      </div>`;}).join('')}`;
+  if(!done.length){sv.innerHTML='<div class="empty">尚無已完成案件 🐾</div>';return;}
+
+  // 讀取已支付狀態
+  var salaryPaid={};
+  try{
+    var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
+    var spRows=await spRes.json();
+    (Array.isArray(spRows)?spRows:[]).forEach(function(r){
+      if(r.key==='salary_paid'){
+        salaryPaid=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+      }
+    });
+  }catch(e){}
+
+  var grand=0;
+  var rows=done.map(function(b){
+    var sal=calcSitterSalary(b).total;
+    grand+=sal;
+    var key=ME.name+'_'+b.id;
+    var isPaid=!!salaryPaid[key];
+    var statusHtml=isPaid
+      ?'<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">✅ 已支付</span>'
+      :'<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">⏳ 未支付</span>';
+    var detailId='salDetail-'+b.id;
+    return '<div class="sal-card" style="padding:12px 14px;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;" onclick="document.getElementById(\''+detailId+'\').style.display=document.getElementById(\''+detailId+'\').style.display===\'none\'?\'block\':\'none\';" style="cursor:pointer;">'
+      +'<div>'
+      +'<div style="font-weight:800;font-size:.84rem;">'+( b.ownerName||'飼主')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--tl);">'+( b.startDate||'')+'</div>'
+      +'</div>'
+      +'<div style="text-align:right;">'
+      +'<div style="font-size:1.05rem;font-weight:900;color:var(--pk);">$'+sal.toLocaleString()+'</div>'
+      +statusHtml
+      +'</div>'
+      +'</div>'
+      +'<div id="'+detailId+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--pk3);font-size:.76rem;color:var(--tl);">'
+      +'點擊展開詳細費用明細（如需查看請聯繫管理員）'
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  sv.innerHTML='<div class="sal-card" style="background:linear-gradient(135deg,var(--pk4),#fff);border:2px solid var(--pk2);">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;">'
+    +'<span style="font-weight:900;font-size:.92rem;">💰 已完成案件總計</span>'
+    +'<span style="font-size:1.3rem;font-weight:900;color:var(--pk);">$'+grand.toLocaleString()+'</span>'
+    +'</div>'
+    +'<div style="font-size:.74rem;color:var(--tl);margin-top:4px;">共 '+done.length+' 件已完成案件</div>'
+    +'</div>'
+    +rows;
 }
 
 async function viewHistory(bookId){

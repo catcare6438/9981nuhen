@@ -788,6 +788,17 @@ function dbRowToOrder(r){
     </div>
   </div>
 
+  <!-- 飼主專屬推薦碼 -->
+  <div id="ownerRefCodeBar" style="display:none;background:linear-gradient(135deg,#FFFDE7,#FFF8E1);border-bottom:2px solid #FFD54F;padding:10px 16px;">
+    <div style="max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+      <div>
+        <div style="font-size:.74rem;color:#8B6000;font-weight:800;margin-bottom:2px;">🎁 您的專屬推薦碼（分享給好友，對方下單您同享優惠）</div>
+        <div style="font-family:monospace;font-size:1.1rem;font-weight:900;color:#B8860B;letter-spacing:2px;" id="ownerRefCodeDisplay">載入中...</div>
+      </div>
+      <button onclick="copyOwnerRefCode()" style="padding:6px 16px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.8rem;cursor:pointer;">📋 複製推薦碼</button>
+    </div>
+  </div>
+
   <div class="wrap">
     <!-- 多訂單區塊 (動態生成) -->
     <div id="ordersContainer"><div class="no-rep">載入中...</div></div>
@@ -1053,6 +1064,43 @@ document.addEventListener('DOMContentLoaded',function(){
     if(e.target===this) closeLB();
   });
 });
+
+async function initOwnerRefCode(books){
+  if(!books||!books.length) return;
+  var phone=(books[0].ownerPhone||books[0].owner_phone||'').replace(/[^0-9]/g,'');
+  if(!phone) return;
+  // 推薦碼 = REF + 手機後6碼
+  var code='REF'+phone.slice(-6).toUpperCase();
+  document.getElementById('ownerRefCodeDisplay').textContent=code;
+  document.getElementById('ownerRefCodeBar').style.display='block';
+  window._ownerRefCode=code;
+  // 確保推薦碼存在 referral_codes table
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes');
+    var rows=await res.json();
+    if(Array.isArray(rows)){
+      var exists=rows.find(function(r){return (r.code||'').toUpperCase()===code.toUpperCase();});
+      if(!exists){
+        // 新增推薦碼
+        await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({code:code,book_id:String(books[0].id||''),owner:books[0].ownerName||'飼主',used_count:0})
+        });
+      }
+    }
+  }catch(e){console.warn('refcode:',e);}
+}
+
+function copyOwnerRefCode(){
+  var code=window._ownerRefCode||document.getElementById('ownerRefCodeDisplay').textContent;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(code).then(function(){alert('推薦碼已複製！分享給好友，好友下單輸入推薦碼，你們各享 $50 優惠 🎉');});
+  } else {
+    alert('推薦碼：'+code+'（請截圖分享）');
+  }
+}
+
 async function ownerLogin(){
   var pw=document.getElementById('ownerPwIn').value
     .trim()
@@ -1151,6 +1199,14 @@ async function renderAllOrders(books){
   // 取出所有訂單的 reviews（用 bookId 對應）
   let allReviews=[];
   try{allReviews=await dbGetReviews();}catch(e){}
+  // 取每筆好評對應的優惠碼
+  var allCoupons=[];
+  try{var cpR=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');allCoupons=await cpR.json();if(!Array.isArray(allCoupons))allCoupons=[];}catch(e){}
+  // 把優惠碼附到對應的 review
+  allReviews.forEach(function(rv){
+    var cp=allCoupons.find(function(c){return c.source==='review'&&String(c.book_id)===String(rv.book_id||rv.bookId||'');});
+    if(cp){rv._couponCode=cp.code||'';rv._couponExpiry=cp.expired_at?new Date(cp.expired_at).toLocaleDateString('zh-TW'):'';}
+  });
   // 此飼主所有訂單的 id set（用來判斷是否曾留過好評）
   var allBookIds=books.map(function(b){return String(b.id);});
   var ownerHasReview=allReviews.some(function(r){return allBookIds.includes(String(r.book_id||r.bookId||''));});
@@ -1282,6 +1338,11 @@ async function loadReviewSitters(){
   }catch(e){console.warn('loadReviewSitters:',e);}
 }
 
+function copyCouponCode(code){
+  if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){alert('優惠碼已複製！下次預約輸入即可折扣 $50 🎉');});}
+  else alert('優惠碼：'+code+'（請截圖）');
+}
+
 function closeRvModal(){document.getElementById("rvModal").classList.remove("show");}
 
 function openReviewForm(elOrId){
@@ -1367,26 +1428,38 @@ async function submitOwnerReview(){
     var j=await res.json();
     if(j&&j.error) throw new Error(j.error);
 
-    // 檢查此飼主是否已領過好評優惠券（直接查 coupons table，用 book_id 比對飼主所有訂單）
+    // 檢查此飼主是否曾留過評論（reviews table，不管 approved）
+    // 有留過 = 不給優惠碼
     var alreadyHasCoupon=false;
     var existingCpCode='';
     try{
-      // 直接取所有好評優惠券，用目前的書本ID所有者比對
-      var allCpRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
-      var allCps=await allCpRes.json();
-      if(Array.isArray(allCps)){
-        // 取此 bookId 所屬的飼主手機，再找同手機的所有訂單
-        var thisOrderRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');
-        var allOrders=await thisOrderRes.json();
-        if(Array.isArray(allOrders)){
-          var thisOrder=allOrders.find(function(o){return String(o.id)===String(bookId);});
-          var myPhone=thisOrder?thisOrder.owner_phone:'';
-          if(myPhone){
-            var myIds=allOrders.filter(function(o){return o.owner_phone===myPhone;}).map(function(o){return String(o.id);});
-            var reviewCp=allCps.find(function(cp){
-              return (cp.source==='review')&&myIds.includes(String(cp.book_id||''));
+      // 取所有訂單找同手機飼主
+      var allOrdersR=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');
+      var allOrdersD=await allOrdersR.json();
+      if(Array.isArray(allOrdersD)){
+        var thisOrderD=allOrdersD.find(function(o){return String(o.id)===String(bookId);});
+        var myPhoneD=thisOrderD?thisOrderD.owner_phone:'';
+        if(myPhoneD){
+          // 找同手機所有訂單 id
+          var myIdsD=allOrdersD.filter(function(o){return o.owner_phone===myPhoneD;}).map(function(o){return String(o.id);});
+          // 查 reviews table - 有任一訂單留過評論就算
+          var allRevR=await fetch('https://catwoli-api.catwoli6644.workers.dev/reviews');
+          var allRevD=await allRevR.json();
+          if(Array.isArray(allRevD)){
+            // 排除本次 bookId（剛送出的不算）
+            var hasOtherReview=allRevD.some(function(r){
+              return myIdsD.includes(String(r.book_id||''))&&String(r.book_id||'')!==String(bookId);
             });
-            if(reviewCp){alreadyHasCoupon=true;existingCpCode=reviewCp.code||'';}
+            if(hasOtherReview){
+              alreadyHasCoupon=true;
+              // 找現有優惠碼
+              var allCpR=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');
+              var allCpD=await allCpR.json();
+              if(Array.isArray(allCpD)){
+                var mycp=allCpD.find(function(cp){return cp.source==='review'&&myIdsD.includes(String(cp.book_id||''));});
+                if(mycp) existingCpCode=mycp.code||'';
+              }
+            }
           }
         }
       }
@@ -1578,6 +1651,14 @@ function buildReviewDoneHTML(rv,bookId){
   var comment=rv.comment||'';
   var author=rv.author||'';
   var pendingBadge=rv.approved===false?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>':'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
+  // 持續顯示優惠碼（從 coupons table 取得）
+  var couponHtml=rv._couponCode?('<div style="background:linear-gradient(135deg,#FFFDE7,#FFF8E1);border:2px dashed #FFB800;border-radius:12px;padding:12px 14px;margin-top:10px;text-align:center;">'
+    +'<div style="font-size:.78rem;color:#8B6000;margin-bottom:4px;">🎁 您的好評折抵券（下次預約使用）</div>'
+    +'<div style="font-family:monospace;font-size:1.2rem;font-weight:900;color:#B8860B;letter-spacing:3px;">'+rv._couponCode+'</div>'
+    +'<div style="font-size:.72rem;color:var(--tl);margin-top:4px;">'+(rv._couponExpiry?'有效至：'+rv._couponExpiry:'有效期3個月')+'</div>'
+    +'<button onclick="copyCouponCode(this.dataset.code)" data-code="'+rv._couponCode+'" '
+    +'style="margin-top:6px;padding:5px 16px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:10px;font-weight:800;font-size:.78rem;cursor:pointer;">📋 複製券碼</button>'
+    +'</div>'):'';
   return `
     <div class="section-sub-title">💬 我的好評${pendingBadge}</div>
     <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
@@ -2250,7 +2331,7 @@ document.head.appendChild(_shakeStyle);
     var data = {};
     try{ data = JSON.parse(raw); }catch(e){ data = {error: raw}; }
     if(data.success){
-      showLineStatus('✅ LINE 綁定成功！正在進入毛孩專區...', '#06C755');
+      showLineStatus('貓窩裏收到您的預約囉~會盡速與您聯繫，請留意LINE訊息~謝謝您 🐾', '#06C755');
       // 綁定成功：自動取得密碼並登入
       setTimeout(async function(){
         try{

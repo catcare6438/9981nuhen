@@ -519,7 +519,7 @@ function dbRowToOrder(r){
   <div class="card">
     <div class="card-title">🐾 主要服務</div>
     <div class="hprice-note" id="holidayNote">🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000</div>
-    <div class="svc-grid">
+    <div class="svc-grid" id="svcGrid">
       <div class="svc on" data-key="companion" data-base="300" onclick="toggleSvc(this)">
         <div class="svc-ico">🏠</div>
         <div class="svc-name">到府陪伴</div>
@@ -637,18 +637,18 @@ function dbRowToOrder(r){
 <div class="wrap" id="services" style="padding-top:0;">
   <div class="card">
     <div class="card-title">🛁 服務項目一覽</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;" id="svcOverviewGrid">
       <div style="background:var(--p4);border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableCompanion">🏠 到府陪伴 $300/0.5H</div>
-        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 餵食<br>✦ 環境清潔<br>✦ 陪玩互動<br>✦ 身體狀況觀察</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);" id="svcDetailCompanion">✦ 餵食<br>✦ 環境清潔<br>✦ 陪玩互動<br>✦ 身體狀況觀察</div>
       </div>
       <div style="background:var(--p4);border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableWalk">🦮 散步服務 $200/0.5H</div>
-        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 安全外出散步<br>✦ 適度運動消耗<br>✦ 社交互動觀察</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);" id="svcDetailWalk">✦ 安全外出散步<br>✦ 適度運動消耗<br>✦ 社交互動觀察</div>
       </div>
       <div style="background:#FFF7E0;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:#B8860B;margin-bottom:8px;font-family:'Nunito',sans-serif;" id="svcTableBoth">🏠🦮 到府＋遛狗 $500/45min</div>
-        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);">✦ 以上服務全包<br>✦ 超值組合方案</div>
+        <div style="font-size:.8rem;line-height:1.9;color:var(--tl);" id="svcDetailBoth">✦ 以上服務全包<br>✦ 超值組合方案</div>
       </div>
       <div style="background:#FFF0F8;border-radius:16px;padding:18px;">
         <div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:'Nunito',sans-serif;">✨ 加購服務</div>
@@ -1306,7 +1306,10 @@ function calc(){
 
   const cards=document.querySelectorAll('.svc.on');
   const svcKeys=Array.from(cards).map(card=>card.dataset.key);
-  const svcNames=svcKeys.map(k=>({companion:'到府陪伴',walk:'遛狗服務',both:'到府＋遛狗'}[k]||k));
+  const svcNames=svcKeys.map(function(k){
+    var el=document.querySelector('.svc[data-key="'+k+'"] .svc-name');
+    return el?el.textContent:({companion:'到府陪伴',walk:'遛狗服務',both:'到府＋遛狗'}[k]||k);
+  });
   const baseNormal=svcKeys.reduce((s,k)=>s+(SVCBASE[k]||0),0);
 
   let addon=0; const addonNames=[];
@@ -1717,7 +1720,6 @@ async function initFromSiteSettings(){
     // ── 服務價格 ──
     if(settings.svc_prices&&Array.isArray(settings.svc_prices)&&settings.svc_prices.length){
       console.log('[settings] svc_prices 讀取:',JSON.stringify(settings.svc_prices));
-      // 優先用 label 比對，比對不到則用陣列順序 fallback（第1筆=平日,第2筆=連假,第3筆=春節）
       var normal=settings.svc_prices.find(function(p){return (p.label||'').indexOf('平')>=0;})||settings.svc_prices[0];
       var holiday=settings.svc_prices.find(function(p){return (p.label||'').indexOf('連')>=0||(p.label||'').indexOf('假')>=0;})||settings.svc_prices[1];
       var cny=settings.svc_prices.find(function(p){return (p.label||'').indexOf('春')>=0||(p.label||'').indexOf('年')>=0;})||settings.svc_prices[2];
@@ -1736,6 +1738,47 @@ async function initFromSiteSettings(){
         CNY_PRICES.walk=Number(cny.walk)||500;
         CNY_PRICES.both=Number(cny.both)||1000;
       }
+    }
+
+    // ── 服務項目內容（圖示/名稱/小字說明/一覽表細項）── 完全動態渲染，支援任意數量新增 ──
+    if(settings.svc_items&&Array.isArray(settings.svc_items)&&settings.svc_items.length){
+      console.log('[settings] svc_items 讀取:',JSON.stringify(settings.svc_items));
+      var svcGrid=document.getElementById('svcGrid');
+      var overviewGrid=document.getElementById('svcOverviewGrid');
+
+      if(svcGrid){
+        svcGrid.innerHTML=settings.svc_items.map(function(item,i){
+          var basePrice=SVCBASE[item.key]!==undefined?SVCBASE[item.key]:(item.price||0);
+          // 為自訂 key 補上 SVCBASE/HOLIDAY_PRICES/CNY_PRICES 預設值
+          if(SVCBASE[item.key]===undefined){
+            SVCBASE[item.key]=Number(item.price)||basePrice||0;
+            HOLIDAY_PRICES[item.key]=SVCBASE[item.key];
+            CNY_PRICES[item.key]=SVCBASE[item.key];
+          }
+          return '<div class="svc'+(i===0?' on':'')+'" data-key="'+item.key+'" data-base="'+SVCBASE[item.key]+'" onclick="toggleSvc(this)">'
+            +'<div class="svc-ico">'+(item.icon||'🐾')+'</div>'
+            +'<div class="svc-name">'+(item.name||'')+'</div>'
+            +'<div class="svc-price" id="price-'+item.key+'">$'+SVCBASE[item.key]+' '+(item.unit||'')+'</div>'
+            +'<div class="svc-original" id="orig-'+item.key+'"></div>'
+            +'<div class="svc-desc">'+(item.desc||'')+'</div>'
+            +'</div>';
+        }).join('');
+      }
+
+      if(overviewGrid){
+        var addonCardHtml=document.getElementById('svcTableAddon')?document.getElementById('svcTableAddon').closest('div[style*="background"]').outerHTML:'';
+        var serviceCardsHtml=settings.svc_items.map(function(item){
+          var detailItems=(item.detailItems||[]).map(function(d){return '✦ '+d;}).join('<br>');
+          var priceVal=SVCBASE[item.key]!==undefined?SVCBASE[item.key]:(item.price||0);
+          return '<div style="background:var(--p4);border-radius:16px;padding:18px;">'
+            +'<div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:\'Nunito\',sans-serif;">'+(item.icon||'')+' '+(item.name||'')+' $'+priceVal+(item.unit||'')+'</div>'
+            +'<div style="font-size:.8rem;line-height:1.9;color:var(--tl);">'+detailItems+'</div>'
+            +'</div>';
+        }).join('');
+        overviewGrid.innerHTML=serviceCardsHtml+addonCardHtml;
+      }
+    } else {
+      // 沒有 svc_items 設定時，至少同步價格數字到既有固定卡片
       var cpEl=document.getElementById('priceCompanion');
       var wkEl=document.getElementById('priceWalk');
       var btEl=document.getElementById('priceBoth');

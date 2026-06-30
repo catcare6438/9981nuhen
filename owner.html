@@ -1204,9 +1204,16 @@ async function renderAllOrders(books){
   var allCoupons=[];
   try{var cpR=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons');allCoupons=await cpR.json();if(!Array.isArray(allCoupons))allCoupons=[];}catch(e){}
   // 把優惠碼附到對應的 review
+  console.log('[debug] allCoupons sample:', allCoupons.slice(0,2));
   allReviews.forEach(function(rv){
-    var cp=allCoupons.find(function(c){return c.source==='review'&&String(c.book_id)===String(rv.book_id||rv.bookId||'');});
-    if(cp){rv._couponCode=cp.code||'';rv._couponExpiry=cp.expired_at?new Date(cp.expired_at).toLocaleDateString('zh-TW'):'';}
+    var cp=allCoupons.find(function(c){return c.source==='review'&&String(c.book_id||'')===String(rv.book_id||rv.bookId||'');});
+    if(cp){
+      rv._couponCode=cp.code||'';
+      rv._couponExpiry=cp.expired_at?new Date(cp.expired_at).toLocaleDateString('zh-TW'):'';
+      console.log('[debug] 找到優惠券:',rv._couponCode,'for review book_id:',rv.book_id);
+    } else {
+      console.log('[debug] 找不到優惠券 for review book_id:',rv.book_id,'source check failed');
+    }
   });
   // 此飼主所有訂單的 id set（用來判斷是否曾留過好評）
   var allBookIds=books.map(function(b){return String(b.id);});
@@ -1654,11 +1661,17 @@ function buildReviewDoneHTML(rv,bookId){
   var best=rv.best||'';
   var comment=rv.comment||'';
   var author=rv.author||'';
-  var pendingBadge=rv.approved===false?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>':'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
   var code=rv._couponCode||'';
   var expiry=rv._couponExpiry||'';
+  // 折抵券標籤直接接在「已刊登/審核中」文字旁邊
+  var statusBadge=rv.approved===false
+    ?'<span style="background:#FEF3C7;color:#92400E;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">⏳ 審核中</span>'
+    :'<span style="background:#D1FAE5;color:#065F46;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;margin-left:6px;">✅ 已刊登</span>';
+  var couponInline=code
+    ?'<span style="background:linear-gradient(135deg,#FFF8E1,#FFFDE7);border:1.5px dashed #FFB800;padding:2px 10px;border-radius:10px;font-size:.72rem;font-weight:800;color:#B8860B;margin-left:6px;font-family:monospace;letter-spacing:1px;cursor:pointer;" onclick="copyCouponCode(\''+code+'\')">🎫 '+code+' (點擊複製)</span>'
+    :'';
   return `
-    <div class="section-sub-title">💬 我的好評${pendingBadge}</div>
+    <div class="section-sub-title">💬 我的好評${statusBadge}${couponInline}</div>
     <div style="background:linear-gradient(135deg,#FFF9E8,#FFF0F5);border:2px solid var(--pk3);border-radius:16px;padding:18px;margin-bottom:16px;">
       <div style="font-size:1.3rem;color:#FFB800;margin-bottom:6px;">${stars}</div>
       ${best?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">${best.split('、').map(b=>`<span class="sitter-tag">${b}</span>`).join('')}</div>`:''}

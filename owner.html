@@ -529,6 +529,27 @@ function _errMsg(e){
 
 // ── Supabase helpers ──
 var _ownerOrdersCache=null,_ownerOrdersCacheTime=0;
+
+// ── 後台網站設定快取（用於寵物加收門檻等動態設定）──
+var _ownerSiteSettings={};
+(async function loadOwnerSiteSettings(){
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{cache:'no-store'});
+    var rows=await res.json();
+    (Array.isArray(rows)?rows:[]).forEach(function(r){
+      var v=r.value;
+      if(typeof v==='string'){try{v=JSON.parse(v);}catch(e){}}
+      _ownerSiteSettings[r.key]=v;
+    });
+  }catch(e){console.warn('[loadOwnerSiteSettings]',e.message);}
+})();
+// 共用：取得寵物加收設定（免費隻數 free、超額單價 unit）。
+// 若設定尚未載入完成則先用預設值 {free:2,unit:100}，避免明細顯示卡住；
+// 設定載入完成後若已渲染過明細，後續重新展開即會套用最新值。
+function getPetExtraFee(){
+  var p=(_ownerSiteSettings&&_ownerSiteSettings.pet_extra_fees)||{};
+  return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:100)};
+}
 async function dbGetOrders(){
   try{
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders');
@@ -2074,11 +2095,12 @@ function ownerCalcDetail(bk){
     });
   }
 
-  // ── 寵物加收（第4隻起）──
+  // ── 寵物加收 ──
   var tp=(bk.catCount||0)+(bk.dogCount||0);
-  if(tp>3){
-    var eu=100*(tp-3);
-    rows.push({label:'第4隻起加收（超額'+(tp-3)+'隻）',price:eu,times:total,sub:eu*total});
+  var _pf=getPetExtraFee();
+  if(tp>_pf.free){
+    var eu=_pf.unit*(tp-_pf.free);
+    rows.push({label:'第'+(_pf.free+1)+'隻起加收（超額'+(tp-_pf.free)+'隻）',price:eu,times:total,sub:eu*total});
   }
 
   // ── 急件 ──

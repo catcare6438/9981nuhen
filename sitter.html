@@ -1491,12 +1491,16 @@ async function renderCases(){
         return row;
       })()}
       <div class="checkin-row">
-        <button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${b.status==='已完成'?'disabled style="background:#ccc;cursor:not-allowed;opacity:.6;"':''}>
-          🔵 我已抵達
-        </button>
-        <button class="btn-leave" id="leave-${b.id}" onclick="pressLeave('${b.id}')" ${b.status==='已完成'?'disabled style="background:#ccc;cursor:not-allowed;opacity:.6;"':''}>
-          🔴 照顧結束
-        </button>
+        ${(()=>{
+          const done = b.status==='已完成';
+          const state = _checkinState[b.id];
+          const arrStyle = done ? 'background:#ccc;cursor:not-allowed;opacity:.6;' : state==='arrived'||state==='left' ? 'background:#16A34A;' : '';
+          const arrLabel = done ? '🔵 我已抵達' : state==='arrived'||state==='left' ? '✅ 已抵達通知飼主' : '🔵 我已抵達';
+          const leaveStyle = done ? 'background:#ccc;cursor:not-allowed;opacity:.6;' : state==='left' ? 'background:#6B7280;' : '';
+          const leaveLabel = done ? '🔴 照顧結束' : state==='left' ? '✅ 離開通知已發送' : '🔴 照顧結束';
+          return `<button class="btn-arrive" id="arrive-${b.id}" onclick="pressArrive('${b.id}')" ${done||state==='arrived'||state==='left'?'disabled':''} style="${arrStyle}">${arrLabel}</button>`
+               + `<button class="btn-leave"  id="leave-${b.id}"  onclick="pressLeave('${b.id}')"  ${done||state==='left'?'disabled':''} style="${leaveStyle}">${leaveLabel}</button>`;
+        })()}
       </div>
 
 
@@ -1664,14 +1668,33 @@ function _saveCheckinState(){
   }catch(e){}
 }
 
+function _showCheckinFeedback(bookId, type){
+  var arrBtn = document.getElementById('arrive-'+bookId);
+  var leaveBtn = document.getElementById('leave-'+bookId);
+  if(type === 'arrive' && arrBtn){
+    arrBtn.disabled = true;
+    arrBtn.style.background = '#16A34A';
+    arrBtn.innerHTML = '✅ 已抵達通知飼主';
+  }
+  if(type === 'leave' && leaveBtn){
+    leaveBtn.disabled = true;
+    leaveBtn.style.background = '#6B7280';
+    leaveBtn.innerHTML = '✅ 離開通知已發送';
+  }
+  // 顯示浮動提示
+  var toast = document.createElement('div');
+  toast.textContent = type === 'arrive' ? '✅ 抵達通知已發送給飼主！' : '✅ 離開通知已發送給飼主！';
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#16A34A;color:#fff;padding:12px 24px;border-radius:24px;font-size:.88rem;font-weight:800;z-index:9999;box-shadow:0 4px 16px rgba(0,0,0,.2);';
+  document.body.appendChild(toast);
+  setTimeout(function(){ toast.remove(); }, 3000);
+}
+
 async function pressArrive(bookId){
-  var bk=(_myCases||[]).find(function(x){return String(x.id)===String(bookId);});
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='arrived';
-  _saveCheckinState(); // 持久化到 sessionStorage
-  // 不更新按鈕 DOM
-  // 發送 LINE 通知（透過 Worker）
+  _saveCheckinState();
+  _showCheckinFeedback(bookId, 'arrive');
   try{
     var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',
@@ -1680,15 +1703,20 @@ async function pressArrive(bookId){
     });
     var notifyData=await notifyRes.json();
     console.log('[打卡抵達]',notifyData);
-  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
+  }catch(e){
+    console.warn('[打卡] 通知失敗:',e.message);
+    // 發送失敗時改變按鈕提示
+    var arrBtn=document.getElementById('arrive-'+bookId);
+    if(arrBtn){ arrBtn.style.background='#DC2626'; arrBtn.innerHTML='⚠️ 通知失敗（請重試）'; arrBtn.disabled=false; }
+  }
 }
 
 async function pressLeave(bookId){
   var now=new Date();
   var timeStr=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
   _checkinState[bookId]='left';
-  _saveCheckinState(); // 持久化到 sessionStorage
-  // 不更新按鈕 DOM
+  _saveCheckinState();
+  _showCheckinFeedback(bookId, 'leave');
   try{
     var leaveRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
       method:'POST',
@@ -1696,7 +1724,11 @@ async function pressLeave(bookId){
       body:JSON.stringify({action:'send-checkin-notify',bookId:String(bookId),sitter:ME.name,type:'leave',time:timeStr})
     });
     console.log('[打卡] 離開通知已發送');
-  }catch(e){console.warn('[打卡] 通知失敗:',e.message);}
+  }catch(e){
+    console.warn('[打卡] 通知失敗:',e.message);
+    var leaveBtn=document.getElementById('leave-'+bookId);
+    if(leaveBtn){ leaveBtn.style.background='#DC2626'; leaveBtn.innerHTML='⚠️ 通知失敗（請重試）'; leaveBtn.disabled=false; }
+  }
 }
 function buildVisitHtml(b){
   var photos=b.visitPhotos||[];

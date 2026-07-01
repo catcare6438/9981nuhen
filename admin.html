@@ -2729,21 +2729,49 @@ async function renderCoupons(){
   }
 
   if(refCodes.length){
-    html+='<div style="font-weight:900;font-size:.9rem;color:var(--pk);margin:16px 0 8px;">👥 推薦碼（飼主分享碼）</div>';
+    var usedCount2=refCodes.filter(function(rc){return rc.used_by;}).length;
+    html+='<div style="margin-top:16px;">'
+      +'<div onclick="var p=this.nextElementSibling;p.style.display=p.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.ref-arrow\').textContent=p.style.display===\'none\'?\'▶\':\'▼\';" '
+      +'style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:12px;padding:10px 14px;user-select:none;">'
+      +'<span style="font-weight:900;font-size:.9rem;color:var(--pk);">👥 推薦碼（飼主分享碼）</span>'
+      +'<span style="display:flex;align-items:center;gap:8px;">'
+      +'<span style="font-size:.74rem;color:var(--tl);">共 '+refCodes.length+' 組 ｜ 已使用 '+usedCount2+' 組</span>'
+      +'<span class="ref-arrow" style="color:var(--pk);font-size:.8rem;">▶</span>'
+      +'</span></div>'
+      +'<div style="display:none;margin-top:8px;">';
     html+=refCodes.map(function(rc){
-      var usedBadge=rc.used_by?('已被 '+rc.used_by+' 使用'):'尚未被使用';
+      var usedBadge=rc.used_by?('已被 '+rc.used_by+' 使用'):'尚未使用';
       var usedCount=rc.used_count||0;
-      return '<div class="cpn-card">'
-        +'<div>'
+      return '<div class="cpn-card" style="align-items:flex-start;">'
+        +'<div style="flex:1;">'
         +'<div class="cpn-code">'+(rc.code||'')+'</div>'
-        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">擁有者：'+( rc.owner||'-')+' ｜ 電話：'+( rc.phone||'-')+' ｜ 使用次數：'+usedCount+'</div>'
+        +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">擁有者：'+(rc.owner||'-')+' ｜ 電話：'+(rc.phone||'-')+' ｜ 使用次數：'+usedCount+'</div>'
         +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px;">'
         +'<div class="'+(rc.used_by?'cpn-used':'cpn-ok')+'" style="font-size:.7rem;">'+usedBadge+'</div>'
+        +'<button onclick="deleteRefCode(\''+rc.code+'\',event)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:8px;padding:4px 10px;font-size:.72rem;font-weight:800;cursor:pointer;">🗑 刪除</button>'
+        +'</div>'
         +'</div>';
     }).join('');
+    html+='</div></div>';
   }
 
   grid.innerHTML=html;
+}
+
+// ── 刪除推薦碼 ──
+async function deleteRefCode(code, event){
+  if(event) event.stopPropagation();
+  if(!confirm('確定刪除推薦碼「'+code+'」？此操作無法復原。')) return;
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes?code='+encodeURIComponent(code),{method:'DELETE'});
+    var result = await res.json();
+    if(result.error) throw new Error(result.error);
+    // 成功：重新載入優惠券頁面
+    await loadCoupons();
+  }catch(e){
+    alert('刪除失敗：'+e.message);
+  }
 }
 
 // ── REVIEWS ──

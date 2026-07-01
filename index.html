@@ -1456,25 +1456,17 @@ function calc(){
   if(box)box.innerHTML=html;
 }
 
-// ── EMAIL NOTIFY (EmailJS) ──
-const NOTIFY_CONFIG={
-  serviceId:'',   // 填入 EmailJS service ID
-  templateId:'',  // 填入 EmailJS template ID
-  publicKey:''    // 填入 EmailJS public key
-};
+// ── 新訂單通知管理員（透過 Cloudflare Worker 發 LINE push）──
 async function sendNewOrderNotify(b){
-  if(!NOTIFY_CONFIG.serviceId||!NOTIFY_CONFIG.publicKey)return; // 未設定則跳過
   try{
-    await emailjs.send(NOTIFY_CONFIG.serviceId,NOTIFY_CONFIG.templateId,{
-      owner_name:b.ownerName||'',
-      owner_phone:b.ownerPhone||'',
-      service_dates:`${b.startDate||''} ～ ${b.endDate||''}`,
-      services:(b.services||[]).join('、'),
-      pet_summary:`貓${b.catCount||0}隻 狗${b.dogCount||0}隻`,
-      total_sessions:b.tpd||0,
-      note:b.note||''
-    },NOTIFY_CONFIG.publicKey);
-  }catch(e){console.warn('EmailJS notify failed:',e);}
+    const resp = await fetch('https://catwoli-api.catwoli6644.workers.dev/notify-admin',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(b)
+    });
+    const result = await resp.json();
+    console.log('[notify-admin] response:', result);
+  }catch(e){console.warn('[notify-admin] failed:',e);}
 }
 async function submitBook(){
   const name=document.getElementById('ownerName')?.value.trim();

@@ -1107,7 +1107,7 @@ function calcBv2(bk){
   }
   const totalPets=(bk.catCount||0)+(bk.dogCount||0);
   const _pf1=getPetExtraFee();
-  const extra=totalPets>_pf1.free?(totalPets-_pf1.free)*_pf1.unit:0;
+  const extra=calcPetExtra(totalPets,_pf1);
   let normSvcSub=0,holSvcSub=0,cnySvcSub=0;
   (bk.services||[]).forEach(k=>{
     normSvcSub+=(SVC_PRICE[k]||0)*normSessions;
@@ -1793,7 +1793,21 @@ var _siteSettings={};
 // 避免各處寫死數字導致後台改了設定卻沒同步生效。
 function getPetExtraFee(){
   var p=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
-  return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:100)};
+  var tiers=Array.isArray(p.tiers)&&p.tiers.length?p.tiers:[{label:'第3隻',price:p.unit||80}];
+  return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:80), tiers:tiers};
+}
+// 計算寵物加收金額（階梯定價）
+// totalPets: 總隻數, pf: getPetExtraFee() 結果
+function calcPetExtra(totalPets, pf){
+  if(!pf) pf=getPetExtraFee();
+  if(totalPets<=pf.free) return 0;
+  var extra=0;
+  var overPets=totalPets-pf.free;
+  for(var i=0;i<overPets;i++){
+    var tier=pf.tiers[Math.min(i,pf.tiers.length-1)];
+    extra+=tier?tier.price:pf.unit||80;
+  }
+  return extra;
 }
 
 function renderSettingsPage(){
@@ -1938,23 +1952,12 @@ function renderSettingsPage(){
 
     // ── 寵物加收設定 ──
   var petFeeP=getPetExtraFee();
-  html+='<div class="detail-section">'
-    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定</div>'
-    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF8F0;padding:12px;border-radius:10px;">'
-    +'<span style="font-size:.82rem;color:var(--tl);">前</span>'
-    +'<input type="number" id="pet-free-count" oninput="var d=document.getElementById(&quot;pet-free-count-display&quot;);if(d)d.value=parseInt(this.value||0)+1;" value="'+(petFeeP.free||2)+'" min="0" max="10" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;">'
-    +'<span style="font-size:.82rem;color:var(--tl);">隻免費，第</span>'
-    +'<input type="number" id="pet-free-count-display" value="'+(( petFeeP.free||2)+1)+'" min="1" max="11" style="width:50px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;text-align:center;" disabled>'
-    +'<span style="font-size:.82rem;color:var(--tl);">隻起每隻加收 $</span>'
-    +'<input type="number" id="pet-unit-price" value="'+(petFeeP.unit||100)+'" min="0" step="10" style="width:70px;padding:4px 6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.88rem;">'
-    +'<span style="font-size:.82rem;color:var(--tl);">/ 次</span>'
-    +'</div>'
-    +'<div style="margin-top:10px;">'
-    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
-    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
-    +'</div>'
-    +'</div>';
-
+  var petTiers=Array.isArray(petFeeP.tiers)&&petFeeP.tiers.length?petFeeP.tiers
+    :[{label:'第3隻',price:petFeeP.unit||80},{label:'第4隻',price:120},{label:'第5隻起',price:150}];
+  var tiersHtml=petTiers.map(function(t,i){
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'      +'<input type="text" value="'+t.label+'" id="pt-label-'+i+'" style="width:80px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'      +'<span style="font-size:.8rem;color:var(--tl);">每隻加收 $</span>'      +'<input type="number" value="'+t.price+'" id="pt-price-'+i+'" min="0" step="10" style="width:70px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'      +'<span style="font-size:.8rem;color:var(--tl);">/ 次</span>'      +'<button onclick="removePetTier('+i+')" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:2px 8px;font-size:.74rem;font-weight:800;cursor:pointer;">✕</button>'      +'</div>';
+  }).join('');
+  html+='<div class="detail-section">'    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定（階梯定價）</div>'    +'<div style="background:#FFF8F0;padding:12px;border-radius:10px;">'    +'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">前 <strong>'+(petFeeP.free||2)+'</strong> 隻免加收，第3隻起依下方定價逐隻加收：</div>'    +'<div id="pet-tier-list">'+tiersHtml+'</div>'    +'<button onclick="addPetTier()" style="padding:5px 12px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:4px;">＋ 新增階梯</button>'    +'</div>'    +'<div style="margin-top:10px;">'    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'    +'</div>'    +'</div>';
   // ── 價目補充說明（急件加收／連假特別價／春節過年／其他服務聯絡方式）──
   var extraNoticeHtml=(typeof _siteSettings.extra_notice_html==='string'&&_siteSettings.extra_notice_html)
     ? _siteSettings.extra_notice_html
@@ -2174,9 +2177,9 @@ function showDetail(bookId){
   var totalPets=(bk.catCount||0)+(bk.dogCount||0);
   var _pf2=getPetExtraFee();
   if(totalPets>_pf2.free){
-    var overPets=totalPets-_pf2.free;
-    var eu=_pf2.unit*overPets;
-    rows+=R('第'+(_pf2.free+1)+'隻起加收（共'+totalPets+'隻，超額'+overPets+'隻×$'+_pf2.unit+'）',eu,'× '+totalSessions+'次',eu*totalSessions);
+    var eu=calcPetExtra(totalPets,_pf2);
+    var overPets2=totalPets-_pf2.free;
+    rows+=R('第'+(_pf2.free+1)+'隻起加收（共'+totalPets+'隻，超額'+overPets2+'隻）',eu,'× '+totalSessions+'次',eu*totalSessions);
   }
   if(urgent>0) rows+=R('急件加收',urgent,'×1',urgent);
   if(bk.transport>0) rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
@@ -3188,19 +3191,56 @@ async function saveTrans(){
   }catch(e){alert('儲存失敗:'+e.message);}
 }
 async function savePetFees(){
-  var freeEl=document.getElementById('pet-free-count');
-  var unitEl=document.getElementById('pet-unit-price');
-  var displayEl=document.getElementById('pet-free-count-display');
-  if(!freeEl||!unitEl) return;
-  var freeCount=parseInt(freeEl.value)||2;
-  var unitPrice=parseInt(unitEl.value)||100;
-  if(displayEl) displayEl.value=freeCount+1;
+  // 讀取階梯定價列表
+  var tierList=document.getElementById('pet-tier-list');
+  if(!tierList){alert('找不到設定區塊');return;}
+  var rows=tierList.querySelectorAll('div');
+  var tiers=[];
+  for(var i=0;i<rows.length;i++){
+    var lbl=document.getElementById('pt-label-'+i);
+    var prc=document.getElementById('pt-price-'+i);
+    if(lbl&&prc) tiers.push({label:lbl.value.trim(),price:parseInt(prc.value)||0});
+  }
+  if(!tiers.length){alert('請至少設定一個階梯');return;}
   try{
-    await saveSiteSetting('pet_extra_fees',{free:freeCount,unit:unitPrice});
+    // 為了向下相容，同時保存 unit（取第一個階梯的price）
+    await saveSiteSetting('pet_extra_fees',{free:2, unit:tiers[0].price, tiers:tiers});
     var msg=document.getElementById('pet-fee-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
 }
+
+function addPetTier(){
+  var tierList=document.getElementById('pet-tier-list');
+  if(!tierList) return;
+  var i=tierList.querySelectorAll('div').length;
+  var d=document.createElement('div');
+  d.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+  d.innerHTML='<input type="text" id="pt-label-'+i+'" value="第'+(i+3)+'隻起" style="width:80px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'
+    +'<span style="font-size:.8rem;color:var(--tl);">每隻加收 $</span>'
+    +'<input type="number" id="pt-price-'+i+'" value="150" min="0" step="10" style="width:70px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'
+    +'<span style="font-size:.8rem;color:var(--tl);">/ 次</span>'
+    +'<button onclick="removePetTier('+i+')" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:2px 8px;font-size:.74rem;font-weight:800;cursor:pointer;">✕</button>';
+  tierList.appendChild(d);
+}
+
+function removePetTier(idx){
+  var tierList=document.getElementById('pet-tier-list');
+  if(!tierList) return;
+  var rows=tierList.querySelectorAll('div');
+  if(rows.length<=1){alert('至少需要保留一個階梯');return;}
+  if(rows[idx]) rows[idx].remove();
+  // 重新編號其他行的 id
+  tierList.querySelectorAll('div').forEach(function(row,i){
+    var lbl=row.querySelector('[id^="pt-label-"]');
+    var prc=row.querySelector('[id^="pt-price-"]');
+    var btn=row.querySelector('button');
+    if(lbl) lbl.id='pt-label-'+i;
+    if(prc) prc.id='pt-price-'+i;
+    if(btn) btn.setAttribute('onclick','removePetTier('+i+')');
+  });
+}
+
 
 async function saveExtraNotice(){
   var el=document.getElementById('extra-notice-input');

@@ -480,7 +480,7 @@ function dbRowToOrder(r){
     <div id="dogForms"></div>
     <!-- Extra pet surcharge notice -->
     <div id="extraPetNotice" style="display:none;background:var(--p4);border:1.5px solid var(--p3);border-radius:12px;padding:10px 14px;font-size:.8rem;color:var(--tl);margin-top:10px;">
-      🐾 第四隻起加收 <strong style="color:var(--p1);">+$100 / 次</strong>（已反映在費用試算）
+      🐾 <span id="extraPetNoticeText">第3隻起加收 <strong style="color:var(--p1);">+$80 / 次</strong></span>（已反映在費用試算）
     </div>
     <!-- Attention notes -->
     <div style="margin-top:16px;padding-top:14px;border-top:1.5px dashed var(--p3);">
@@ -568,7 +568,8 @@ function dbRowToOrder(r){
       <label class="pill" onclick="calc()"><input type="checkbox" value="80" data-name="協助排便導尿">🚿 排便導尿 <strong>+$80</strong></label>
       <label class="pill" onclick="calc()"><input type="checkbox" value="30" data-name="收信">📮 收信 <strong>+$30</strong></label>
       <label class="pill" onclick="calc()"><input type="checkbox" value="30" data-name="澆花">🌿 澆花 <strong>+$30</strong></label>
-      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="倒垃圾">🗑️ 倒垃圾 <strong>+$50</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="50" data-name="倒垃圾(每天)">🗑️ 倒垃圾(每天) <strong>+$50/次</strong></label>
+      <label class="pill" onclick="calc()"><input type="checkbox" value="30" data-name="倒垃圾(單次)">🗑️ 倒垃圾(單次) <strong>+$30</strong></label>
     </div>
 
     <div style="margin-top:20px;padding-top:16px;border-top:1.5px dashed var(--p3);">
@@ -718,7 +719,7 @@ function dbRowToOrder(r){
 <script>
 // ── 全域費用設定（由後台 site_settings 動態更新）──
 // SVCBASE 已移除，改用 SVCBASE
-var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+var ADDON_PRICES={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};
 var TRANSPORT_RATES=[{km_min:0,km_max:5,price:0},{km_min:5,km_max:10,price:60},{km_min:10,km_max:20,price:100},{km_min:20,km_max:999,price:150}];
 
 
@@ -782,8 +783,15 @@ function adjustPetCount(type,delta){
 function checkExtraPetNotice(){
   const total=petCounts.cat+petCounts.dog;
   const notice=document.getElementById('extraPetNotice');
-  const _pfNotice=window._petExtraFees||{free:2,unit:100};
-  if(notice)notice.style.display=total>_pfNotice.free?'block':'none';
+  const pf=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
+  if(notice) notice.style.display=total>pf.free?'block':'none';
+  // 動態更新提示文字
+  const noteEl=document.getElementById('extraPetNoticeText');
+  if(noteEl&&total>pf.free){
+    const tiers=Array.isArray(pf.tiers)&&pf.tiers.length?pf.tiers:[{label:'第3隻',price:pf.unit||80}];
+    var parts=tiers.map(function(t){return t.label+' <strong style="color:var(--p1);">+$'+t.price+'</strong>';});
+    noteEl.innerHTML='🐾 超額加收：'+parts.join('　');
+  }
 }
 
 function renderPetForms(){
@@ -1316,25 +1324,35 @@ function calc(){
   });
   const baseNormal=svcKeys.reduce((s,k)=>s+(SVCBASE[k]||0),0);
 
-  let addon=0; const addonNames=[];
+  let addon=0; let addonFlat=0; const addonNames=[];
   document.querySelectorAll('#addonPills input:checked').forEach(function(cb){
     var name=cb.dataset.name||'';
     var qty=1;
-    // 餵藥/點藥/擦藥：讀隻數
     var qtyMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
     if(qtyMap[name]){
       var qtyEl=document.getElementById(qtyMap[name]);
       qty=qtyEl?Math.max(1,parseInt(qtyEl.value)||1):1;
     }
     var unitPrice=ADDON_PRICES[name]||parseInt(cb.value)||0;
-    addon+=unitPrice*qty;
+    // 單次計費：只收一次，不乘服務次數
+    var billing=cb.dataset.billing||'';
+    if(billing==='單次'||name==='倒垃圾(單次)'){
+      addonFlat+=unitPrice*qty;
+    } else {
+      addon+=unitPrice*qty;
+    }
     addonNames.push(qty>1?name+'×'+qty:name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
-  // 前三隻免費，第四隻起每隻 +$100
-  // 從後台設定讀取寵物加收
-  var _petFee=window._petExtraFees||{free:2,unit:100};
-  const extra=totalPets>_petFee.free?(totalPets-_petFee.free)*_petFee.unit:0;
+  var _petFee=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
+  // 階梯定價：第3、4、5...隻分別按不同金額加收
+  const extra=(function(){
+    if(totalPets<=_petFee.free) return 0;
+    var sum=0; var over=totalPets-_petFee.free;
+    var tiers=Array.isArray(_petFee.tiers)&&_petFee.tiers.length?_petFee.tiers:[{price:_petFee.unit||80}];
+    for(var i=0;i<over;i++) sum+=(tiers[Math.min(i,tiers.length-1)]||{price:80}).price;
+    return sum;
+  })();
   const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
 
   let disc=0;
@@ -1372,7 +1390,7 @@ function calc(){
   const normSvcSub=(baseNormal+addonExtra)*normSessions;
   const holSvcSub =(holBase+addonExtra)*holSessions;
   const cnySvcSub =(cnyBase+addonExtra)*cnySessions;
-  const svcSub    =normSvcSub+holSvcSub+cnySvcSub;
+  const svcSub    =normSvcSub+holSvcSub+cnySvcSub+addonFlat; // addonFlat 單次項目只加一次
   const transportTotal=dc*totalSess;
   const refCodeVal=(document.getElementById('refCode')?.value||'').trim();
   const refDisc=(refCodeVal&&window._refValid)?50:0;
@@ -1490,8 +1508,13 @@ async function submitBook(){
     addons.push(qty>1?name+'×'+qty+'隻':name);
   });
   const totalPets=petCounts.cat+petCounts.dog;
-  var _pfSubmit=window._petExtraFees||{free:2,unit:100};
-  let extra=0; if(totalPets>_pfSubmit.free)extra=(totalPets-_pfSubmit.free)*_pfSubmit.unit;
+  var _pfSubmit=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
+  let extra=0;
+  if(totalPets>_pfSubmit.free){
+    var overN=totalPets-_pfSubmit.free;
+    var tiersS=Array.isArray(_pfSubmit.tiers)&&_pfSubmit.tiers.length?_pfSubmit.tiers:[{price:_pfSubmit.unit||80}];
+    for(var ti=0;ti<overN;ti++) extra+=(tiersS[Math.min(ti,tiersS.length-1)]||{price:80}).price;
+  }
   const sessions=getTotalSessions();
   const sub=(base+addon+extra)*sessions;
   const cc=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();

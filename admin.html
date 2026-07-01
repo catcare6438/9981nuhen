@@ -2768,7 +2768,8 @@ async function deleteRefCode(code, event){
     var result = await res.json();
     if(result.error) throw new Error(result.error);
     // 成功：重新載入優惠券頁面
-    await loadCoupons();
+    clearCouponCache();
+    await renderCoupons();
   }catch(e){
     alert('刪除失敗：'+e.message);
   }

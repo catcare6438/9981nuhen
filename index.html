@@ -966,12 +966,17 @@ function checkUrgent(){
   const earliest=dateSlots.map(d=>d.date).sort()[0];
   if(!earliest){calc();return;}
   const now=new Date();
-  const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const startOfEarliest=new Date(earliest+'T00:00:00');
-  const diffDays=Math.floor((startOfEarliest-startOfToday)/(1000*60*60*24));
-  let urgVal=0,urgMsg='';
-  if(diffDays<=0){urgVal=200;urgMsg='⚡ 當天急件服務 +$200（24小時內）';}
-  else if(diffDays===1){urgVal=100;urgMsg='⚡ 次日急件服務 +$100（24~48小時內）';}
+  // 以「服務當天 00:00」為起點計算距今小時數（用戶不知道實際服務時間，以最早那天開始算）
+  const serviceStart=new Date(earliest+'T00:00:00');
+  const diffHours=(serviceStart-now)/(1000*60*60);
+  let urgVal=0, urgMsg='';
+  if(diffHours<24){
+    urgVal=200;
+    urgMsg='⚡ 24小時內急件 +$200';
+  } else if(diffHours<48){
+    urgVal=100;
+    urgMsg='⚡ 48小時內急件 +$100';
+  }
   const r=document.querySelector(`input[name="urgent"][value="${urgVal}"]`);
   if(r)r.checked=true;
   const info=document.getElementById('urgentInfo');
@@ -1366,37 +1371,25 @@ function calc(){
   });
   const baseNormal=svcKeys.reduce((s,k)=>s+(SVCBASE[k]||0),0);
 
-  let addon=0; let addonFlat=0; const addonNames=[];
+  // 加購明細：每項獨立儲存 {name, unitPrice, qty, isFlat}
+  let addonItems=[]; let addon=0; let addonFlat=0; const addonNames=[];
   document.querySelectorAll('#addonPills input[type=checkbox]:checked').forEach(function(cb){
     var name=cb.dataset.name||'';
-    var qty=1;
-    var timesMulti=1;
+    var qty=1; var timesMulti=1;
     var qtyMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
     var timesMap={餵藥:'feed-times',擦藥:'rub-times'};
-    if(qtyMap[name]){
-      var qtyEl=document.getElementById(qtyMap[name]);
-      qty=qtyEl?Math.max(1,parseInt(qtyEl.value)||1):1;
-    }
-    if(timesMap[name]){
-      var tEl=document.getElementById(timesMap[name]);
-      timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;
-    }
+    if(qtyMap[name]){var qEl=document.getElementById(qtyMap[name]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
+    if(timesMap[name]){var tEl=document.getElementById(timesMap[name]);timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;}
     var unitPrice=(ADDON_PRICES[name]||parseInt(cb.value)||0)*timesMulti;
-    var billing=cb.dataset.billing||'';
-    if(billing==='單次'||name==='倒垃圾(單次)'){
-      addonFlat+=unitPrice*qty;
-    } else {
-      addon+=unitPrice*qty;
-    }
+    var isFlat=(cb.dataset.billing==='單次'||name==='倒垃圾(單次)');
     var dispName=name+(timesMulti>1?'×'+timesMulti+'次':'')+(qty>1?'×'+qty+'隻':'');
+    addonItems.push({name:dispName,unitPrice:unitPrice*qty,isFlat});
+    if(isFlat){ addonFlat+=unitPrice*qty; } else { addon+=unitPrice*qty; }
     addonNames.push(dispName);
   });
-  // 倒垃圾 radio
   var garbageVal=(document.querySelector('input[name=garbage]:checked')?.value)||'無';
-  if(garbageVal==='每天'){ addon+=50; addonNames.push('倒垃圾(每天)'); }
-  else if(garbageVal==='單次'){ addonFlat+=30; addonNames.push('倒垃圾(單次)'); }
-  const totalPets=petCounts.cat+petCounts.dog;
-  var _petFee=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
+  if(garbageVal==='每天'){ addonItems.push({name:'倒垃圾(每天)',unitPrice:50,isFlat:false}); addon+=50; addonNames.push('倒垃圾(每天)'); }
+  else if(garbageVal==='單次'){ addonItems.push({name:'倒垃圾(單次)',unitPrice:30,isFlat:true}); addonFlat+=30; addonNames.push('倒垃圾(單次)'); }
   // 階梯定價：第3、4、5...隻分別按不同金額加收
   const extra=(function(){
     if(totalPets<=_petFee.free) return 0;
@@ -1405,7 +1398,26 @@ function calc(){
     for(var i=0;i<over;i++) sum+=(tiers[Math.min(i,tiers.length-1)]||{price:80}).price;
     return sum;
   })();
-  const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
+  // 急件費用：每次試算都自動判斷，以「最早服務日 00:00」距今小時數計算
+  let urg=0;
+  if(dateSlots.length){
+    const _earliest=dateSlots.map(d=>d.date).sort()[0];
+    if(_earliest){
+      const _diffH=(new Date(_earliest+'T00:00:00')-new Date())/(1000*60*60);
+      if(_diffH<24) urg=200;
+      else if(_diffH<48) urg=100;
+    }
+  }
+  // 同步更新提示文字（不改 radio，避免 submitBook 重複讀取衝突）
+  (function(){
+    var _ui=document.getElementById('urgentInfo');
+    var _ut=document.getElementById('urgentInfoText');
+    if(_ui&&_ut){
+      if(urg===200){_ui.style.display='block';_ut.textContent='⚡ 24小時內急件，自動加收 +$200';}
+      else if(urg===100){_ui.style.display='block';_ut.textContent='⚡ 48小時內急件，自動加收 +$100';}
+      else{_ui.style.display='none';}
+    }
+  })();
 
   let disc=0;
   const cc=(document.getElementById('couponCode')?.value||'').trim();
@@ -1457,8 +1469,10 @@ function calc(){
       html+=`<div class="calc-section">`;
       html+=`<div class="calc-section-title">📋 一般日照護（${normSessions} 次）</div>`;
       html+=R(svcLabel,`$${baseNormal}/次 × ${normSessions}次 = $${baseNormal*normSessions}`);
-      if(addon>0) html+=R(`加購（${addonNames.filter(n=>!n.includes('單次')).join('、')}）`,`$${addon}/次 × ${normSessions}次 = $${addon*normSessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
+      addonItems.filter(a=>!a.isFlat).forEach(function(a){
+        html+=R(`  └ ${a.name}`,`$${a.unitPrice}/次 × ${normSessions}次 = $${a.unitPrice*normSessions}`);
+      });
+      if(extra>0) html+=R(`  └ 第${(_petFee.free+1)}隻起加收`,`$${extra}/次 × ${normSessions}次 = $${extra*normSessions}`);
       html+=R('小計',`$${normSvcSub}`,'bold');
       html+=`</div>`;
     }
@@ -1469,8 +1483,10 @@ function calc(){
       html+=`<div class="calc-section" style="border-left-color:#FF9500;background:rgba(255,184,0,.05);">`;
       html+=`<div class="calc-section-title" style="color:#C05000;">🎊 連假照護（${holSessions} 次）<span style="font-size:.65rem;margin-left:6px;">${holDateStr}</span></div>`;
       html+=R(`${svcLabel}（連假價）`,`$${holBase}/次 × ${holSessions}次 = $${holBase*holSessions}`);
-      if(addon>0) html+=R(`加購（${addonNames.filter(n=>!n.includes('單次')).join('、')}）`,`$${addon}/次 × ${holSessions}次 = $${addon*holSessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
+      addonItems.filter(a=>!a.isFlat).forEach(function(a){
+        html+=R(`  └ ${a.name}`,`$${a.unitPrice}/次 × ${holSessions}次 = $${a.unitPrice*holSessions}`);
+      });
+      if(extra>0) html+=R(`  └ 第${(_petFee.free+1)}隻起加收`,`$${extra}/次 × ${holSessions}次 = $${extra*holSessions}`);
       html+=R('小計',`$${holSvcSub}`,'bold','color:#C05000;');
       html+=`</div>`;
     }
@@ -1481,8 +1497,10 @@ function calc(){
       html+=`<div class="calc-section" style="border-left-color:#E60012;background:rgba(230,0,18,.04);">`;
       html+=`<div class="calc-section-title" style="color:#B00010;">🧧 春節照護（${cnySessions} 次）<span style="font-size:.65rem;margin-left:6px;">${cnyDateStr}</span></div>`;
       html+=R(`${svcLabel}（過年價）`,`$${cnyBase}/次 × ${cnySessions}次 = $${cnyBase*cnySessions}`);
-      if(addon>0) html+=R(`加購（${addonNames.filter(n=>!n.includes('單次')).join('、')}）`,`$${addon}/次 × ${cnySessions}次 = $${addon*cnySessions}`);
-      if(extra>0) html+=R(`第3隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
+      addonItems.filter(a=>!a.isFlat).forEach(function(a){
+        html+=R(`  └ ${a.name}`,`$${a.unitPrice}/次 × ${cnySessions}次 = $${a.unitPrice*cnySessions}`);
+      });
+      if(extra>0) html+=R(`  └ 第${(_petFee.free+1)}隻起加收`,`$${extra}/次 × ${cnySessions}次 = $${extra*cnySessions}`);
       html+=R('小計',`$${cnySvcSub}`,'bold','color:#B00010;');
       html+=`</div>`;
     }
@@ -1490,10 +1508,9 @@ function calc(){
     const hasOther=dc>0||urg>0||disc>0||refDisc>0||addonFlat>0;
     if(hasOther){
       html+=`<hr class="sum-divider">`;
-      if(addonFlat>0){
-        var flatNames=addonNames.filter(n=>n.includes('單次'));
-        html+=R(`加購（${flatNames.join('、')}）（單次收費）`,`$${addonFlat}`,'','color:#7A5C00;');
-      }
+      addonItems.filter(a=>a.isFlat).forEach(function(a){
+        html+=R(`${a.name}（單次）`,`$${a.unitPrice}`,'','color:#7A5C00;');
+      });
       if(dc>0){
         var _dci=dcostInfo(km);
         var _tcLabel='🚗 車馬費（'+km+'km，超'+_dci.freeKm+'km × $'+_dci.perKm+'/km）';
@@ -1550,7 +1567,16 @@ async function submitBook(){
   if(getTotalSessions()===0){alert('請選擇日期並勾選至少一個時段 📅');return;}
   const km=parseFloat(document.getElementById('dist')?.value)||0;
   const dc=dcostInfo(km).price;
-  const urg=parseInt(document.querySelector('input[name=urgent]:checked')?.value||0);
+  // 急件費用：同 calc()，以下單當下時間精確計算小時差
+  let urg=0;
+  if(getDateSlotsForSubmit().length){
+    const _earliest2=getDateSlotsForSubmit().map(d=>d.date).sort()[0];
+    if(_earliest2){
+      const _diffH2=(new Date(_earliest2+'T00:00:00')-new Date())/(1000*60*60);
+      if(_diffH2<24) urg=200;
+      else if(_diffH2<48) urg=100;
+    }
+  }
   const cards=document.querySelectorAll('.svc.on');
   let base=0; cards.forEach(card=>{base+=svcPrice(card.dataset.key);});
   let addon=0; let addonFlat2=0; const addons=[];

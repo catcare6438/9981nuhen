@@ -1037,6 +1037,8 @@ function renderDateSlots(){
 
 // ── 服務價格 ──
 var SVCBASE          = {companion:300,walk:200,both:500};       // 平日（由後台動態更新）
+// 服務方案名稱對照（由後台 svc_items 動態更新）
+var SVC_NAME_MAP={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 var HOLIDAY_PRICES   = {companion:450,walk:350,both:750};       // 連假（由後台動態更新）
 var CNY_PRICES       = {companion:600,walk:500,both:1000};      // 春節（由後台動態更新）
 
@@ -1358,8 +1360,9 @@ function calc(){
   const cards=document.querySelectorAll('.svc.on');
   const svcKeys=Array.from(cards).map(card=>card.dataset.key);
   const svcNames=svcKeys.map(function(k){
+    // 優先從 DOM 卡片讀取（最新，已由後台設定更新），fallback 用 SVC_NAME_MAP
     var el=document.querySelector('.svc[data-key="'+k+'"] .svc-name');
-    return el?el.textContent:({companion:'到府陪伴',walk:'遛狗服務',both:'到府＋遛狗'}[k]||k);
+    return el?el.textContent:(SVC_NAME_MAP[k]||k);
   });
   const baseNormal=svcKeys.reduce((s,k)=>s+(SVCBASE[k]||0),0);
 
@@ -1826,6 +1829,8 @@ async function initFromSiteSettings(){
     // ── 服務項目內容（圖示/名稱/小字說明/一覽表細項）── 完全動態渲染，支援任意數量新增 ──
     if(settings.svc_items&&Array.isArray(settings.svc_items)&&settings.svc_items.length){
       console.log('[settings] svc_items 讀取:',JSON.stringify(settings.svc_items));
+      // 更新全域名稱對照表
+      settings.svc_items.forEach(function(item){ if(item.key&&item.name) SVC_NAME_MAP[item.key]=item.name; });
       var svcGrid=document.getElementById('svcGrid');
       var overviewGrid=document.getElementById('svcOverviewGrid');
 

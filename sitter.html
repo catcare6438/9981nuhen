@@ -1052,7 +1052,7 @@ function calcSitterSalary(b){
   const svcRate=200;
   const svcTotal=svcRate*sessions;
   // 加購費：優先用 addonItems（各自日期），否則舊格式
-  const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  const ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
   var addonTotal=0;
   var addonItems=b.addonItems||[];
   if(addonItems.length){
@@ -1087,7 +1087,7 @@ function calcSitterSalary(b){
   const total=svcTotal+addonTotal+extraTotal+transportTotal;
   return{sessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
-const ADDON_PRICE={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+const ADDON_PRICE=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
 
 const EMOTIONS20=[
   '心情很好、很熱情','活動力旺盛','黏人撒嬌','喜歡被摸摸','玩球很投入',
@@ -1336,7 +1336,7 @@ async function renderCases(){
       </div>
       ${(()=>{
         const sal=calcSitterSalary(b);
-        const ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+        const ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
         const addons=b.addons||[];
         const catCount=b.catCount||0;
         const dogCount=b.dogCount||0;

@@ -2023,13 +2023,19 @@ function renderReport(r){
 // ── 費用計算（常數已移入 ownerCalcDetail 函式內）──
 
 function ownerCalcDetail(bk){
-  var SVC_P={companion:300,walk:200,both:500};
-  var HOL_P={companion:450,walk:350,both:750};
-  var CNY_P={companion:600,walk:500,both:1000};
+  // 從後台 site_settings 動態讀取價格，確保與前台一致
+  var _sp = (_ownerSiteSettings&&_ownerSiteSettings.svc_prices)||[];
+  var norm = _sp.find(function(r){return r.label==='平日';})||{companion:300,walk:200,both:500};
+  var hol  = _sp.find(function(r){return r.label==='連假';})||{companion:450,walk:350,both:750};
+  var cny  = _sp.find(function(r){return r.label==='春節';})||{companion:600,walk:500,both:1000};
+  var SVC_P={companion:Number(norm.companion)||300,walk:Number(norm.walk)||200,both:Number(norm.both)||500};
+  var HOL_P={companion:Number(hol.companion)||450,walk:Number(hol.walk)||350,both:Number(hol.both)||750};
+  var CNY_P={companion:Number(cny.companion)||600,walk:Number(cny.walk)||500,both:Number(cny.both)||1000};
   var CNY_SET=new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22"]);
   var HOL_SET=new Set(["2026-01-01","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-12-25","2026-12-26","2026-12-27"]);
-  // 統一價目（含擦藥）
-  var ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
+  var ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};
+  var _ap=(_ownerSiteSettings&&_ownerSiteSettings.addon_prices)||[];
+  _ap.forEach(function(a){if(a.key&&a.price) ADDON_P[a.key]=Number(a.price)||ADDON_P[a.key]||0;});
   var SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 
   // 解析 assignedTo 取得每日時段

@@ -1390,6 +1390,10 @@ function calc(){
   var garbageVal=(document.querySelector('input[name=garbage]:checked')?.value)||'無';
   if(garbageVal==='每天'){ addonItems.push({name:'倒垃圾(每天)',unitPrice:50,isFlat:false}); addon+=50; addonNames.push('倒垃圾(每天)'); }
   else if(garbageVal==='單次'){ addonItems.push({name:'倒垃圾(單次)',unitPrice:30,isFlat:true}); addonFlat+=30; addonNames.push('倒垃圾(單次)'); }
+
+  // 寵物數量與加收設定
+  const totalPets=petCounts.cat+petCounts.dog;
+  var _petFee=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
   // 階梯定價：第3、4、5...隻分別按不同金額加收
   const extra=(function(){
     if(totalPets<=_petFee.free) return 0;

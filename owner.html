@@ -2045,9 +2045,9 @@ function renderReport(r){
 function ownerCalcDetail(bk){
   // 從後台 site_settings 動態讀取價格，確保與前台一致
   var _sp = (_ownerSiteSettings&&_ownerSiteSettings.svc_prices)||[];
-  var norm = _sp.find(function(r){return r.label==='平日';})||{companion:300,walk:200,both:500};
-  var hol  = _sp.find(function(r){return r.label==='連假';})||{companion:450,walk:350,both:750};
-  var cny  = _sp.find(function(r){return r.label==='春節';})||{companion:600,walk:500,both:1000};
+  var norm = _sp.find(function(r){return (r.label||'').includes('平');}) || _sp[0] || {companion:300,walk:200,both:500};
+  var hol  = _sp.find(function(r){return (r.label||'').includes('連')||(r.label||'').includes('假');}) || _sp[1] || {companion:450,walk:350,both:750};
+  var cny  = _sp.find(function(r){return (r.label||'').includes('春')||(r.label||'').includes('年');}) || _sp[2] || {companion:600,walk:500,both:1000};
   var SVC_P={companion:Number(norm.companion)||300,walk:Number(norm.walk)||200,both:Number(norm.both)||500};
   var HOL_P={companion:Number(hol.companion)||450,walk:Number(hol.walk)||350,both:Number(hol.both)||750};
   var CNY_P={companion:Number(cny.companion)||600,walk:Number(cny.walk)||500,both:Number(cny.both)||1000};
@@ -2056,7 +2056,8 @@ function ownerCalcDetail(bk){
   var ADDON_P={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};
   var _ap=(_ownerSiteSettings&&_ownerSiteSettings.addon_prices)||[];
   _ap.forEach(function(a){if(a.key&&a.price) ADDON_P[a.key]=Number(a.price)||ADDON_P[a.key]||0;});
-  var SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+  // SVC_NAME 已由 loadOwnerSiteSettings 動態更新
+  var SN=Object.assign({companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'},SVC_NAME);
 
   // 解析 assignedTo 取得每日時段
   var raw=bk.assignedTo||'';

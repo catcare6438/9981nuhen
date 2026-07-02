@@ -1602,6 +1602,7 @@ async function submitBook(){
   if(garbageValS==='每天'){ addon+=50; addons.push('倒垃圾(每天)'); }
   else if(garbageValS==='單次'){ addonFlat2+=30; addons.push('倒垃圾(單次)'); }
   var _pfSubmit=window._petExtraFees||{free:2,unit:80,tiers:[{label:'第3隻',price:80}]};
+  const totalPets=petCounts.cat+petCounts.dog;
   let extra=0;
   if(totalPets>_pfSubmit.free){
     var overN=totalPets-_pfSubmit.free;

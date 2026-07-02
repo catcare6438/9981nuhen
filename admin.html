@@ -756,15 +756,15 @@ function dbRowToOrder(r){
         <span class="nav-ico">⚙️</span> 網站設定
       </div>
 
-      <div class="nav-item" onclick="window.open('index.html')">
+      <a class="nav-item" href="index.html" target="_blank" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;">
         <span class="nav-ico">🌐</span> 前台
-      </div>
-      <div class="nav-item" onclick="window.open('sitter.html')">
+      </a>
+      <a class="nav-item" href="sitter.html" target="_blank" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;">
         <span class="nav-ico">👩</span> 保母端
-      </div>
-      <div class="nav-item" onclick="window.open('owner.html')">
+      </a>
+      <a class="nav-item" href="owner.html" target="_blank" style="text-decoration:none;color:inherit;display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;cursor:pointer;">
         <span class="nav-ico">🐱</span> 飼主端
-      </div>
+      </a>
     </nav>
     <div class="sidebar-bottom">
       <div class="sidebar-user">
@@ -945,7 +945,8 @@ function dbRowToOrder(r){
 
 <!-- DETAIL MODAL -->
 <div class="m-ov" id="detailMod">
-  <div class="m-box" style="width:540px;">
+  <div class="m-box" style="width:540px;position:relative;">
+    <button onclick="closeM('detailMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px;" title="關閉">✕</button>
     <h3>📊 費用明細對帳</h3>
     <div id="detailContent"></div>
     <button class="btn btn-pk" style="width:100%;margin-top:16px;padding:12px;border-radius:12px;" onclick="closeM('detailMod')">關閉</button>
@@ -5139,7 +5140,8 @@ document.addEventListener('click',e=>{
 
 <!-- EDIT ORDER MODAL -->
 <div class="m-ov" id="editOrderMod">
-  <div class="m-box" style="width:620px;max-height:90vh;overflow-y:auto;">
+  <div class="m-box" style="width:620px;max-height:90vh;overflow-y:auto;position:relative;">
+    <button onclick="closeM('editOrderMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;line-height:1;padding:4px 8px;border-radius:8px;" title="關閉">✕</button>
     <h3>✏️ 編輯訂單資料</h3>
     <div id="editOrderContent"></div>
     <div style="display:flex;gap:10px;margin-top:16px;">

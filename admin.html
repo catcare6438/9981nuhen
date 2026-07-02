@@ -2122,8 +2122,9 @@ function showDetail(bookId){
   const bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單 id='+bookId);return;}
 
-  const AN={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};
-  const SN={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+  const AN=Object.assign({餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30},ADDON_PRICE);
+  // SVC_NAME 已由 loadSiteSettings 動態更新
+  const SN=Object.assign({companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'},SVC_NAME);
   const cal=calcBv2(bk);
   const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
   const svcSub=cal.svcSub, transportTotal=cal.transportTotal;
@@ -2956,9 +2957,9 @@ async function loadSiteSettings(){
     }
     var sp=_siteSettings.svc_prices;
     if(Array.isArray(sp)){
-      var norm=sp.find(function(r){return r.label==='平日';});
-      var hol=sp.find(function(r){return r.label==='連假';});
-      var cny=sp.find(function(r){return r.label==='春節';});
+      var norm=sp.find(function(r){return (r.label||'').includes('平');})||sp[0];
+      var hol=sp.find(function(r){return (r.label||'').includes('連')||(r.label||'').includes('假');})||sp[1];
+      var cny=sp.find(function(r){return (r.label||'').includes('春')||(r.label||'').includes('年');})||sp[2];
       if(norm){SVC_PRICE.companion=Number(norm.companion)||SVC_PRICE.companion;SVC_PRICE.walk=Number(norm.walk)||SVC_PRICE.walk;SVC_PRICE.both=Number(norm.both)||SVC_PRICE.both;}
       if(hol){HOL_PRICE.companion=Number(hol.companion)||HOL_PRICE.companion;HOL_PRICE.walk=Number(hol.walk)||HOL_PRICE.walk;HOL_PRICE.both=Number(hol.both)||HOL_PRICE.both;}
       if(cny){CNY_PRICE.companion=Number(cny.companion)||CNY_PRICE.companion;CNY_PRICE.walk=Number(cny.walk)||CNY_PRICE.walk;CNY_PRICE.both=Number(cny.both)||CNY_PRICE.both;}

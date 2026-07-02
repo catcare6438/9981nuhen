@@ -121,8 +121,10 @@ nav a:hover{background:var(--p3);color:var(--p1);border-color:var(--p2);}
 .map-a:hover{background:var(--y1);}
 
 /* SUMMARY */
-.sum-box{background:linear-gradient(135deg,#FFF0F5,#FFFAF0);border:2.5px dashed var(--p2);border-radius:16px;padding:22px;}
-.sum-row{display:flex;justify-content:space-between;font-size:.86rem;padding:5px 0;color:var(--tl);}
+.sum-box{background:linear-gradient(135deg,#FFF0F5,#FFFAF0);border:2.5px dashed var(--p2);border-radius:16px;padding:16px;}
+.sum-row{display:flex;justify-content:space-between;align-items:baseline;font-size:.84rem;padding:5px 0;color:var(--tl);gap:8px;}
+.sum-row>span:first-child{flex:1;min-width:0;word-break:break-all;}
+.sum-row>span:last-child{flex-shrink:0;text-align:right;font-family:'Nunito',sans-serif;}
 .sum-row.bold{color:var(--t);font-weight:800;}
 .sum-total{display:flex;justify-content:space-between;font-size:1.2rem;font-weight:900;color:var(--p1);border-top:2.5px dashed var(--p2);margin-top:12px;padding-top:12px;font-family:'Nunito',sans-serif;}
 .submit-btn{width:100%;padding:18px;background:linear-gradient(135deg,var(--p1),#FF5C7D);color:#fff;border:none;border-radius:18px;font-size:1.15rem;font-weight:900;font-family:'Nunito',sans-serif;cursor:pointer;box-shadow:0 8px 28px rgba(255,107,138,.38);transition:all .22s;letter-spacing:2px;margin-top:20px;border:3px solid rgba(255,255,255,.2);}
@@ -608,7 +610,7 @@ function dbRowToOrder(r){
 
   <div class="card">
     <div class="card-title">🎟 優惠 / 推薦</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
       <div class="field">
         <label>優惠券編碼（選填）</label>
         <input type="text" id="couponCode" placeholder="輸入折抵券編碼" style="letter-spacing:1px;" oninput="calc()">

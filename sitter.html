@@ -1111,6 +1111,13 @@ var _sitterSiteSettings={};
       _sitterSiteSettings[r.key]=v;
     });
   }catch(e){console.warn('[loadSitterSiteSettings]',e.message);}
+  // 動態更新服務方案名稱（供各處顯示用）
+  if(typeof window!=='undefined') window._svcNameMap=(function(){
+    var si=(_sitterSiteSettings&&_sitterSiteSettings.svc_items)||[];
+    var m={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+    si.forEach(function(x){if(x.key&&x.name)m[x.key]=x.name;});
+    return m;
+  })();
 })();
 // 共用：取得寵物加收設定（免費隻數 free、超額單價 unit）。
 function getPetExtraFee(){
@@ -1298,7 +1305,11 @@ async function renderCases(){
     const sessions=(b.days||0)*(b.tpd||1);
     const sal=calcSitterSalary(b).total;
     const rCount=(_repsMap[b.id]||[]).length;
-    const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+    const _si=(_sitterSiteSettings&&_sitterSiteSettings.svc_items)||[];
+    const SVC_NAME=Object.fromEntries([
+      ['companion','到府陪伴'],['walk','散步服務'],['both','陪伴＋散步'],
+      ..._si.map(function(x){return [x.key,x.name];})
+    ]);
     const svcs=(b.services||[]).map(s=>SVC_NAME[s]||s).join('＋');
     return `<div class="case-card ${b.status==='已確認'||b.status==='服務中'?'active':''}">
       <div class="case-head" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;">

@@ -1003,7 +1003,8 @@ async function loadSittersList(){
 }
 const ROLES={Ying:'資深貓咪照護',小汶:'老年寵物照護',菓菓:'中途志工',小茹:'中途志工',阿瑛:'中途志工'};
 const AVA={Ying:'🐱',小汶:'🌟',菓菓:'🍎',小茹:'🐕',阿瑛:'🌺'};
-const SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
+// 服務方案名稱對照（由後台 svc_items 動態更新）
+let SVC_NAME={companion:'到府陪伴',walk:'散步服務',both:'陪伴＋散步'};
 // 以下價格由後台 site_settings.svc_prices 動態更新，這裡只是預設值
 let SVC_PRICE = {companion:300,walk:200,both:500};   // 平日
 let HOL_PRICE = {companion:450,walk:350,both:750};   // 一般連假
@@ -2944,7 +2945,11 @@ async function loadSiteSettings(){
     data.forEach(function(row){
       if(_siteSettings) _siteSettings[row.key]=row.value;
     });
-    // ── 動態更新費用計算用的價格常數，讓後台訂單明細與前台一致 ──
+    // 動態更新服務方案名稱（SVC_NAME / SVC_PRICE 等）
+    var si=_siteSettings.svc_items;
+    if(Array.isArray(si)&&si.length){
+      si.forEach(function(item){ if(item.key&&item.name) SVC_NAME[item.key]=item.name; });
+    }
     var sp=_siteSettings.svc_prices;
     if(Array.isArray(sp)){
       var norm=sp.find(function(r){return r.label==='平日';});

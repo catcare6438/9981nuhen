@@ -678,7 +678,7 @@ function dbRowToOrder(r){
     id:String(r.id),ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
-    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petData:(function(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}return[];  })(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,
     petNotes:r.pet_notes||'',
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,

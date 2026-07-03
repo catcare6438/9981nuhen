@@ -599,11 +599,18 @@ function orderToDbRow(b){
   };
 }
 function dbRowToOrder(r){
+  // pet_data 從 API 回傳時可能是 JSON 字串，需要 parse 成陣列
+  const parsePetData = (v) => {
+    if(!v) return [];
+    if(Array.isArray(v)) return v;
+    if(typeof v === 'string'){try{const p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return [];}}
+    return [];
+  };
   return{
     id:r.id,ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
-    petData:r.pet_data||[],catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petData:parsePetData(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,
     petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],
     addonItems:r.addon_items||[],
     startDate:r.start_date,endDate:r.end_date,

@@ -2746,6 +2746,7 @@ async function renderCoupons(){
       +'<span style="font-weight:900;font-size:.9rem;color:var(--pk);">👥 推薦碼（飼主分享碼）</span>'
       +'<span style="display:flex;align-items:center;gap:8px;">'
       +'<span style="font-size:.74rem;color:var(--tl);">共 '+refCodes.length+' 組 ｜ 已使用 '+usedCount2+' 組</span>'
+      +'<button onclick="event.stopPropagation();upgradeAllRefCodes()" style="background:#E8F5E9;border:1.5px solid #52C48A;color:#1A7A4A;border-radius:8px;padding:3px 10px;font-size:.72rem;font-weight:800;cursor:pointer;">🔄 升級舊碼</button>'
       +'<span class="ref-arrow" style="color:var(--pk);font-size:.8rem;">▶</span>'
       +'</span></div>'
       +'<div style="display:none;margin-top:8px;">';
@@ -2783,6 +2784,19 @@ async function deleteRefCode(code, event){
   }catch(e){
     alert('刪除失敗：'+e.message);
   }
+
+async function upgradeAllRefCodes(){
+  if(!confirm('確定將所有舊格式推薦碼（REF+電話號碼）批量升級為隨機亂碼？')) return;
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/referral_codes/upgrade-all',{method:'POST'});
+    var data=await res.json();
+    if(data.ok){
+      alert('✅ 升級完成！共升級 '+data.upgraded+' 組推薦碼。');
+      clearCouponCache();await renderCoupons();
+    } else { alert('升級失敗：'+(data.error||'未知錯誤')); }
+  }catch(e){alert('升級失敗：'+e.message);}
+}
+
 }
 
 // ── REVIEWS ──

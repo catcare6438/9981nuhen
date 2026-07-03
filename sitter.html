@@ -1311,15 +1311,17 @@ async function renderCases(){
       ..._si.map(function(x){return [x.key,x.name];})
     ]);
     const svcs=(b.services||[]).map(s=>SVC_NAME[s]||s).join('＋');
+    const _rawPetData=b.petData||b.pet_data||[];
+    const _petArr=(()=>{let a=_rawPetData;if(typeof a==='string'){try{a=JSON.parse(a);}catch(e){a=[];}}return Array.isArray(a)?a:[];})();
     return `<div class="case-card ${b.status==='已確認'||b.status==='服務中'?'active':''}">
       <div class="case-head" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;">
         <div>
-          <div class="case-title">🐾 ${b.petData?.length?b.petData.map(p=>p.name).join('、'):(b.petName||'寵物')}
+          <div class="case-title">🐾 ${_petArr.length?_petArr.map(p=>p.name||'寵物').join('、'):(b.petName||'寵物')}
             <span class="badge ${sCls[b.status]||'bd'}" style="margin-left:6px;">${b.status}</span>
           </div>
           <div class="case-meta">
             📅 ${b.startDate}～${b.endDate}<br>
-            🏠 ${svcs}${b.addons?.length?' ｜加購：'+b.addons.join('、'):''}<br>
+            ${b.addons?.length?'加購：'+b.addons.join('、')+'<br>':''}
             ${(()=>{
               const mySlots=getMySlots(b,ME.name);
               const SLBL={morning:'🌅 早上',noon:'☀️ 中午',evening:'🌙 晚上'};
@@ -1517,7 +1519,7 @@ async function renderCases(){
 
       <div class="case-btns">
         <button class="abtn" style="background:#F0FFF4;border-color:#52C48A;color:#1A7A4A;" onclick="showSitterPetDetail(${b.id})">🐾 寵物資料</button>
-        <button class="abtn ab-g" onclick="openReport(${b.id},this.dataset.pet)" data-pet="${(b.petData&&b.petData.length?b.petData.map(p=>p.name||'寵物').join('、'):(b.petName||'寵物')).replace(/"/g,'&quot;')}">📝 新增回報</button>
+        <button class="abtn ab-g" onclick="openReport(${b.id},this.dataset.pet)" data-pet="${(_petArr.length?_petArr.map(p=>p.name||'寵物').join('、'):(b.petName||'寵物')).replace(/"/g,'&quot;')}">📝 新增回報</button>
         <button class="abtn ab-p" onclick="viewHistory(${b.id})">📋 查看回報（${rCount}）</button>
       </div>
     </div>`;
@@ -2914,11 +2916,14 @@ async function doChangePw(){
   alert('✅ 密碼已更新！下次請用新密碼登入。');
 }
 function showSitterPetDetail(bookId){
-  // Find from cached cases
   getB().then(allB=>{
     const bk=allB.find(b=>b.id===bookId||b.id===parseInt(bookId));
     if(!bk){alert('找不到資料');return;}
-    const petHtml=renderPetDataHtml(bk.petData);
+    // petData 可能從資料庫來時還是 JSON 字串，需要 parse
+    let petData=bk.petData||bk.pet_data||[];
+    if(typeof petData==='string'){try{petData=JSON.parse(petData);}catch(e){petData=[];}}
+    if(!Array.isArray(petData)) petData=[];
+    const petHtml=renderPetDataHtml(petData);
     const notesHtml=bk.petNotes?`<div style="margin-top:10px;background:#FFF8E1;border:1.5px solid #FFB800;border-radius:10px;padding:12px;font-size:.84rem;line-height:1.7;"><strong style="color:#8B6000;">📝 注意事項</strong><br>${bk.petNotes}</div>`:'';
     const slotHtml=bk.dateSlotData?.length?`<div style="margin-top:10px;"><div style="font-size:.78rem;font-weight:800;color:var(--pk);margin-bottom:6px;font-family:'Nunito',sans-serif;">📅 服務時段</div>${renderDateSlotsHtml(bk.dateSlotData)}</div>`:'';
     window._spBk=bk;

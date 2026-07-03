@@ -2797,8 +2797,6 @@ async function upgradeAllRefCodes(){
   }catch(e){alert('升級失敗：'+e.message);}
 }
 
-}
-
 // ── REVIEWS ──
 async function renderReviewsAdmin(){
   const revs=(await getReviews()).sort((a,b)=>b.ts-a.ts);

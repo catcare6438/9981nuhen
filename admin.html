@@ -2784,6 +2784,7 @@ async function deleteRefCode(code, event){
   }catch(e){
     alert('刪除失敗：'+e.message);
   }
+}
 
 async function upgradeAllRefCodes(){
   if(!confirm('確定將所有舊格式推薦碼（REF+電話號碼）批量升級為隨機亂碼？')) return;

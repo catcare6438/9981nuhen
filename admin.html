@@ -2197,7 +2197,7 @@ function showDetail(bookId){
   var grossTotal=cal.total+manualAdj2;
   var discAmt=bk.discounts||0;
   if(discAmt>0){
-    var discLabel2=bk.refCode?'🎁 推薦碼9折折抵':'🎫 優惠券折抵';
+    var discLabel2=bk.refCode?'🎁 推薦碼折抵 $30':'🎫 優惠券折抵 $30';
     rows+=R(discLabel2,'','',`<span style="color:#06C755;font-weight:900;">-$${discAmt}</span>`);
   }
 

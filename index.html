@@ -1817,6 +1817,29 @@ function closeOwnerLogin(){
   var ov=document.getElementById('ownerLoginOv');
   if(ov) ov.style.display='none';
 }
+async function doOwnerLogin(){
+  var pwRaw=document.getElementById('ownerPwField').value||'';
+  var pw=pwRaw.trim()
+    .replace(/[\u200b\xa0\ufeff]/g,'')
+    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);});
+  if(!pw){document.getElementById('ownerPwErr').textContent='請輸入密碼';return;}
+  var errEl=document.getElementById('ownerPwErr');
+  errEl.textContent='⏳ 驗證中...';
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{cache:'no-store'});
+    if(!res.ok){errEl.textContent='伺服器錯誤（'+res.status+'），請稍後再試';return;}
+    var rows=await res.json();
+    if(!Array.isArray(rows)){errEl.textContent='資料格式錯誤，請聯繫客服';return;}
+    var found=rows.find(function(r){return String(r.password||'').trim()===pw;});
+    if(found){
+      window.location.href='owner.html#pw='+encodeURIComponent(pw);
+    } else {
+      errEl.textContent='密碼錯誤，請確認後再試 🐾';
+    }
+  }catch(e){
+    errEl.textContent='網路錯誤，請稍後再試';
+  }
+}
 renderReviews6();
 
 

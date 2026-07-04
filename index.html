@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<!-- v1783140630 -->
+<!-- v1783140923 -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>貓窩裏 🐾 到府寵物褓姆</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
@@ -1637,11 +1637,16 @@ async function submitBook(){
   }
   const ref=document.getElementById('refCode')?.value.trim()||'';
   let refDisc=0;
-  if(ref){
-    const refs=await dbGetRefCodes();
-    const refUpper=ref.toUpperCase();
-    const rc=refs.find(r=>(r.code||'').toUpperCase()===refUpper);
-    if(rc) refDisc=30; // 推薦碼：固定折 $30
+  // 使用 checkRefCode() 已驗證並快取的結果，不需要再 await fetch
+  if(ref && window._refValid){
+    refDisc=30;
+  } else if(ref && !window._refValid){
+    // 推薦碼還沒驗證過，快速驗證一次
+    try{
+      const refs=await dbGetRefCodes();
+      const rc=refs.find(r=>(r.code||'').toUpperCase()===ref.toUpperCase());
+      if(rc) refDisc=30;
+    }catch(e){ console.warn('refCode check failed:', e); }
   }
   const total=Math.max(0,subTotal-disc-refDisc);
   const pets=getPetData();

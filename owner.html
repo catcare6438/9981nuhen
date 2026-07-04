@@ -1133,7 +1133,7 @@ async function initOwnerRefCode(books){
 function copyOwnerRefCode(){
   var code=window._ownerRefCode||document.getElementById('ownerRefCodeDisplay').textContent;
   if(navigator.clipboard){
-    navigator.clipboard.writeText(code).then(function(){alert('推薦碼已複製！分享給好友，好友下單輸入推薦碼，你們各享 $50 優惠 🎉');});
+    navigator.clipboard.writeText(code).then(function(){alert('推薦碼已複製！分享給好友，好友下單輸入推薦碼即享9折優惠 🎉');});
   } else {
     alert('推薦碼：'+code+'（請截圖分享）');
   }
@@ -1333,7 +1333,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx,ownerHasReview
       +'<div style="text-align:center;padding:16px 14px;background:linear-gradient(135deg,#FFFDE7,#FFF0F5);border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
       +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 95折券！</div>'
       +'<div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">分享毛孩照護體驗，幫助更多飼主找到好保母 🐾</div>'
-      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評 送 $50</button>'
+      +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評 送95折券</button>'
       +'</div>';
   }
 
@@ -1417,8 +1417,8 @@ function openReviewForm(elOrId){
   // 重置優惠券區塊內容，避免上次「已有優惠券」分支殘留的 HTML 蓋掉原本的 #oCpCode/#oCpDates 結構
   cpBoxReset.innerHTML='<div style="font-size:2.4rem;margin-bottom:6px;">🎉</div>'
     +'<div style="font-size:1.1rem;font-weight:900;color:#8B6000;margin-bottom:4px;">感謝您的好評！</div>'
-    +'<div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 $50 折抵券碼</div>'
-    +'<div class="rv-coupon-amount">折 $50</div>'
+    +'<div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 95折抵用券碼</div>'
+    +'<div class="rv-coupon-amount">95折優惠券</div>'
     +'<div class="rv-coupon-code" id="oCpCode"></div>'
     +'<div id="oCpDates" style="font-size:.7rem;color:var(--tl);margin-bottom:16px;"></div>'
     +'<button onclick="copyOwnerCoupon()" style="padding:12px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:16px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 6px 18px rgba(255,184,0,.35);">📋 複製券碼</button>'
@@ -1459,7 +1459,7 @@ function setRvBest(el){
 
 function copyOwnerCoupon(){
   var code=document.getElementById('oCpCode').textContent;
-  if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){alert('優惠碼已複製！下次預約時輸入即可享 $50 折扣 🎉');});}
+  if(navigator.clipboard){navigator.clipboard.writeText(code).then(function(){alert('優惠碼已複製！下次預約時輸入即可享 95折優惠 🎉');});}
   else alert('優惠碼：'+code+'（請截圖保存）');
 }
 
@@ -1606,7 +1606,7 @@ function copyRvCoupon(){
   var code=document.getElementById('rvCouponCode').textContent;
   if(navigator.clipboard){
     navigator.clipboard.writeText(code).then(function(){
-      alert('優惠碼已複製！下次預約時輸入即可享 $50 折扣 🎉');
+      alert('優惠碼已複製！下次預約時輸入即可享 95折優惠 🎉');
     });
   } else {
     alert('優惠碼：'+code+'（請截圖保存）');
@@ -1748,7 +1748,7 @@ function buildReviewDoneHTML(rv,bookId){
       ${comment?`<div style="font-size:.86rem;color:var(--t);line-height:1.7;margin-bottom:6px;">「${comment}」</div>`:''}
       ${author?`<div style="font-size:.76rem;color:var(--tl);">— ${author}</div>`:''}
       ${code?`<div style="margin-top:12px;background:#fff;border:2px dashed #FFB800;border-radius:12px;padding:12px;text-align:center;">
-        <div style="font-size:.7rem;color:var(--tl);font-weight:700;margin-bottom:4px;">🎫 您的 $50 折抵券碼（首次好評贈送）</div>
+        <div style="font-size:.7rem;color:var(--tl);font-weight:700;margin-bottom:4px;">🎫 您的95折抵用券碼（首次好評贈送）</div>
         <div style="font-family:monospace;font-size:1.1rem;font-weight:900;color:#B8860B;letter-spacing:3px;">${code}</div>
         ${expiry?`<div style="font-size:.7rem;color:var(--tl);margin-top:4px;">有效至：${expiry}</div>`:''}
         <button onclick="copyCouponCode('${code}')"
@@ -1769,7 +1769,7 @@ function buildReviewFormHTML(bk,orderIdx){
         <div class="rv-emoji-row">🐱 💕 🐶</div>
         <div class="rv-hero-title" style="font-size:1.05rem;">留下您的真實感受 🌸</div>
         <div class="rv-hero-sub" style="font-size:.8rem;">您的一句話是保母最大鼓勵，也讓更多毛孩家長找到信賴的褓姆！</div>
-        <div class="rv-reward-badge" style="font-size:.85rem;padding:8px 18px;">🎁 留下好評即贈 $50 折抵券</div>
+        <div class="rv-reward-badge" style="font-size:.85rem;padding:8px 18px;">🎁 留下好評即贈 95折優惠券</div>
       </div>
 
       <!-- 星星：預設5星 -->
@@ -1813,7 +1813,7 @@ function buildReviewFormHTML(bk,orderIdx){
       </div>
 
       <button class="rv-submit" onclick="submitReviewFor(${bk.id})">
-        🎁 送出好評，立即領取 $50 折抵券！
+        🎁 送出好評，立即領取 95折優惠券！
       </button>
     </div>`;
 }
@@ -1904,7 +1904,7 @@ async function submitReviewFor(bookId){
     }
   }
 
-  alert('🎉 感謝您的好評！$50 折抵券碼：'+code);
+  alert('🎉 感謝您的好評！95折抵用券碼：'+code);
 }
 
 
@@ -2515,7 +2515,7 @@ function showLineBindResult(msg, color){
         <div class="rv-emoji-row">🐱 💕 🐶</div>
         <div class="rv-hero-title">毛孩回來還好嗎？<br>留下您的真實感受 🌸</div>
         <div class="rv-hero-sub">您的一句話，是保母最大的鼓勵 💪<br>也讓更多毛孩家長找到值得信賴的褓姆！</div>
-        <div class="rv-reward-badge">🎁 留下好評即贈 <span style="font-size:1.1rem;margin:0 4px;">$50</span> 折抵券</div>
+        <div class="rv-reward-badge">🎁 留下好評即贈 <span style="font-size:1.1rem;margin:0 4px;">95折</span> 優惠券</div>
       </div>
 
       <!-- Step 1: 星星評分 -->
@@ -2576,7 +2576,7 @@ function showLineBindResult(msg, color){
       </div>
 
       <button class="rv-submit" onclick="submitOwnerReview()">
-        🎁 送出好評，立即領取 $50 折抵券！
+        🎁 送出好評，立即領取 95折優惠券！
       </button>
     </div>
 
@@ -2584,8 +2584,8 @@ function showLineBindResult(msg, color){
     <div id="ownerCouponBox" class="rv-coupon">
       <div style="font-size:2.4rem;margin-bottom:6px;">🎉</div>
       <div style="font-size:1.1rem;font-weight:900;color:#8B6000;margin-bottom:4px;">感謝您的好評！</div>
-      <div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 $50 折抵券碼</div>
-      <div class="rv-coupon-amount">折 $50</div>
+      <div style="font-size:.82rem;color:var(--tl);margin-bottom:6px;">您的 95折抵用券碼</div>
+      <div class="rv-coupon-amount">95折優惠券</div>
       <div class="rv-coupon-code" id="oCpCode"></div>
       <div id="oCpDates" style="font-size:.7rem;color:var(--tl);margin-bottom:16px;"></div>
       <button onclick="copyOwnerCoupon()"

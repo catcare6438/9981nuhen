@@ -653,7 +653,7 @@ function dbRowToOrder(r){
       </div>
     </div>
     <div style="margin-top:12px;background:var(--y2);border:1.5px dashed var(--y1);border-radius:10px;padding:10px 14px;font-size:.78rem;color:#7A5C00;line-height:1.8;">
-      🎁 有好友推薦碼可輸入享 <strong>$50 折扣</strong>
+      🎁 有好友推薦碼可輸入享 <strong>$30 折扣</strong>
     </div>
     <input type="hidden" id="notes" value="">
   </div>
@@ -1199,7 +1199,7 @@ async function checkRefCode(){
     var rows=await res.json();
     var found=(Array.isArray(rows)?rows:[]).find(function(r){return (r.code||'').toUpperCase()===ref;});
     if(found){
-      if(msg){msg.textContent='✅ 推薦碼有效！預約可折扣 $50';msg.style.color='#06C755';}
+      if(msg){msg.textContent='✅ 推薦碼有效！可折扣 $30';msg.style.color='#06C755';}
       window._refValid=true;
     } else {
       if(msg){msg.textContent='❌ 推薦碼無效';msg.style.color='#F87171';}
@@ -1465,7 +1465,7 @@ function calc(){
   const refDisc=(refValid)?50:0;
   const couponCodeVal2=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
   let disc=0;
-  if(!refValid && couponCodeVal2 && window._validCouponDiscount) disc=50;
+  if(!refValid && couponCodeVal2 && window._validCouponDiscount) disc=50; // 優惠券$50
   const total=svcSub+transportTotal+urg-disc-refDisc;
 
   let html='';
@@ -1529,7 +1529,7 @@ function calc(){
         html+=R(urgLabel,'<strong style="color:#FF6B00;">+$'+urg+'</strong>','','color:#FF6B00;');
       }
       if(disc>0) html+=R(`🎫 優惠券折抵`,`-$50`,'','color:#06C755;font-weight:800;');
-      if(refDisc>0) html+=R(`🎁 推薦碼折抵`,`-$50`,'','color:#06C755;font-weight:800;');
+      if(refDisc>0) html+=R(`🎁 推薦碼折抵`,`-$30`,'','color:#06C755;font-weight:800;');
     }
     html+=`<hr class="sum-divider">`;
     html+=`<div class="sum-total"><span>💕 照護總計為</span><span>$${Math.max(0,total)}</span></div>`;
@@ -1631,7 +1631,16 @@ async function submitBook(){
   if(ref){
     const refs=await dbGetRefCodes();
     const rc=refs.find(r=>(r.code||'').toUpperCase()===ref.toUpperCase());
-    if(rc) refDisc=50;
+    if(rc){
+      // 不能使用自己的推薦碼：比對推薦碼擁有者的電話
+      const refPhone=String(rc.phone||'').replace(/[^0-9]/g,'');
+      const myPhone=String(phone||'').replace(/[^0-9]/g,'');
+      if(refPhone && myPhone && refPhone===myPhone){
+        alert('⚠️ 不可使用自己的推薦碼，推薦碼需由好友輸入使用 🐾');
+        return;
+      }
+      refDisc=30; // 推薦碼固定折 $30
+    }
   }
   const total=Math.max(0,subTotal-disc-refDisc);
   const pets=getPetData();
@@ -1667,6 +1676,11 @@ async function submitBook(){
   try{
     await dbInsertOrder(b);
     sendNewOrderNotify(b).catch(()=>{});
+    // 標記優惠券已使用（只能用一次）
+    if(validCoupon){
+      const couponCode2=validCoupon.code||validCoupon.coupon_code||'';
+      if(couponCode2) dbMarkCouponUsed(couponCode2).catch(()=>{});
+    }
     document.getElementById('modalOv').classList.add('show');
     // 顯示說明並倒數跳轉 LINE 綁定（再次預約跳過）
     if(window._skipLineBinding){

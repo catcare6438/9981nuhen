@@ -1331,7 +1331,7 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx,ownerHasReview
     // 從未留過好評 → 顯示送券按鈕
     reviewSection='<div class="section-sub-title">💬 好評回饋</div>'
       +'<div style="text-align:center;padding:16px 14px;background:linear-gradient(135deg,#FFFDE7,#FFF0F5);border-radius:14px;margin-bottom:10px;border:1.5px solid var(--pk3);">'
-      +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 $50 折抵券！</div>'
+      +'<div style="font-size:.9rem;font-weight:900;color:var(--pk);margin-bottom:6px;">🎁 留下好評送 95折券！</div>'
       +'<div style="font-size:.78rem;color:var(--tl);margin-bottom:12px;">分享毛孩照護體驗，幫助更多飼主找到好保母 🐾</div>'
       +'<button onclick="openReviewForm(this)" data-bid="'+bk.id+'" style="padding:11px 28px;background:linear-gradient(135deg,#FFB800,#FF9500);color:#fff;border:none;border-radius:20px;font-weight:900;font-size:.9rem;cursor:pointer;box-shadow:0 4px 14px rgba(255,184,0,.35);">⭐ 填寫好評 送 $50</button>'
       +'</div>';
@@ -2136,9 +2136,17 @@ function ownerCalcDetail(bk){
   // ── 車馬費 ──
   if(bk.transport>0) rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
 
+  // 折扣顯示
+  var discAmt=bk.discounts||0;
+  if(discAmt>0){
+    var dlabel=bk.refCode?'🎁 推薦碼9折折抵':'🎫 優惠券折抵';
+    rows.push({label:dlabel,price:-discAmt,times:'',sub:-discAmt});
+  }
+
   var adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
-  var grandTotal=rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
-    +adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
+  // grandTotal 優先用資料庫儲存的金額（已含折扣）
+  var grandTotal=bk.total||( rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
+    +adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0) );
   return {rows:rows,adjs:adjs,grandTotal:grandTotal,total:total};
 }
 

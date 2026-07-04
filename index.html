@@ -1800,44 +1800,19 @@ async function renderRevModal(){
 // ── OWNER LOGIN ──
 function openOwnerLogin(){
   var ov=document.getElementById('ownerLoginOv');
-  if(!ov){console.error('[openOwnerLogin] 找不到 ownerLoginOv'); return;}
-  ov.style.display='flex';
-  ov.classList.add('show');
+  if(!ov){console.error('[openOwnerLogin] ownerLoginOv not found');return;}
+  // 確保 modal 是 body 的直接子元素，避免父層 backdrop-filter/transform 破壞 fixed 定位
+  if(ov.parentElement!==document.body) document.body.appendChild(ov);
+  ov.style.cssText='display:flex;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;align-items:center;justify-content:center;';
   var pwf=document.getElementById('ownerPwField');
   if(pwf){pwf.value='';setTimeout(function(){pwf.focus();},100);}
   var err=document.getElementById('ownerPwErr');
   if(err) err.textContent='';
 }
-async function doOwnerLogin(){
-  var pwRaw=document.getElementById('ownerPwField').value||'';
-  var pw=pwRaw.trim()
-    .replace(/[​ ﻿]/g,'')
-    .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);});
-  if(!pw){document.getElementById('ownerPwErr').textContent='請輸入密碼';return;}
-  var errEl=document.getElementById('ownerPwErr');
-  errEl.textContent='⏳ 驗證中...';
-  try{
-    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{cache:'no-store'});
-    if(!res.ok){errEl.textContent='伺服器錯誤（'+res.status+'），請稍後再試';return;}
-    var rows=await res.json();
-    if(!Array.isArray(rows)){errEl.textContent='資料格式錯誤，請聯繫客服';return;}
-    // 直接比對 password 欄位（不透過 map 轉換，更直接）
-    var found=rows.find(function(r){return String(r.password||'').trim()===pw;});
-    if(found){
-      window.location.href='owner.html#pw='+encodeURIComponent(pw);
-    } else {
-      errEl.textContent='密碼錯誤，請確認後再試 🐾';
-    }
-  }catch(e){
-    console.error('[doOwnerLogin]',e);
-    errEl.textContent='網路錯誤，請稍後再試（'+e.message+')';
-  }
-}
 function closeOwnerLogin(){
   var ov=document.getElementById('ownerLoginOv');
-  if(ov){ov.style.display='none';ov.classList.remove('show');}
+  if(ov) ov.style.display='none';
 }
-
 renderReviews6();
 
 
@@ -1859,24 +1834,26 @@ async function initFromSiteSettings(){
 
     // ── 服務價格 ──
     if(settings.svc_prices&&Array.isArray(settings.svc_prices)&&settings.svc_prices.length){
-      console.log('[settings] svc_prices 讀取:',JSON.stringify(settings.svc_prices));
       var normal=settings.svc_prices.find(function(p){return (p.label||'').indexOf('平')>=0;})||settings.svc_prices[0];
       var holiday=settings.svc_prices.find(function(p){return (p.label||'').indexOf('連')>=0||(p.label||'').indexOf('假')>=0;})||settings.svc_prices[1];
       var cny=settings.svc_prices.find(function(p){return (p.label||'').indexOf('春')>=0||(p.label||'').indexOf('年')>=0;})||settings.svc_prices[2];
+      // 注意：用 Number(v)||fallback 若 v=0 會 fallback 到預設值，改用明確判斷
+      var n=function(v,fb){var r=Number(v);return isNaN(r)?fb:r;};
       if(normal){
-        SVCBASE.companion=Number(normal.companion)||300;
-        SVCBASE.walk=Number(normal.walk)||200;
-        SVCBASE.both=Number(normal.both)||500;
+        SVCBASE.companion=n(normal.companion,300);
+        SVCBASE.walk=n(normal.walk,200);
+        SVCBASE.both=n(normal.both,500);
+        console.log('[settings] 平日價格更新:',SVCBASE.companion,SVCBASE.walk,SVCBASE.both);
       }
       if(holiday){
-        HOLIDAY_PRICES.companion=Number(holiday.companion)||450;
-        HOLIDAY_PRICES.walk=Number(holiday.walk)||350;
-        HOLIDAY_PRICES.both=Number(holiday.both)||750;
+        HOLIDAY_PRICES.companion=n(holiday.companion,450);
+        HOLIDAY_PRICES.walk=n(holiday.walk,350);
+        HOLIDAY_PRICES.both=n(holiday.both,750);
       }
       if(cny){
-        CNY_PRICES.companion=Number(cny.companion)||600;
-        CNY_PRICES.walk=Number(cny.walk)||500;
-        CNY_PRICES.both=Number(cny.both)||1000;
+        CNY_PRICES.companion=n(cny.companion,600);
+        CNY_PRICES.walk=n(cny.walk,500);
+        CNY_PRICES.both=n(cny.both,1000);
       }
     }
 
@@ -2240,6 +2217,9 @@ prefillFromOldOrder();
   </div>
 </div>
 </div>
+
+
+
 
 <!-- OWNER LOGIN MODAL -->
 <div class="owner-login-ov" id="ownerLoginOv">

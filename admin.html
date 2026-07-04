@@ -2129,7 +2129,9 @@ function showDetail(bookId){
   const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
   const svcSub=cal.svcSub, transportTotal=cal.transportTotal;
   const urgent=cal.urgent, manualAdj=cal.manualAdj;
-  const total=cal.total;
+  const manualAdj2=Array.isArray(bk.manualAdjs)?bk.manualAdjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0):(bk.manualAdj||0);
+  // total 優先用資料庫儲存的金額（已含折扣），fallback 用 calcBv2 計算
+  const total=bk.total||cal.total;
   const totalSessions=cal.totalSessions, holSessions=cal.holSessions;
   const cnySessions=cal.cnySessions||0, normSessions=cal.normSessions;
   const slotsByDate=parseSlotStats(bk).slotsByDate;
@@ -2190,6 +2192,14 @@ function showDetail(bookId){
   }
   if(urgent>0) rows+=R('急件加收',urgent,'×1',urgent);
   if(bk.transport>0) rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
+
+  // 折扣（從資料庫bk.discounts讀取，顯示折扣資訊）
+  var grossTotal=cal.total+manualAdj2;
+  var discAmt=bk.discounts||0;
+  if(discAmt>0){
+    var discLabel2=bk.refCode?'🎁 推薦碼9折折抵':'🎫 優惠券折抵';
+    rows+=R(discLabel2,'','',`<span style="color:#06C755;font-weight:900;">-$${discAmt}</span>`);
+  }
 
   var adjs2=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
   adjs2.forEach(function(a){

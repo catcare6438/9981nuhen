@@ -212,7 +212,7 @@ footer .ft{font-weight:900;font-size:1.1rem;color:var(--p1);margin-bottom:8px;fo
 /* separator */
 .rev-separator{border-top:3px dashed var(--p3);margin:20px 0;padding-top:20px;}
 /* owner login modal */
-.owner-login-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:999;
+.owner-login-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.38);z-index:9999;
   align-items:center;justify-content:center;backdrop-filter:blur(5px);}
 .owner-login-ov.show{display:flex;}
 .owner-login-box{background:#fff;border:3px solid var(--p3);border-radius:24px;
@@ -435,7 +435,7 @@ function dbRowToOrder(r){
   <a onclick="goTo('team')">👩‍⚕️ 保母團隊</a>
   <a onclick="goTo('reviews')">⭐ 飼主好評</a>
   <a href="sitter.html">👩 保母登入</a>
-  <a onclick="openOwnerLogin()">🏠 毛孩爸媽</a>
+  <a onclick="openOwnerLogin();return false;" href="#owner-login">🏠 毛孩爸媽</a>
   <a href="admin.html">🔐 後台</a>
 </nav>
 
@@ -1799,9 +1799,14 @@ async function renderRevModal(){
 
 // ── OWNER LOGIN ──
 function openOwnerLogin(){
-  document.getElementById('ownerLoginOv').classList.add('show');
-  document.getElementById('ownerPwField').value='';
-  document.getElementById('ownerPwErr').textContent='';
+  var ov=document.getElementById('ownerLoginOv');
+  if(!ov){console.error('[openOwnerLogin] 找不到 ownerLoginOv'); return;}
+  ov.style.display='flex';
+  ov.classList.add('show');
+  var pwf=document.getElementById('ownerPwField');
+  if(pwf){pwf.value='';setTimeout(function(){pwf.focus();},100);}
+  var err=document.getElementById('ownerPwErr');
+  if(err) err.textContent='';
 }
 async function doOwnerLogin(){
   var pwRaw=document.getElementById('ownerPwField').value||'';
@@ -1828,7 +1833,10 @@ async function doOwnerLogin(){
     errEl.textContent='網路錯誤，請稍後再試（'+e.message+')';
   }
 }
-function closeOwnerLogin(){document.getElementById('ownerLoginOv').classList.remove('show');}
+function closeOwnerLogin(){
+  var ov=document.getElementById('ownerLoginOv');
+  if(ov){ov.style.display='none';ov.classList.remove('show');}
+}
 
 renderReviews6();
 

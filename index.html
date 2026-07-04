@@ -653,8 +653,7 @@ function dbRowToOrder(r){
       </div>
     </div>
     <div style="margin-top:12px;background:var(--y2);border:1.5px dashed var(--y1);border-radius:10px;padding:10px 14px;font-size:.78rem;color:#7A5C00;line-height:1.8;">
-      💡 首單完成後於毛孩爸媽系統留下好評即贈 <strong>$50 優惠券</strong>，可供下次使用！<br>
-      🎁 有好友推薦碼可輸入享 <strong>$50 折扣</strong>
+      🎁 輸入好友推薦碼即享 <strong>9折優惠</strong>
     </div>
     <input type="hidden" id="notes" value="">
   </div>
@@ -1200,7 +1199,7 @@ async function checkRefCode(){
     var rows=await res.json();
     var found=(Array.isArray(rows)?rows:[]).find(function(r){return (r.code||'').toUpperCase()===ref;});
     if(found){
-      if(msg){msg.textContent='✅ 推薦碼有效！預約可折扣 $50';msg.style.color='#06C755';}
+      if(msg){msg.textContent='✅ 推薦碼有效！本次預約享 9折優惠';msg.style.color='#06C755';}
       window._refValid=true;
     } else {
       if(msg){msg.textContent='❌ 推薦碼無效';msg.style.color='#F87171';}
@@ -1251,7 +1250,7 @@ function copyCoupon(){
   const code=document.getElementById('cpCode').textContent;
   const dates=document.getElementById('cpDates').textContent;
   const pet=document.getElementById('cpPetName').textContent;
-  navigator.clipboard.writeText(`貓窩裏 $50 折抵券\n${pet}\n${code}\n${dates}`).then(()=>alert('已複製券碼 ✓'));
+  navigator.clipboard.writeText(`貓窩裏 95折抵用券\n${pet}\n${code}\n${dates}`).then(()=>alert('已複製券碼 ✓'));
 }
 
 
@@ -1423,24 +1422,26 @@ function calc(){
     }
   })();
 
-  let disc=0;
   const cc=(document.getElementById('couponCode')?.value||'').trim();
   const cm=document.getElementById('couponMsg');
   if(cc){
     if(cm)cm.textContent='⏳ 驗證中...';
     dbGetCoupons().then(function(coupons){
-      // 比對 code 欄位（兼容大小寫）
       const cp=coupons.find(function(x){
         return (x.code||x.coupon_code||'').toUpperCase()===cc.toUpperCase()&&!x.used;
       });
-      if(cm)cm.textContent=cp?'✅ 折抵券有效！折扣 $50':'❌ 券碼無效或已使用';
-      // 只在確認有效時才設折扣（不能提前設）
-      if(!cp){
-        // 無效券 - 不加折扣，重新 calc（不觸發遞迴）
+      if(cp){
+        const pct=cp.percent||0.05; // 預設 95折，扣5%
+        window._validCouponDiscount=pct;
+        var zhekou=Math.round((1-pct)*10*10)/10; // e.g. 9.5折
+        if(cm){cm.textContent='✅ 折抵券有效！本次享 '+zhekou+'折優惠';cm.style.color='#06C755';}
+      } else {
+        window._validCouponDiscount=0;
+        if(cm){cm.textContent='❌ 券碼無效或已使用';cm.style.color='#F87171';}
       }
+      calc();
     });
-    // 不在這裡設 disc=50，在 submitBook 前再驗證
-  } else { if(cm)cm.textContent=''; }
+  } else { if(cm){cm.textContent='';} window._validCouponDiscount=window._validCouponDiscount||0; }
 
   // 三層計算：平日 / 一般連假 / 春節
   let normSessions=0,holSessions=0,cnySessions=0;
@@ -1461,8 +1462,22 @@ function calc(){
   const svcSub    =normSvcSub+holSvcSub+cnySvcSub+addonFlat; // addonFlat 單次項目只加一次
   const transportTotal=dc*totalSess;
   const refCodeVal=(document.getElementById('refCode')?.value||'').trim();
-  const refDisc=(refCodeVal&&window._refValid)?50:0;
-  const total=svcSub+transportTotal+urg-disc-refDisc;
+  const refValid=(refCodeVal&&window._refValid);
+  // 推薦碼：9折；優惠券：95折；兩者互斥，推薦碼優先
+  const baseForDisc=svcSub+transportTotal+urg;
+  let disc=0, refDisc=0, discLabel='', refDiscLabel='';
+  if(refValid){
+    refDisc=Math.round(baseForDisc*0.1); // 9折 = 打9折 = 扣10%
+    refDiscLabel='9折';
+  } else {
+    // 優惠券折扣：從券碼的 discount 欄位讀，改為百分比
+    const couponCodeVal=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
+    if(couponCodeVal&&window._validCouponDiscount){
+      disc=Math.round(baseForDisc*(1-window._validCouponDiscount));
+      discLabel=Math.round(window._validCouponDiscount*100)+'折';
+    }
+  }
+  const total=baseForDisc-disc-refDisc;
 
   let html='';
 
@@ -1524,8 +1539,8 @@ function calc(){
         var urgLabel=urg===200?'⚡ 急件加收（24小時內）':'⚡ 急件加收（24～48小時）';
         html+=R(urgLabel,'<strong style="color:#FF6B00;">+$'+urg+'</strong>','','color:#FF6B00;');
       }
-      if(disc>0) html+=R(`🎫 優惠券折抵`,`-$${disc}`,'','color:#06C755;font-weight:800;');
-      if(refDisc>0) html+=R(`🎁 推薦碼折抵`,`-$${refDisc}`,'','color:#06C755;font-weight:800;');
+      if(disc>0) html+=R(`🎫 優惠券折抵（${discLabel}）`,`-$${disc}`,'','color:#06C755;font-weight:800;');
+      if(refDisc>0) html+=R(`🎁 推薦碼折抵（${refDiscLabel}）`,`-$${refDisc}`,'','color:#06C755;font-weight:800;');
     }
     html+=`<hr class="sum-divider">`;
     html+=`<div class="sum-total"><span>💕 照護總計為</span><span>$${Math.max(0,total)}</span></div>`;
@@ -1610,28 +1625,31 @@ async function submitBook(){
     for(var ti=0;ti<overN;ti++) extra+=(tiersS[Math.min(ti,tiersS.length-1)]||{price:80}).price;
   }
   const sessions=getTotalSessions();
-  const sub=(base+addon+extra)*sessions+addonFlat2; // addonFlat2 為單次計費項目，只收一次
+  const sub=(base+addon+extra)*sessions+addonFlat2;
+  const subTotal=sub+dc*sessions+urg; // 折扣基數（折扣前總金額）
   const cc=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
   let disc=0;
   let validCoupon=null;
   if(cc){
     const coupons=await dbGetCoupons();
     validCoupon=coupons.find(x=>(x.code||x.coupon_code||'').toUpperCase()===cc&&!x.used);
-    if(validCoupon){disc=validCoupon.discount||validCoupon.amount||50;}
-    else{
+    if(validCoupon){
+      // 支援 percent 欄位（百分比）或舊的 discount/amount（固定金額）
+      const pct=validCoupon.percent||0.05; // 預設 95折
+      disc=Math.round(subTotal*pct);
+    } else {
       if(!confirm('⚠️ 優惠券碼「'+cc+'」無效或已使用，確定繼續下單（不套用折扣）？')) return;
     }
   }
   const ref=document.getElementById('refCode')?.value.trim()||'';
-  // referral discount（須在 total 計算前先算出，否則折扣不會真的從金額扣除）
   let refDisc=0;
   if(ref){
     const refs=await dbGetRefCodes();
     const refUpper=ref.toUpperCase();
     const rc=refs.find(r=>(r.code||'').toUpperCase()===refUpper);
-    if(rc)refDisc=50;
+    if(rc) refDisc=Math.round(subTotal*0.1); // 推薦碼：9折，扣10%
   }
-  const total=Math.max(0,sub+dc*sessions+urg-disc-refDisc);
+  const total=Math.max(0,subTotal-disc-refDisc);
   const pets=getPetData();
   const b={
     id:Date.now(),

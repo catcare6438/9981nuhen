@@ -1226,7 +1226,7 @@ async function submitReview(){
   const author=document.getElementById('fbAuthor').value||`${petName}主人`;
 
   // Save coupon to Supabase
-  await dbInsertCoupon({code, pet_name:petName, amount:50, created:today, expire:expStr, used:false, author});
+  await dbInsertCoupon({code, pet_name:petName, amount:30, created:today, expire:expStr, used:false, author});
 
   // Save review to Supabase
   await dbInsertReview({
@@ -1250,7 +1250,7 @@ function copyCoupon(){
   const code=document.getElementById('cpCode').textContent;
   const dates=document.getElementById('cpDates').textContent;
   const pet=document.getElementById('cpPetName').textContent;
-  navigator.clipboard.writeText(`貓窩裏 $50 折抵券\n${pet}\n${code}\n${dates}`).then(()=>alert('已複製券碼 ✓'));
+  navigator.clipboard.writeText(`貓窩裏 $30 折抵券\n${pet}\n${code}\n${dates}`).then(()=>alert('已複製券碼 ✓'));
 }
 
 
@@ -1433,7 +1433,7 @@ function calc(){
       if(cp){
         const pct=cp.percent||0.05; // 預設 95折，扣5%
         window._validCouponDiscount=pct;
-        if(cm){cm.textContent='✅ 折抵券有效！折扣 $50';cm.style.color='#06C755';}
+        if(cm){cm.textContent='✅ 折抵券有效！折扣 $30';cm.style.color='#06C755';}
       } else {
         window._validCouponDiscount=0;
         if(cm){cm.textContent='❌ 券碼無效或已使用';cm.style.color='#F87171';}
@@ -1462,10 +1462,10 @@ function calc(){
   const transportTotal=dc*totalSess;
   const refCodeVal=(document.getElementById('refCode')?.value||'').trim();
   const refValid=(refCodeVal&&window._refValid);
-  const refDisc=(refValid)?50:0;
+  const refDisc=(refValid)?30:0;
   const couponCodeVal2=(document.getElementById('couponCode')?.value||'').trim().toUpperCase();
   let disc=0;
-  if(!refValid && couponCodeVal2 && window._validCouponDiscount) disc=50; // 優惠券$50
+  if(!refValid && couponCodeVal2 && window._validCouponDiscount) disc=30; // 優惠券$30
   const total=svcSub+transportTotal+urg-disc-refDisc;
 
   let html='';
@@ -1528,7 +1528,7 @@ function calc(){
         var urgLabel=urg===200?'⚡ 急件加收（24小時內）':'⚡ 急件加收（24～48小時）';
         html+=R(urgLabel,'<strong style="color:#FF6B00;">+$'+urg+'</strong>','','color:#FF6B00;');
       }
-      if(disc>0) html+=R(`🎫 優惠券折抵`,`-$50`,'','color:#06C755;font-weight:800;');
+      if(disc>0) html+=R(`🎫 優惠券折抵`,`-$30`,'','color:#06C755;font-weight:800;');
       if(refDisc>0) html+=R(`🎁 推薦碼折抵`,`-$30`,'','color:#06C755;font-weight:800;');
     }
     html+=`<hr class="sum-divider">`;
@@ -1622,7 +1622,7 @@ async function submitBook(){
   if(cc){
     const coupons=await dbGetCoupons();
     validCoupon=coupons.find(x=>(x.code||x.coupon_code||'').toUpperCase()===cc&&!x.used);
-    if(validCoupon){disc=validCoupon.discount||validCoupon.amount||50;} else {
+    if(validCoupon){disc=30;} else {
       if(!confirm('⚠️ 優惠券碼「'+cc+'」無效或已使用，確定繼續下單（不套用折扣）？')) return;
     }
   }
@@ -2238,7 +2238,7 @@ prefillFromOldOrder();
     <div class="rev-pages-grid" id="revModalGrid"></div>
     <div class="rev-separator">
       <div style="font-size:.9rem;font-weight:800;color:var(--p1);text-align:center;padding:10px;font-family:'Nunito',sans-serif;">
-        💌 成為會員後（毛孩爸媽系統）即可留下好評並獲得 $50 折抵券！
+        💌 成為會員後（毛孩爸媽系統）即可留下好評並獲得 $30 折抵券！
       </div>
     </div>
   </div>

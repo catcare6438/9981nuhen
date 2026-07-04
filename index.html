@@ -653,7 +653,7 @@ function dbRowToOrder(r){
       </div>
     </div>
     <div style="margin-top:12px;background:var(--y2);border:1.5px dashed var(--y1);border-radius:10px;padding:10px 14px;font-size:.78rem;color:#7A5C00;line-height:1.8;">
-      🎁 輸入好友推薦碼，你和好友各折 <strong>$30</strong>
+      🎁 輸入好友推薦碼即享獨家優惠～
     </div>
     <input type="hidden" id="notes" value="">
   </div>
@@ -1805,24 +1805,27 @@ function openOwnerLogin(){
 }
 async function doOwnerLogin(){
   var pwRaw=document.getElementById('ownerPwField').value||'';
-  // 手機防呆：去除特殊空白、全形轉半形
   var pw=pwRaw.trim()
     .replace(/[​ ﻿]/g,'')
     .replace(/[Ａ-Ｚａ-ｚ０-９]/g,function(ch){return String.fromCharCode(ch.charCodeAt(0)-65248);});
   if(!pw){document.getElementById('ownerPwErr').textContent='請輸入密碼';return;}
-  document.getElementById('ownerPwErr').textContent='⏳ 驗證中...';
+  var errEl=document.getElementById('ownerPwErr');
+  errEl.textContent='⏳ 驗證中...';
   try{
-    var pws=await dbGetOwnerPws();
-    var found=Object.keys(pws).find(function(id){
-      return String(pws[id]||'').trim()===pw;
-    });
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{cache:'no-store'});
+    if(!res.ok){errEl.textContent='伺服器錯誤（'+res.status+'），請稍後再試';return;}
+    var rows=await res.json();
+    if(!Array.isArray(rows)){errEl.textContent='資料格式錯誤，請聯繫客服';return;}
+    // 直接比對 password 欄位（不透過 map 轉換，更直接）
+    var found=rows.find(function(r){return String(r.password||'').trim()===pw;});
     if(found){
       window.location.href='owner.html#pw='+encodeURIComponent(pw);
     } else {
-      document.getElementById('ownerPwErr').textContent='密碼錯誤，請確認後再試 🐾';
+      errEl.textContent='密碼錯誤，請確認後再試 🐾';
     }
   }catch(e){
-    document.getElementById('ownerPwErr').textContent='網路錯誤，請稍後再試';
+    console.error('[doOwnerLogin]',e);
+    errEl.textContent='網路錯誤，請稍後再試（'+e.message+')';
   }
 }
 function closeOwnerLogin(){document.getElementById('ownerLoginOv').classList.remove('show');}

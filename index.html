@@ -1467,8 +1467,7 @@ function calc(){
   let disc=0;
   if(!refValid && couponCodeVal2 && window._validCouponDiscount) disc=30; // 優惠券$30
   const total=svcSub+transportTotal+urg-disc-refDisc;
-
-  let html='';
+  window._calcTotal = total; // 儲存最新試算結果供 submitBook 使用
 
   if(totalSess>0){
     const svcLabel=svcNames.join('＋')||'請選擇服務';
@@ -1642,7 +1641,13 @@ async function submitBook(){
       refDisc=30; // 推薦碼固定折 $30
     }
   }
-  const total=Math.max(0,subTotal-disc-refDisc);
+  const slots4Submit = getDateSlotsForSubmit();
+  const totalDays4 = slots4Submit.length || 1;
+  const tpd4 = totalDays4 > 0 ? Math.round(sessions / totalDays4) || 1 : 1;
+  // 使用 calc() 已正確計算的總金額（含平日/連假/春節分類計算）
+  const total = window._calcTotal != null
+    ? Math.max(0, window._calcTotal)
+    : Math.max(0, subTotal - disc - refDisc);
   const pets=getPetData();
   const b={
     id:Date.now(),
@@ -1659,7 +1664,7 @@ async function submitBook(){
     startDate:document.getElementById('startDate').value,
     endDate:document.getElementById('endDate').value,
     days:1,
-    tpd:sessions,
+    tpd:tpd4,
     services:Array.from(cards).map(c=>c.dataset.key),
     addons,
     urgent:urg,

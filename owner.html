@@ -2144,9 +2144,9 @@ function ownerCalcDetail(bk){
   }
 
   var adjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
-  // grandTotal 優先用資料庫儲存的金額（已含折扣）
-  var grandTotal=bk.total||( rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
-    +adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0) );
+  var calcTotal = rows.filter(function(r){return !r.isSectionHeader;}).reduce(function(s,r){return s+(r.sub||0);},0)
+    + adjs.reduce(function(s,a){return s+(parseInt(a.amount)||0);},0);
+  var grandTotal = calcTotal; // 以明細重算為準
   return {rows:rows,adjs:adjs,grandTotal:grandTotal,total:total};
 }
 

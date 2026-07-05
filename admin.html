@@ -1972,14 +1972,20 @@ function renderSettingsPage(){
   }).join('');
   html+='<div class="detail-section">'    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定（階梯定價）</div>'    +'<div style="background:#FFF8F0;padding:12px;border-radius:10px;">'    +'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">前 <strong>'+(petFeeP.free||2)+'</strong> 隻免加收，第3隻起依下方定價逐隻加收：</div>'    +'<div id="pet-tier-list">'+tiersHtml+'</div>'    +'<button onclick="addPetTier()" style="padding:5px 12px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:4px;">＋ 新增階梯</button>'    +'</div>'    +'<div style="margin-top:10px;">'    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'    +'</div>'    +'</div>';
 
-  // ── 付款帳戶設定 ──
+  // ── 付款帳戶設定（動態銀行列表，可新增）──
   var payAccounts=(_siteSettings&&_siteSettings.payment_accounts)||{};
-  var PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
-  var payHtml='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💳 付款帳戶設定（收款匯款資訊）</div>';
-  PAY_METHODS.forEach(function(m){
+  // 從現有帳戶取得銀行清單，預設包含 5 個，之後可新增
+  var existingMethods=Object.keys(payAccounts);
+  var defaultMethods=['郵局','中信','台新','土地','LINE PAY'];
+  var allMethods=defaultMethods.slice();
+  existingMethods.forEach(function(m){ if(allMethods.indexOf(m)<0) allMethods.push(m); });
+  var payHtml='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💳 付款帳戶設定（收款匯款資訊）</div>'
+    +'<div id="pay-methods-list">';
+  allMethods.forEach(function(m){
     var a=payAccounts[m]||{};
     var mid=m.replace(/\s/g,'_');
     payHtml+='<div style="background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:10px;">'
+      +'<input type="hidden" id="pay-method-id-'+mid+'" value="'+m+'">'
       +'<div style="font-weight:900;color:#1B5E20;font-size:.88rem;margin-bottom:8px;">💳 '+m+'</div>'
       +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;">'
       +'<div><label style="color:#555;font-size:.74rem;">銀行名稱</label><br>'
@@ -2002,8 +2008,12 @@ function renderSettingsPage(){
       +'</div>'
       +'</div>';
   });
-  payHtml+='<button onclick="savePaymentAccounts()" style="margin-top:10px;padding:8px 20px;background:#1B5E20;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存所有帳戶</button>'
-    +'<span id="pay-acct-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
+  payHtml+='</div>'  // close pay-methods-list
+    +'<div style="margin-top:10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">'
+    +'<button onclick="addPayBank()" style="padding:8px 14px;background:#E8F5E9;border:1.5px dashed #A5D6A7;color:#1B5E20;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">＋ 新增收款銀行</button>'
+    +'<button onclick="savePaymentAccounts()" style="padding:8px 20px;background:#1B5E20;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存所有帳戶</button>'
+    +'<span id="pay-acct-msg" style="font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
     +'</div>';
   html+=payHtml;
 
@@ -2890,12 +2900,23 @@ async function submitVisitSchedule(){
 
 // ── 家訪收款中 ──
 var _payBookId=null;
-const PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
+// 付款方式清單：從後台設定動態讀取，預設5個
+var PAY_METHODS = (function(){
+  if(_siteSettings && _siteSettings.payment_accounts){
+    var keys = Object.keys(_siteSettings.payment_accounts);
+    if(keys.length) return keys;
+  }
+  return ['郵局','中信','台新','土地','LINE PAY'];
+})();
 function openPaymentSend(bookId){
   var isNewOrder = String(_payBookId) !== String(bookId);
   _payBookId=String(bookId);
+  // 每次重新讀取最新銀行列表（含動態新增的）
+  var currentMethods = (_siteSettings&&_siteSettings.payment_accounts&&Object.keys(_siteSettings.payment_accounts).length)
+    ? Object.keys(_siteSettings.payment_accounts)
+    : ['郵局','中信','台新','土地','LINE PAY'];
   var grid=document.getElementById('payMethodGrid');
-  grid.innerHTML=PAY_METHODS.map(function(m){
+  grid.innerHTML=currentMethods.map(function(m){
     return '<button onclick="sendPaymentInfo(\''+m+'\')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 '+m+'</button>';
   }).join('');
   document.getElementById('paymentSendMsg').textContent='';
@@ -2912,17 +2933,19 @@ async function sendPaymentInfo(method){
   var amtInput = document.getElementById('paymentCustomAmount');
   var amtVal = amtInput ? amtInput.value.trim() : '';
   var customAmt = amtVal ? parseInt(amtVal) : 0;
-  console.log('[sendPaymentInfo] method='+method+' customAmt='+customAmt+' input='+amtVal);
+  console.log('[sendPaymentInfo] bookId='+_payBookId+' method='+method+' customAmt='+customAmt);
   var msg=document.getElementById('paymentSendMsg');
-  msg.textContent='⏳ 發送中...';
+  msg.textContent='⏳ 發送中（金額：'+(customAmt>0?'NT$'+customAmt:'使用訂單金額')+'）...';
   try{
     var payload = {bookId:String(_payBookId), method:method};
     if(customAmt > 0) payload.customAmount = customAmt;
+    console.log('[sendPaymentInfo] payload=', JSON.stringify(payload));
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/payment-info',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify(payload)
     });
     var data=await res.json();
+    console.log('[sendPaymentInfo] response=', data);
     if(data.ok){
       msg.textContent='✅ 匯款資訊已發送！';
       setTimeout(function(){closeM('paymentSendMod');refreshAll();},1500);
@@ -3470,23 +3493,32 @@ async function submitRequestPayment(){
 async function uploadPayImg(event, methodId){
   var file = event.target.files[0];
   if(!file) return;
-  var label = event.target.closest('label');
-  if(label) label.textContent = '⏳ 上傳中...';
+  var labelEl = event.target.closest('label');
+  if(labelEl) labelEl.textContent = '⏳ 上傳中...';
   try{
-    var url = await uploadImageToR2(file);
+    var url = await uploadFileToR2(file);  // 使用正確的上傳函式
     var inp = document.getElementById('pay-img-'+methodId);
     if(inp) inp.value = url;
     var preview = document.getElementById('pay-img-preview-'+methodId);
     if(preview) preview.innerHTML = '<img src="'+url+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1.5px solid #A5D6A7;">';
-    if(label) label.innerHTML = '✅ 已上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')"/>';
+    if(labelEl) labelEl.innerHTML = '✅ 已上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')" />';
   }catch(e){
     alert('上傳失敗：'+e.message);
-    if(label) label.innerHTML = '📷 上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')"/>';
+    if(labelEl) labelEl.innerHTML = '📷 上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')" />';
   }
 }
 
 async function savePaymentAccounts(){
-  var methods=['郵局','中信','台新','土地','LINE PAY'];
+  // 讀取所有付款方式（包含動態新增的）
+  var methods=[];
+  document.querySelectorAll('[id^="pay-method-id-"]').forEach(function(el){
+    var mid=el.value;
+    if(mid) methods.push(mid);
+  });
+  if(!methods.length){
+    // fallback：讀預設5個
+    methods=['郵局','中信','台新','土地','LINE PAY'];
+  }
   var accounts={};
   methods.forEach(function(m){
     var mid=m.replace(/\s/g,'_');
@@ -3503,6 +3535,44 @@ async function savePaymentAccounts(){
     var msg=document.getElementById('pay-acct-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
+}
+
+function addPayBank(){
+  var name=prompt('請輸入新收款銀行名稱（如：玉山、國泰、永豐等）：','');
+  if(!name||!name.trim()) return;
+  name=name.trim();
+  var mid=name.replace(/\s/g,'_');
+  var list=document.getElementById('pay-methods-list');
+  if(!list){alert('找不到付款帳戶列表');return;}
+  // 檢查是否已存在
+  if(document.getElementById('pay-bank-'+mid)){alert('「'+name+'」已存在！');return;}
+  var div=document.createElement('div');
+  div.style.cssText='background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:10px;';
+  div.innerHTML='<input type="hidden" id="pay-method-id-'+mid+'" value="'+name+'">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">'
+    +'<div style="font-weight:900;color:#1B5E20;font-size:.88rem;">💳 '+name+'</div>'
+    +'<button onclick="this.closest(\'div[style]\').remove()" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:2px 8px;font-size:.72rem;cursor:pointer;">✕ 刪除</button>'
+    +'</div>'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;">'
+    +'<div><label style="color:#555;font-size:.74rem;">銀行名稱</label><br><input id="pay-bank-'+mid+'" placeholder="如：玉山銀行 808" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+    +'<div><label style="color:#555;font-size:.74rem;">分行代碼</label><br><input id="pay-code-'+mid+'" placeholder="如：0031" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+    +'<div><label style="color:#555;font-size:.74rem;">帳號</label><br><input id="pay-account-'+mid+'" placeholder="帳號" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+    +'<div><label style="color:#555;font-size:.74rem;">戶名</label><br><input id="pay-name-'+mid+'" placeholder="戶名" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+    +'</div>'
+    +'<div style="margin-top:6px;"><label style="color:#555;font-size:.74rem;">QR Code / 帳戶圖片</label><br>'
+    +'<div style="display:flex;gap:6px;margin-top:2px;align-items:center;">'
+    +'<input id="pay-img-'+mid+'" placeholder="圖片 URL" style="flex:1;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;">'
+    +'<label style="padding:5px 10px;background:#1B5E20;color:#fff;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;white-space:nowrap;">📷 上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+mid+'\')" /></label>'
+    +'</div>'
+    +'<div id="pay-img-preview-'+mid+'"></div>'
+    +'</div>';
+  list.appendChild(div);
+  // 加入hidden id marker讓savePaymentAccounts能讀到
+  if(!document.getElementById('pay-method-id-'+mid)){
+    var hidden=document.createElement('input');
+    hidden.type='hidden'; hidden.id='pay-method-id-'+mid; hidden.value=name;
+    div.prepend(hidden);
+  }
 }
 
 async function saveExtraNotice(){

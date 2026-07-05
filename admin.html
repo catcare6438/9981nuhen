@@ -988,7 +988,7 @@ function dbRowToOrder(r){
 </div>
 
 <script>
-const DEFAULT_PW='chch715715';
+const DEFAULT_PW='333';
 let ADMIN_PW=localStorage.getItem('adminPw')||DEFAULT_PW;
 var SITTERS_LIST=['Ying','小語','小汶','菓菓','小茹','阿瑛']; // default, overwritten on load
 async function loadSittersList(){
@@ -1182,7 +1182,10 @@ function hideConnError(){
   if(el)el.style.display='none';
 }
 function login(){
-  if(document.getElementById('pwIn').value===ADMIN_PW){
+  var inputPw=document.getElementById('pwIn').value;
+  var storedPw=localStorage.getItem('adminPw');
+  if(storedPw) ADMIN_PW=storedPw;
+  if(inputPw===ADMIN_PW){
     document.getElementById('loginScreen').style.display='none';
     const as=document.getElementById('adminScreen');
     as.style.display='flex';as.classList.add('show');
@@ -1204,6 +1207,7 @@ function login(){
     })();
   } else {
     document.getElementById('loginErr').style.display='block';
+    document.getElementById('loginErr').textContent='❌ 密碼錯誤，請再試一次';
     document.getElementById('pwIn').value='';
   }
 }
@@ -2880,7 +2884,7 @@ function openPaymentSend(bookId){
   _payBookId=bookId;
   var grid=document.getElementById('payMethodGrid');
   grid.innerHTML=PAY_METHODS.map(function(m){
-    return '<button onclick="sendPaymentInfo(''+m+'')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 '+m+'</button>';
+    return '<button onclick="sendPaymentInfo(\'' + m + '\')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 ' + m + '</button>';
   }).join('');
   document.getElementById('paymentSendMsg').textContent='';
   document.getElementById('paymentSendMod').classList.add('show');

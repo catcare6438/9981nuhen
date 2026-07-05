@@ -1972,6 +1972,19 @@ function renderSettingsPage(){
   }).join('');
   html+='<div class="detail-section">'    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定（階梯定價）</div>'    +'<div style="background:#FFF8F0;padding:12px;border-radius:10px;">'    +'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">前 <strong>'+(petFeeP.free||2)+'</strong> 隻免加收，第3隻起依下方定價逐隻加收：</div>'    +'<div id="pet-tier-list">'+tiersHtml+'</div>'    +'<button onclick="addPetTier()" style="padding:5px 12px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:4px;">＋ 新增階梯</button>'    +'</div>'    +'<div style="margin-top:10px;">'    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'    +'</div>'    +'</div>';
 
+  // ── 家訪費設定（用於客戶選擇時段後的付款金額）──
+  var visitFee=(_siteSettings&&_siteSettings.visit_fee)||'';
+  html+='<div class="detail-section">'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🏠 家訪費設定</div>'
+    +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:8px;">客戶選擇家訪時段後，系統自動發送付款選擇訊息的「應付金額」。留空則使用訂單總金額。</div>'
+    +'<div style="display:flex;align-items:center;gap:8px;">'
+    +'<span style="font-size:.84rem;">NT$</span>'
+    +'<input type="number" id="visit-fee-input" value="'+(visitFee||'')+'" min="0" step="1" placeholder="如：100（留空用訂單總金額）" style="flex:1;padding:8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.88rem;">'
+    +'<button onclick="saveVisitFee()" style="padding:8px 16px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="visit-fee-msg" style="font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
+    +'</div>';
+
   // ── 付款帳戶設定（動態銀行列表，可新增）──
   var payAccounts=(_siteSettings&&_siteSettings.payment_accounts)||{};
   // 從現有帳戶取得銀行清單，預設包含 5 個，之後可新增
@@ -2951,6 +2964,16 @@ async function sendPaymentInfo(method){
       setTimeout(function(){closeM('paymentSendMod');refreshAll();},1500);
     } else { msg.textContent='發送失敗：'+(data.error||JSON.stringify(data)); }
   }catch(e){ msg.textContent='發送失敗：'+e.message; }
+}
+
+async function saveVisitFee(){
+  var v = document.getElementById('visit-fee-input')?.value.trim();
+  var fee = v ? (parseInt(v)||0) : 0;
+  try{
+    await saveSiteSetting('visit_fee', fee||null);
+    var msg=document.getElementById('visit-fee-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
 }
 
 async function upgradeAllRefCodes(){

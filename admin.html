@@ -1990,8 +1990,15 @@ function renderSettingsPage(){
       +'<div><label style="color:#555;font-size:.74rem;">戶名</label><br>'
       +'<input id="pay-name-'+mid+'" value="'+(a.name||'')+'" placeholder="戶名" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
       +'</div>'
-      +'<div style="margin-top:6px;"><label style="color:#555;font-size:.74rem;">QR Code / 帳戶圖片網址（貼上圖片URL）</label><br>'
-      +'<input id="pay-img-'+mid+'" value="'+(a.imageUrl||'')+'" placeholder="圖片 URL（可空白）" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;margin-top:2px;"></div>'
+      +'<div style="margin-top:6px;"><label style="color:#555;font-size:.74rem;">QR Code / 帳戶圖片</label><br>'
+      +'<div style="display:flex;gap:6px;margin-top:2px;align-items:center;">'
+      +'<input id="pay-img-'+mid+'" value="'+(a.imageUrl||'')+'" placeholder="圖片 URL（可上傳或貼入網址）" style="flex:1;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;">'
+      +'<label style="padding:5px 10px;background:#1B5E20;color:#fff;border-radius:6px;font-size:.76rem;font-weight:800;cursor:pointer;white-space:nowrap;">📷 上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+mid+'\')" /></label>'
+      +'</div>'
+      +'<div id="pay-img-preview-'+mid+'" style="margin-top:6px;">'
+      +(a.imageUrl?'<img src="'+a.imageUrl+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1.5px solid #A5D6A7;">':'')
+      +'</div>'
+      +'</div>'
       +'</div>';
   });
   payHtml+='<button onclick="savePaymentAccounts()" style="margin-top:10px;padding:8px 20px;background:#1B5E20;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存所有帳戶</button>'
@@ -3402,6 +3409,24 @@ function removePetTier(idx){
   });
 }
 
+
+async function uploadPayImg(event, methodId){
+  var file = event.target.files[0];
+  if(!file) return;
+  var label = event.target.closest('label');
+  if(label) label.textContent = '⏳ 上傳中...';
+  try{
+    var url = await uploadImageToR2(file);
+    var inp = document.getElementById('pay-img-'+methodId);
+    if(inp) inp.value = url;
+    var preview = document.getElementById('pay-img-preview-'+methodId);
+    if(preview) preview.innerHTML = '<img src="'+url+'" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1.5px solid #A5D6A7;">';
+    if(label) label.innerHTML = '✅ 已上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')"/>';
+  }catch(e){
+    alert('上傳失敗：'+e.message);
+    if(label) label.innerHTML = '📷 上傳<input type="file" accept="image/*" style="display:none;" onchange="uploadPayImg(event,\''+methodId+'\')"/>';
+  }
+}
 
 async function savePaymentAccounts(){
   var methods=['郵局','中信','台新','土地','LINE PAY'];

@@ -2835,9 +2835,12 @@ async function deleteRefCode(code, event){
 var _visitBookId=null;
 function openVisitSchedule(bookId){
   _visitBookId=bookId;
-  var list=document.getElementById('visitSlotList');
-  list.innerHTML='';
-  addVisitSlot(); // 預設一個空白時段
+  // 只在切換訂單時才清空，同一訂單保留上次輸入
+  if(_visitBookId !== bookId || document.getElementById('visitSlotList').children.length===0){
+    document.getElementById('visitSlotList').innerHTML='';
+    addVisitSlot();
+  }
+  _visitBookId=bookId;
   document.getElementById('visitScheduleMod').classList.add('show');
 }
 function addVisitSlot(){

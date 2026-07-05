@@ -1686,6 +1686,14 @@ async function submitBook(){
     if(window._skipLineBinding){
       // 再次預約：不需再綁定 LINE，直接提示完成
       document.querySelector('#modalOv .modal-msg').innerHTML='🎉 再次預約成功！我們會盡快與您確認 🐾';
+      // 把舊訂單的 LINE User ID 直接寫入新訂單（不需重新授權）
+      if(window._oldOwnerLineId){
+        fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+String(b.id),{
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({owner_line_id:window._oldOwnerLineId})
+        }).catch(function(){});
+      }
       setTimeout(function(){window.location.href='owner.html';},3000);
       return;
     }
@@ -2195,6 +2203,8 @@ async function prefillFromOldOrder(){
     // ── LINE 不需再綁定：移除 LINE 說明區塊 ──
     // 將在 submitBook 後不顯示 LINE 綁定倒數
     window._skipLineBinding=true;
+    // 儲存舊訂單的 LINE User ID，送出新訂單後直接套用（不需再走 LINE 授權）
+    window._oldOwnerLineId=old.owner_line_id||'';
 
     // ── 捲到日期選擇 ──
     setTimeout(function(){

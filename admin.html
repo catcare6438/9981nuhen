@@ -1194,16 +1194,16 @@ function login(){
     // 直接執行，不需要測試連線
     (async ()=>{
       console.log('[login] starting load...');
+      const withTimeout = (p, ms, name) => Promise.race([p, new Promise((_,r)=>setTimeout(()=>r(new Error(name+' timeout')),ms))]);
       try{
-        await loadSittersList();
+        await withTimeout(loadSittersList(), 8000, 'loadSittersList');
         console.log('[login] sitters loaded');
-        // 先載入網站設定（SVC_PRICE/SVC_NAME等），再渲染訂單，確保費用明細正確
-        await loadSiteSettings();
+        await withTimeout(loadSiteSettings(), 8000, 'loadSiteSettings');
         console.log('[login] settings loaded');
         refreshAll();
         loadSitterMgmt();
         console.log('[login] done');
-      }catch(e){ console.error('[login] error:',e.message); alert('載入失敗：'+e.message); }
+      }catch(e){ console.error('[login] error:',e.message); }
     })();
   } else {
     document.getElementById('loginErr').style.display='block';
@@ -2195,10 +2195,9 @@ function showDetail(bookId){
   const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
   const svcSub=cal.svcSub, transportTotal=cal.transportTotal;
   const urgent=cal.urgent, manualAdj=cal.manualAdj;
-  const manualAdj2=Array.isArray(bk.manualAdjs)?bk.manualAdjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0):(bk.manualAdj||0);
-  // total 優先用 calcBv2 重新計算（確保明細與總計一致），discounts 從 bk 讀
+  // total = calcBv2 計算結果（已含 manualAdj）- 折扣
   const discAmt = bk.discounts||0;
-  const total = cal.total + manualAdj2 - discAmt;
+  const total = cal.total - discAmt;
   const totalSessions=cal.totalSessions, holSessions=cal.holSessions;
   const cnySessions=cal.cnySessions||0, normSessions=cal.normSessions;
   const slotsByDate=parseSlotStats(bk).slotsByDate;

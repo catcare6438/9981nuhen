@@ -1783,6 +1783,8 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" onclick="openEditOrder(this.dataset.id)" data-id="'+bk.id+'">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail(this.dataset.id)" data-id="'+bk.id+'">🐾 寵物</button>':'')
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
+    +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openPaymentSend(this.dataset.id)" data-id="'+bk.id+'">💳 家訪收款中</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
@@ -1964,6 +1966,35 @@ function renderSettingsPage(){
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">'      +'<input type="text" value="'+t.label+'" id="pt-label-'+i+'" style="width:80px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'      +'<span style="font-size:.8rem;color:var(--tl);">每隻加收 $</span>'      +'<input type="number" value="'+t.price+'" id="pt-price-'+i+'" min="0" step="10" style="width:70px;padding:4px 8px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.84rem;">'      +'<span style="font-size:.8rem;color:var(--tl);">/ 次</span>'      +'<button onclick="removePetTier('+i+')" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:2px 8px;font-size:.74rem;font-weight:800;cursor:pointer;">✕</button>'      +'</div>';
   }).join('');
   html+='<div class="detail-section">'    +'<div class="det-label" style="font-size:.9rem;margin-bottom:12px;">🐾 寵物加收設定（階梯定價）</div>'    +'<div style="background:#FFF8F0;padding:12px;border-radius:10px;">'    +'<div style="font-size:.8rem;color:var(--tl);margin-bottom:10px;">前 <strong>'+(petFeeP.free||2)+'</strong> 隻免加收，第3隻起依下方定價逐隻加收：</div>'    +'<div id="pet-tier-list">'+tiersHtml+'</div>'    +'<button onclick="addPetTier()" style="padding:5px 12px;background:var(--pk4);border:1.5px dashed var(--pk3);color:var(--pk);border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;margin-top:4px;">＋ 新增階梯</button>'    +'</div>'    +'<div style="margin-top:10px;">'    +'<button onclick="savePetFees()" style="padding:8px 20px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'    +'<span id="pet-fee-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'    +'</div>'    +'</div>';
+
+  // ── 付款帳戶設定 ──
+  var payAccounts=(_siteSettings&&_siteSettings.payment_accounts)||{};
+  var PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
+  var payHtml='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💳 付款帳戶設定（收款匯款資訊）</div>';
+  PAY_METHODS.forEach(function(m){
+    var a=payAccounts[m]||{};
+    var mid=m.replace(/\s/g,'_');
+    payHtml+='<div style="background:#E8F5E9;border-radius:10px;padding:12px;margin-bottom:10px;">'
+      +'<div style="font-weight:900;color:#1B5E20;font-size:.88rem;margin-bottom:8px;">💳 '+m+'</div>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:.82rem;">'
+      +'<div><label style="color:#555;font-size:.74rem;">銀行名稱</label><br>'
+      +'<input id="pay-bank-'+mid+'" value="'+(a.bank||'')+'" placeholder="如：郵局 700" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'<div><label style="color:#555;font-size:.74rem;">分行代碼</label><br>'
+      +'<input id="pay-code-'+mid+'" value="'+(a.code||'')+'" placeholder="如：0031" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'<div><label style="color:#555;font-size:.74rem;">帳號</label><br>'
+      +'<input id="pay-account-'+mid+'" value="'+(a.account||'')+'" placeholder="帳號" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'<div><label style="color:#555;font-size:.74rem;">戶名</label><br>'
+      +'<input id="pay-name-'+mid+'" value="'+(a.name||'')+'" placeholder="戶名" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;"></div>'
+      +'</div>'
+      +'<div style="margin-top:6px;"><label style="color:#555;font-size:.74rem;">QR Code / 帳戶圖片網址（貼上圖片URL）</label><br>'
+      +'<input id="pay-img-'+mid+'" value="'+(a.imageUrl||'')+'" placeholder="圖片 URL（可空白）" style="width:100%;padding:5px 8px;border:1.5px solid #A5D6A7;border-radius:6px;font-size:.82rem;box-sizing:border-box;margin-top:2px;"></div>'
+      +'</div>';
+  });
+  payHtml+='<button onclick="savePaymentAccounts()" style="margin-top:10px;padding:8px 20px;background:#1B5E20;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存所有帳戶</button>'
+    +'<span id="pay-acct-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span>'
+    +'</div>';
+  html+=payHtml;
+
   // ── 價目補充說明（急件加收／連假特別價／春節過年／其他服務聯絡方式）──
   var extraNoticeHtml=(typeof _siteSettings.extra_notice_html==='string'&&_siteSettings.extra_notice_html)
     ? _siteSettings.extra_notice_html
@@ -2796,6 +2827,81 @@ async function deleteRefCode(code, event){
   }
 }
 
+// ── 家訪預約 ──
+var _visitBookId=null;
+function openVisitSchedule(bookId){
+  _visitBookId=bookId;
+  var list=document.getElementById('visitSlotList');
+  list.innerHTML='';
+  addVisitSlot(); // 預設一個空白時段
+  document.getElementById('visitScheduleMod').classList.add('show');
+}
+function addVisitSlot(){
+  var list=document.getElementById('visitSlotList');
+  var idx=list.children.length;
+  var row=document.createElement('div');
+  row.style.cssText='display:flex;align-items:center;gap:8px;';
+  row.innerHTML='<input type="date" class="vs-date" style="flex:1;padding:7px;border:1.5px solid #90CAF9;border-radius:8px;font-size:.84rem;">'
+    +'<input type="text" class="vs-time" placeholder="時間（如 14:00~16:00）" style="flex:1.5;padding:7px;border:1.5px solid #90CAF9;border-radius:8px;font-size:.84rem;">'
+    +'<button onclick="this.parentElement.remove()" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;">✕</button>';
+  list.appendChild(row);
+}
+async function submitVisitSchedule(){
+  if(!_visitBookId){return;}
+  var rows=document.querySelectorAll('#visitSlotList > div');
+  var slots=[];
+  rows.forEach(function(r){
+    var d=r.querySelector('.vs-date')?.value||'';
+    var t=r.querySelector('.vs-time')?.value||'';
+    if(d&&t) slots.push({date:d,time:t});
+  });
+  if(!slots.length){alert('請至少輸入一個時段');return;}
+  var btn=document.querySelector('#visitScheduleMod button[onclick="submitVisitSchedule()"]');
+  if(btn){btn.textContent='⏳ 發送中...';btn.disabled=true;}
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/visit-schedule',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bookId:String(_visitBookId),slots:slots})
+    });
+    var data=await res.json();
+    if(data.ok){
+      alert('✅ 家訪時段已發送給飼主！');
+      closeM('visitScheduleMod');
+      refreshAll();
+    } else { alert('發送失敗：'+(data.error||JSON.stringify(data))); }
+  }catch(e){alert('發送失敗：'+e.message);}
+  finally{if(btn){btn.textContent='📤 發送給飼主';btn.disabled=false;}}
+}
+
+// ── 家訪收款中 ──
+var _payBookId=null;
+const PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
+function openPaymentSend(bookId){
+  _payBookId=bookId;
+  var grid=document.getElementById('payMethodGrid');
+  grid.innerHTML=PAY_METHODS.map(function(m){
+    return '<button onclick="sendPaymentInfo(''+m+'')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 '+m+'</button>';
+  }).join('');
+  document.getElementById('paymentSendMsg').textContent='';
+  document.getElementById('paymentSendMod').classList.add('show');
+}
+async function sendPaymentInfo(method){
+  if(!_payBookId) return;
+  var msg=document.getElementById('paymentSendMsg');
+  msg.textContent='⏳ 發送中...';
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/payment-info',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bookId:String(_payBookId),method:method})
+    });
+    var data=await res.json();
+    if(data.ok){
+      msg.textContent='✅ 匯款資訊已發送！';
+      setTimeout(function(){closeM('paymentSendMod');refreshAll();},1500);
+    } else { msg.textContent='發送失敗：'+(data.error||JSON.stringify(data)); }
+  }catch(e){ msg.textContent='發送失敗：'+e.message; }
+}
+
 async function upgradeAllRefCodes(){
   if(!confirm('確定將所有舊格式推薦碼（REF+電話號碼）批量升級為隨機亂碼？')) return;
   try{
@@ -3289,6 +3395,26 @@ function removePetTier(idx){
   });
 }
 
+
+async function savePaymentAccounts(){
+  var methods=['郵局','中信','台新','土地','LINE PAY'];
+  var accounts={};
+  methods.forEach(function(m){
+    var mid=m.replace(/\s/g,'_');
+    accounts[m]={
+      bank:document.getElementById('pay-bank-'+mid)?.value||'',
+      code:document.getElementById('pay-code-'+mid)?.value||'',
+      account:document.getElementById('pay-account-'+mid)?.value||'',
+      name:document.getElementById('pay-name-'+mid)?.value||'',
+      imageUrl:document.getElementById('pay-img-'+mid)?.value||''
+    };
+  });
+  try{
+    await saveSiteSetting('payment_accounts',accounts);
+    var msg=document.getElementById('pay-acct-msg');
+    if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
+  }catch(e){alert('儲存失敗:'+e.message);}
+}
 
 async function saveExtraNotice(){
   var el=document.getElementById('extra-notice-input');
@@ -5178,5 +5304,33 @@ document.addEventListener('click',e=>{
   <img id="adminLBImg" src="">
   <a id="adminLBDl" class="lb-dl" download="photo.jpg">⬇️ 下載</a>
 </div>
+<!-- 家訪預約 Modal -->
+<div class="m-ov" id="visitScheduleMod">
+  <div class="m-box" style="width:520px;position:relative;">
+    <button onclick="closeM('visitScheduleMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#1565C0;">🗓 家訪預約</h3>
+    <div id="visitScheduleContent">
+      <div style="font-size:.84rem;color:var(--tl);margin-bottom:10px;">請輸入可提供的家訪時段（每行一組，系統會同時傳送給飼主選擇）</div>
+      <div id="visitSlotList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;"></div>
+      <button onclick="addVisitSlot()" style="padding:6px 14px;background:#E3F2FD;border:1.5px dashed #90CAF9;color:#1565C0;border-radius:8px;font-size:.8rem;font-weight:800;cursor:pointer;">＋ 新增時段</button>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button onclick="submitVisitSchedule()" style="flex:1;padding:11px;background:#1565C0;color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;">📤 發送給飼主</button>
+        <button onclick="closeM('visitScheduleMod')" style="flex:1;padding:11px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 家訪收款中 Modal -->
+<div class="m-ov" id="paymentSendMod">
+  <div class="m-box" style="width:440px;position:relative;">
+    <button onclick="closeM('paymentSendMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#1B5E20;">💳 家訪收款中</h3>
+    <div style="font-size:.84rem;color:var(--tl);margin-bottom:14px;">選擇匯款方式，系統將自動發送匯款資訊給飼主</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="payMethodGrid"></div>
+    <div id="paymentSendMsg" style="margin-top:10px;font-size:.8rem;color:var(--g);text-align:center;"></div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -1787,6 +1787,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" onclick="openEditOrder(this.dataset.id)" data-id="'+bk.id+'">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail(this.dataset.id)" data-id="'+bk.id+'">🐾 寵物</button>':'')
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:#FFF3E0;border-color:#FFCC80;color:#E65100;" onclick="openRequestPayment(this.dataset.id)" data-id="'+bk.id+'">💰 請款</button>'
     +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openPaymentSend(this.dataset.id)" data-id="'+bk.id+'">💳 家訪收款中</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
@@ -2894,19 +2895,23 @@ function openPaymentSend(bookId){
   _payBookId=bookId;
   var grid=document.getElementById('payMethodGrid');
   grid.innerHTML=PAY_METHODS.map(function(m){
-    return '<button onclick="sendPaymentInfo(\'' + m + '\')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 ' + m + '</button>';
+    return '<button onclick="sendPaymentInfo(\''+m+'\')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 '+m+'</button>';
   }).join('');
   document.getElementById('paymentSendMsg').textContent='';
+  var bk=(_bCache||[]).find(function(b){return String(b.id)===String(bookId);});
+  var amtEl=document.getElementById('paymentCustomAmount');
+  if(amtEl) amtEl.value = bk?(bk.total||''):'';
   document.getElementById('paymentSendMod').classList.add('show');
 }
 async function sendPaymentInfo(method){
   if(!_payBookId) return;
+  var customAmt=parseInt(document.getElementById('paymentCustomAmount')?.value)||0;
   var msg=document.getElementById('paymentSendMsg');
   msg.textContent='⏳ 發送中...';
   try{
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/payment-info',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({bookId:String(_payBookId),method:method})
+      body:JSON.stringify({bookId:String(_payBookId),method:method,customAmount:customAmt||undefined})
     });
     var data=await res.json();
     if(data.ok){
@@ -3409,6 +3414,49 @@ function removePetTier(idx){
   });
 }
 
+
+function setDeadline(val){ var el=document.getElementById('reqPayDeadline'); if(el) el.value=val; }
+
+// ── 請款 ──
+var _reqPayBookId = null;
+function openRequestPayment(bookId){
+  _reqPayBookId = bookId;
+  var bk = (_bCache||[]).find(function(b){ return String(b.id)===String(bookId); });
+  if(bk){
+    var amountEl = document.getElementById('reqPayAmount');
+    if(amountEl && !amountEl.value) amountEl.value = bk.total||'';
+  }
+  document.getElementById('reqPayMsg').textContent = '';
+  document.getElementById('requestPaymentMod').classList.add('show');
+}
+async function submitRequestPayment(){
+  if(!_reqPayBookId) return;
+  var amount = parseInt(document.getElementById('reqPayAmount').value)||0;
+  var note = document.getElementById('reqPayNote').value.trim();
+  var deadline = document.getElementById('reqPayDeadline').value.trim() || '3天';
+  if(!amount){ alert('請輸入請款金額'); return; }
+  var msg = document.getElementById('reqPayMsg');
+  msg.style.color = 'var(--tl)';
+  msg.textContent = '⏳ 發送中...';
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/request-payment',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bookId: String(_reqPayBookId), amount, note, deadline })
+    });
+    var data = await res.json();
+    if(data.ok){
+      msg.style.color = 'var(--g)';
+      msg.textContent = '✅ 請款單已發送！';
+      setTimeout(function(){ closeM('requestPaymentMod'); refreshAll(); }, 1500);
+    } else {
+      msg.style.color = 'var(--r)';
+      msg.textContent = '發送失敗：' + (data.reason || data.error || JSON.stringify(data));
+    }
+  }catch(e){
+    msg.style.color = 'var(--r)';
+    msg.textContent = '發送失敗：' + e.message;
+  }
+}
 
 async function uploadPayImg(event, methodId){
   var file = event.target.files[0];
@@ -5336,6 +5384,38 @@ document.addEventListener('click',e=>{
   <img id="adminLBImg" src="">
   <a id="adminLBDl" class="lb-dl" download="photo.jpg">⬇️ 下載</a>
 </div>
+<!-- 請款 Modal -->
+<div class="m-ov" id="requestPaymentMod">
+  <div class="m-box" style="width:400px;position:relative;">
+    <button onclick="closeM('requestPaymentMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#E65100;">💰 發送請款單</h3>
+    <div style="font-size:.84rem;color:var(--tl);margin-bottom:14px;">系統將自動發送請款通知給飼主，並列出5種付款方式</div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>請款金額（NT$）</label>
+      <input type="number" id="reqPayAmount" min="1" step="1" placeholder="輸入金額" style="width:100%;padding:10px;border:1.5px solid #FFCC80;border-radius:10px;font-size:1rem;box-sizing:border-box;">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>付款期限</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;" id="deadlineQuickBtns">
+        <button type="button" onclick="setDeadline('24小時')" style="padding:5px 10px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:8px;font-size:.78rem;cursor:pointer;">24小時</button>
+        <button type="button" onclick="setDeadline('48小時')" style="padding:5px 10px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:8px;font-size:.78rem;cursor:pointer;">48小時</button>
+        <button type="button" onclick="setDeadline('3天')" style="padding:5px 10px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:8px;font-size:.78rem;cursor:pointer;">3天</button>
+        <button type="button" onclick="setDeadline('7天')" style="padding:5px 10px;background:#FFF3E0;border:1.5px solid #FFCC80;border-radius:8px;font-size:.78rem;cursor:pointer;">7天</button>
+      </div>
+      <input type="text" id="reqPayDeadline" value="3天" placeholder="如：24小時、3天、本週五前" style="width:100%;padding:10px;border:1.5px solid #FFCC80;border-radius:10px;font-size:.88rem;box-sizing:border-box;">
+    </div>
+    <div class="field" style="margin-bottom:14px;">
+      <label>備注說明（選填）</label>
+      <input type="text" id="reqPayNote" placeholder="如：家訪訂金、保母費用等" style="width:100%;padding:10px;border:1.5px solid #FFCC80;border-radius:10px;font-size:.88rem;box-sizing:border-box;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitRequestPayment()" style="flex:1;padding:12px;background:#E65100;color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-size:.9rem;">📤 發送請款單</button>
+      <button onclick="closeM('requestPaymentMod')" style="flex:1;padding:12px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
+    </div>
+    <div id="reqPayMsg" style="margin-top:10px;font-size:.8rem;text-align:center;"></div>
+  </div>
+</div>
+
 <!-- 家訪預約 Modal -->
 <div class="m-ov" id="visitScheduleMod">
   <div class="m-box" style="width:520px;position:relative;">
@@ -5358,7 +5438,11 @@ document.addEventListener('click',e=>{
   <div class="m-box" style="width:440px;position:relative;">
     <button onclick="closeM('paymentSendMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
     <h3 style="color:#1B5E20;">💳 家訪收款中</h3>
-    <div style="font-size:.84rem;color:var(--tl);margin-bottom:14px;">選擇匯款方式，系統將自動發送匯款資訊給飼主</div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.82rem;color:var(--tl);">收款金額（NT$）— 留空則使用訂單原始金額</label>
+      <input type="number" id="paymentCustomAmount" min="1" step="1" placeholder="留空使用訂單金額" style="width:100%;padding:9px;border:1.5px solid #A5D6A7;border-radius:8px;font-size:.88rem;box-sizing:border-box;margin-top:4px;">
+    </div>
+    <div style="font-size:.84rem;color:var(--tl);margin-bottom:12px;">選擇匯款方式，系統將自動發送匯款資訊給飼主</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="payMethodGrid"></div>
     <div id="paymentSendMsg" style="margin-top:10px;font-size:.8rem;color:var(--g);text-align:center;"></div>
   </div>

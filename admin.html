@@ -2842,13 +2842,13 @@ async function deleteRefCode(code, event){
 // ── 家訪預約 ──
 var _visitBookId=null;
 function openVisitSchedule(bookId){
-  _visitBookId=bookId;
-  // 只在切換訂單時才清空，同一訂單保留上次輸入
-  if(_visitBookId !== bookId || document.getElementById('visitSlotList').children.length===0){
-    document.getElementById('visitSlotList').innerHTML='';
+  var list=document.getElementById('visitSlotList');
+  // 只有切換到不同訂單，或是清單是空的，才重設
+  if(String(_visitBookId) !== String(bookId) || !list || list.children.length===0){
+    if(list) list.innerHTML='';
     addVisitSlot();
   }
-  _visitBookId=bookId;
+  _visitBookId=String(bookId);
   document.getElementById('visitScheduleMod').classList.add('show');
 }
 function addVisitSlot(){
@@ -2892,7 +2892,7 @@ async function submitVisitSchedule(){
 var _payBookId=null;
 const PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
 function openPaymentSend(bookId){
-  var isNewOrder = _payBookId !== String(bookId);
+  var isNewOrder = String(_payBookId) !== String(bookId);
   _payBookId=String(bookId);
   var grid=document.getElementById('payMethodGrid');
   grid.innerHTML=PAY_METHODS.map(function(m){

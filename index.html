@@ -1469,6 +1469,8 @@ function calc(){
   const total=svcSub+transportTotal+urg-disc-refDisc;
   window._calcTotal = total; // 儲存最新試算結果供 submitBook 使用
 
+  let html='';
+
   if(totalSess>0){
     const svcLabel=svcNames.join('＋')||'請選擇服務';
 

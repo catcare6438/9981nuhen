@@ -2909,13 +2909,18 @@ function openPaymentSend(bookId){
 }
 async function sendPaymentInfo(method){
   if(!_payBookId) return;
-  var customAmt=parseInt(document.getElementById('paymentCustomAmount')?.value)||0;
+  var amtInput = document.getElementById('paymentCustomAmount');
+  var amtVal = amtInput ? amtInput.value.trim() : '';
+  var customAmt = amtVal ? parseInt(amtVal) : 0;
+  console.log('[sendPaymentInfo] method='+method+' customAmt='+customAmt+' input='+amtVal);
   var msg=document.getElementById('paymentSendMsg');
   msg.textContent='⏳ 發送中...';
   try{
+    var payload = {bookId:String(_payBookId), method:method};
+    if(customAmt > 0) payload.customAmount = customAmt;
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/payment-info',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({bookId:String(_payBookId),method:method,customAmount:customAmt||undefined})
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(payload)
     });
     var data=await res.json();
     if(data.ok){

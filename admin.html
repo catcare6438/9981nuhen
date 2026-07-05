@@ -2892,15 +2892,19 @@ async function submitVisitSchedule(){
 var _payBookId=null;
 const PAY_METHODS=['郵局','中信','台新','土地','LINE PAY'];
 function openPaymentSend(bookId){
-  _payBookId=bookId;
+  var isNewOrder = _payBookId !== String(bookId);
+  _payBookId=String(bookId);
   var grid=document.getElementById('payMethodGrid');
   grid.innerHTML=PAY_METHODS.map(function(m){
     return '<button onclick="sendPaymentInfo(\''+m+'\')" style="padding:14px 8px;background:#fff;border:2px solid #A5D6A7;border-radius:12px;font-size:.88rem;font-weight:800;color:#1B5E20;cursor:pointer;">💳 '+m+'</button>';
   }).join('');
   document.getElementById('paymentSendMsg').textContent='';
-  var bk=(_bCache||[]).find(function(b){return String(b.id)===String(bookId);});
-  var amtEl=document.getElementById('paymentCustomAmount');
-  if(amtEl) amtEl.value = bk?(bk.total||''):'';
+  // 只有切換到不同訂單時才重設金額，同一訂單保留使用者輸入的值
+  if(isNewOrder){
+    var bk=(_bCache||[]).find(function(b){return String(b.id)===String(bookId);});
+    var amtEl=document.getElementById('paymentCustomAmount');
+    if(amtEl) amtEl.value = bk?(bk.total||''):'';
+  }
   document.getElementById('paymentSendMod').classList.add('show');
 }
 async function sendPaymentInfo(method){

@@ -2195,6 +2195,7 @@ function showDetail(bookId){
   const normSvcSub=cal.normSvcSub, holSvcSub=cal.holSvcSub, cnySvcSub=cal.cnySvcSub;
   const svcSub=cal.svcSub, transportTotal=cal.transportTotal;
   const urgent=cal.urgent, manualAdj=cal.manualAdj;
+  const manualAdj2=Array.isArray(bk.manualAdjs)?bk.manualAdjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0):(bk.manualAdj||0);
   // total = calcBv2 計算結果（已含 manualAdj）- 折扣
   const discAmt = bk.discounts||0;
   const total = cal.total - discAmt;

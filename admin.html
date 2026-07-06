@@ -1789,7 +1789,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
     +'<button class="oa-btn" style="background:#FFF3E0;border-color:#FFCC80;color:#E65100;" onclick="openRequestPayment(this.dataset.id)" data-id="'+bk.id+'">💰 請款</button>'
     +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
-    +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openPaymentSend(this.dataset.id)" data-id="'+bk.id+'">💳 家訪收款中</button>'
+    +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
@@ -2974,6 +2974,47 @@ async function saveVisitFee(){
     var msg=document.getElementById('visit-fee-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
+}
+
+// ── 確認收款 ──
+var _cpBookId = null;
+function openConfirmPayment(bookId){
+  _cpBookId = bookId;
+  document.getElementById('cpLastFive').value = '';
+  document.querySelector('input[name="cpType"][value="照護費"]').checked = true;
+  document.getElementById('cpMsg').textContent = '';
+  updateConfirmPreview();
+  document.getElementById('confirmPaymentMod').classList.add('show');
+}
+function updateConfirmPreview(){
+  var type = document.querySelector('input[name="cpType"]:checked')?.value || '照護費';
+  var last5 = document.getElementById('cpLastFive')?.value.trim() || '　　　　　';
+  var bk = (_bCache||[]).find(function(b){ return String(b.id)===String(_cpBookId); });
+  var ownerName = bk ? (bk.ownerName||'飼主') : '飼主';
+  var msg = type === '家訪費'
+    ? `家長您好，貓窩裏已確認收到您 ${last5}（帳戶末五碼）轉帳款項囉~\n\n家訪預約成立！請於當天約定時間，多留半小時進行家訪，保母快抵達時會LINE通知您，再麻煩家長多留意訊息 🐾\n\n📌 家訪時間說明：約定時間為保母大約到達時間。例如約定 12:00～13:00，保母可能於此時段抵達，建議預留至 13:30。`
+    : `家長您好，貓窩裏已確認收到您 ${last5}（帳戶末五碼）轉帳款項囉~\n\n保母將依您預約日期進行到府照顧服務，保母快抵達時會LINE通知您，請多留意訊息 🐾`;
+  var preview = document.getElementById('cpPreview');
+  if(preview) preview.textContent = msg;
+}
+async function submitConfirmPayment(){
+  if(!_cpBookId) return;
+  var type = document.querySelector('input[name="cpType"]:checked')?.value || '照護費';
+  var last5 = document.getElementById('cpLastFive')?.value.trim();
+  if(!last5){ alert('請輸入入賬末五碼'); return; }
+  var msg = document.getElementById('cpMsg');
+  msg.style.color='var(--tl)'; msg.textContent='⏳ 發送中...';
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/confirm-payment',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bookId: String(_cpBookId), type, last5 })
+    });
+    var data = await res.json();
+    if(data.ok){
+      msg.style.color='var(--g)'; msg.textContent='✅ 通知已發送！';
+      setTimeout(function(){ closeM('confirmPaymentMod'); refreshAll(); }, 1500);
+    } else { msg.style.color='var(--r)'; msg.textContent='失敗：'+(data.reason||data.error||JSON.stringify(data)); }
+  }catch(e){ msg.style.color='var(--r)'; msg.textContent='失敗：'+e.message; }
 }
 
 async function upgradeAllRefCodes(){
@@ -4765,7 +4806,12 @@ async function exportOrderPDF(bookId){
       var photos=[];
       (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){
         var u=typeof p==='string'?p:(p.dataUrl||p.url||'');
-        if(u&&u.startsWith('http')) photos.push(u);
+        if(u&&(u.startsWith('http')||u.startsWith('data:'))) photos.push(u);
+      });
+      // 清潔照片一併打包
+      (rep.clean_photos||rep.cleanPhotos||[]).forEach(function(p){
+        var u=typeof p==='string'?p:(p.url||p.dataUrl||'');
+        if(u&&(u.startsWith('http')||u.startsWith('data:'))) photos.push(u);
       });
       var loadedImgs=[];
       for(var pi=0;pi<photos.length;pi++) loadedImgs.push(await loadImg(photos[pi]));
@@ -5532,6 +5578,39 @@ document.addEventListener('click',e=>{
         <button onclick="closeM('visitScheduleMod')" style="flex:1;padding:11px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 確認收款 Modal -->
+<div class="m-ov" id="confirmPaymentMod">
+  <div class="m-box" style="width:440px;position:relative;">
+    <button onclick="closeM('confirmPaymentMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#1B5E20;">✅ 確認收款</h3>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:.84rem;font-weight:800;color:var(--t);display:block;margin-bottom:8px;">收款類型</label>
+      <div style="display:flex;gap:10px;">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:2px solid #A5D6A7;border-radius:10px;cursor:pointer;font-weight:800;font-size:.88rem;" id="cpType1Label">
+          <input type="radio" name="cpType" value="照護費" onchange="updateConfirmPreview()" checked style="accent-color:#1B5E20;"> 💰 照護費
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;padding:10px;border:2px solid #A5D6A7;border-radius:10px;cursor:pointer;font-weight:800;font-size:.88rem;" id="cpType2Label">
+          <input type="radio" name="cpType" value="家訪費" onchange="updateConfirmPreview()" style="accent-color:#1B5E20;"> 🏠 家訪費
+        </label>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="font-size:.84rem;font-weight:800;color:var(--t);display:block;margin-bottom:6px;">入賬末五碼</label>
+      <input type="text" id="cpLastFive" maxlength="5" placeholder="例：12345" oninput="updateConfirmPreview()" style="width:100%;padding:10px;border:1.5px solid #A5D6A7;border-radius:10px;font-size:1.1rem;letter-spacing:4px;font-weight:800;text-align:center;box-sizing:border-box;">
+    </div>
+
+    <div id="cpPreview" style="background:#F1F8F3;border:1.5px solid #A5D6A7;border-radius:10px;padding:12px;margin-bottom:14px;font-size:.82rem;color:#333;line-height:1.7;"></div>
+
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitConfirmPayment()" style="flex:1;padding:12px;background:#1B5E20;color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;font-size:.9rem;">📤 發送通知給飼主</button>
+      <button onclick="closeM('confirmPaymentMod')" style="flex:1;padding:12px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
+    </div>
+    <div id="cpMsg" style="margin-top:8px;font-size:.8rem;text-align:center;"></div>
   </div>
 </div>
 

@@ -4880,8 +4880,8 @@ async function exportOrderPDF(bookId){
       var loadedImgs=[];
       for(var pi=0;pi<photos.length;pi++) loadedImgs.push(await loadImg(photos[pi]));
 
-      var HEADER_H=62,FOOTER_H=26,AVAIL=PH-HEADER_H-FOOTER_H-6;
-      var COLS=2,GAP=8,IW=Math.floor((PW-44-GAP)/COLS),IH=Math.floor(IW*0.66);
+      var HEADER_H=56,FOOTER_H=24,AVAIL=PH-HEADER_H-FOOTER_H-4;
+      var COLS=2,GAP=6,IW=Math.floor((PW-36-GAP)/COLS);
 
       function calcPetH2(pr){
         var flds=[pr.spirit,pr.eyes,pr.food||pr.eating,pr.water||pr.drinking,pr.poop,pr.urine].filter(Boolean);
@@ -4903,7 +4903,13 @@ async function exportOrderPDF(bookId){
       }
       for(var gi=0;gi<loadedImgs.length;gi+=4){
         var batch=loadedImgs.slice(gi,gi+4);
-        segs.push({type:'photos',d:batch,h:26+Math.ceil(batch.length/COLS)*(IH+GAP)+8});
+        // 高度根據批次中最高的圖片比例決定（最大高度 = IW * 1.5，最小 = IW * 0.5）
+        var maxRatio=0;
+        batch.forEach(function(img){
+          if(img) maxRatio=Math.max(maxRatio,(img.naturalHeight||img.height||1)/(img.naturalWidth||img.width||1));
+        });
+        var IH_batch=Math.min(Math.max(Math.floor(IW*(maxRatio||0.75)),Math.floor(IW*0.5)),Math.floor(IW*1.4));
+        segs.push({type:'photos',d:batch,ih:IH_batch,h:30+Math.ceil(batch.length/COLS)*(IH_batch+GAP)+8});
       }
 
       // 靜態分頁
@@ -5011,6 +5017,7 @@ async function exportOrderPDF(bookId){
             py+=seg.h;
 
           } else if(seg.type==='photos'){
+            var IH=seg.ih||Math.floor(IW*0.75);
             T(ctxP,'📸 今日照片（'+seg.d.filter(Boolean).length+'張）',26,py+18,cc1,13,true);
             py+=24;
             seg.d.forEach(function(imgEl,i){
@@ -5018,8 +5025,16 @@ async function exportOrderPDF(bookId){
               var ix=20+col*(IW+GAP),iy=py+row3*(IH+GAP);
               if(imgEl){
                 ctxP.save();
-                RR(ctxP,ix,iy,IW,IH,10,null,null,0);ctxP.clip();
-                ctxP.drawImage(imgEl,ix,iy,IW,IH);ctxP.restore();
+                RR(ctxP,ix,iy,IW,IH,10,'#F8F8F8',null,0);
+                // contain 模式：保持比例，置中顯示
+                var iw=imgEl.naturalWidth||imgEl.width||1;
+                var ih=imgEl.naturalHeight||imgEl.height||1;
+                var scale=Math.min(IW/iw, IH/ih);
+                var dw=iw*scale, dh=ih*scale;
+                var dx=ix+(IW-dw)/2, dy=iy+(IH-dh)/2;
+                RR(ctxP,ix,iy,IW,IH,10,null,null,0); ctxP.clip();
+                ctxP.drawImage(imgEl,dx,dy,dw,dh);
+                ctxP.restore();
                 RR(ctxP,ix,iy,IW,IH,10,null,cc1,2);
               } else {
                 RR(ctxP,ix,iy,IW,IH,10,'#F9F9F9',cc1+'50',2);

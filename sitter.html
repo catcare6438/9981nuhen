@@ -2642,30 +2642,28 @@ async function uploadImageToR2(dataUrl, filename){
 }
 
 async function uploadVideoToR2(file, onProgress){
-  // Step1: 向 Edge Function 取得 Presigned URL
-  var res = await fetch(EDGE_FN_URL, {
+  var fname = 'video_'+Date.now()+'_'+file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  // Step1: 向 Cloudflare Worker 取得上傳路徑
+  var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/upload', {
     method: 'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': 'Bearer ' + SUPA_KEY
-    },
-    body: JSON.stringify({action:'get-upload-url', filename: file.name, contentType: file.type||'video/mp4'})
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filename: fname, contentType: file.type||'video/mp4' })
   });
-  if(!res.ok) throw new Error('取得上傳網址失敗：' + await res.text());
+  if(!res.ok) throw new Error('取得上傳路徑失敗：' + await res.text());
   var _json = await res.json();
-  var uploadUrl = _json.uploadUrl;
-  var publicUrl = _json.publicUrl;
+  var uploadPath = _json.uploadPath;
+  var publicUrl  = _json.publicUrl;
 
-  // Step2: 直接 PUT 影片到 R2（原始 binary，不轉 base64）
-  var xhr = new XMLHttpRequest();
+  // Step2: PUT 影片到 R2（支援上傳進度）
   await new Promise(function(resolve, reject){
-    xhr.open('PUT', uploadUrl);
+    var xhr = new XMLHttpRequest();
+    xhr.open('PUT', 'https://catwoli-api.catwoli6644.workers.dev/upload/'+uploadPath);
     xhr.setRequestHeader('Content-Type', file.type||'video/mp4');
     if(onProgress) xhr.upload.onprogress = function(e){
       if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100));
     };
-    xhr.onload = function(){ xhr.status<300?resolve():reject(new Error('R2 上傳失敗：'+xhr.status)); };
-    xhr.onerror = function(){ reject(new Error('網路錯誤')); };
+    xhr.onload  = function(){ xhr.status<300?resolve():reject(new Error('R2上傳失敗：'+xhr.status)); };
+    xhr.onerror = function(){ reject(new Error('網路錯誤，請確認連線後重試')); };
     xhr.send(file);
   });
 

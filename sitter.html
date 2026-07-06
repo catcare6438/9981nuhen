@@ -2741,7 +2741,7 @@ async function sendVideoToOwnerLine(videoUrl, bookId){
     var data = await res.json();
     if(data.ok){
       if(btn){ btn.textContent='✅ 已傳給飼主'; btn.style.background='#555'; }
-      showToast('影片已傳送給飼主 LINE！');
+      alert('✅ 影片已成功傳送給飼主 LINE！');
     } else {
       if(btn){ btn.textContent='❌ 失敗'; btn.disabled=false; }
       alert('傳送失敗：'+(data.reason||data.error||'請確認飼主已完成LINE綁定'));

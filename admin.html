@@ -5019,41 +5019,23 @@ async function exportOrderPDF(bookId){
 async function clearOrderData(bookId){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
-  if(!confirm('⚠️ 確定要清空【'+bk.ownerName+'】此單的所有資料？\n\n包含：\n• 所有照護回報\n• 家訪照片\n• 合約書\n• 飼主密碼\n\n此操作無法復原！')){return;}
-  if(!confirm('再次確認：清空後資料永久刪除，無法恢復，確定嗎？')){return;}
+  if(!confirm('⚠️ 確定要清空【'+bk.ownerName+'】此單的保母回報？\n\n將刪除：\n• 所有照護回報（照片、日記、寵物紀錄）\n• 影片\n\n保留：\n• 客戶資料（姓名、電話、地址）\n• 寵物資料\n• 訂單資訊\n\n此操作無法復原！')){return;}
 
   var btn=document.querySelector('[data-id="'+bookId+'"][onclick*="clearOrderData"]');
   if(btn){btn.textContent='⏳ 清空中...';btn.disabled=true;}
 
   try{
-    // 1. 刪除此訂單的所有回報
+    // 1. 刪除此訂單的所有照護回報
     var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
     var reps=await repRes.json();
-    for(var i=0;i<reps.length;i++){
+    var delCount=0;
+    for(var i=0;i<(reps||[]).length;i++){
       await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?id='+reps[i].id,{method:'DELETE'});
+      delCount++;
     }
 
-    // 2. 清空訂單的照片、合約、家訪資料
-    await dbUpdateOrder(bookId,{
-      visit_photos:[],
-      contract_url:'',
-      fee_table_url:'',
-      visit_date:'',
-      visit_notes:'',
-      caution:''
-    });
-
-    // 3. 刪除飼主密碼
-    await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+bookId,{method:'DELETE'});
-
-    // 4. 更新快取
-    if(bk){
-      bk.visitPhotos=[];bk.contractUrl='';bk.feeTableUrl='';
-      bk.visitDate='';bk.visitNotes='';bk.caution='';
-    }
     clearOrdersCache();
-
-    alert('✅ 已清空【'+bk.ownerName+'】此單所有資料');
+    alert('✅ 已清空【'+bk.ownerName+'】的照護回報（共'+delCount+'筆），客戶及寵物資料保留。');
     refreshAll();
   }catch(e){
     alert('清空失敗：'+e.message);

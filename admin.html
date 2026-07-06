@@ -1787,6 +1787,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" onclick="openEditOrder(this.dataset.id)" data-id="'+bk.id+'">✏️ 編輯</button>'
     +(hasPw?'<button class="oa-btn" onclick="showPetDetail(this.dataset.id)" data-id="'+bk.id+'">🐾 寵物</button>':'')
     +'<button class="oa-btn" style="background:var(--y2);border-color:var(--y3);color:#8B6000;" onclick="openGenPw(this.dataset.id)" data-id="'+bk.id+'">🔑 '+(hasPw?'查看':'指派')+'密碼</button>'
+    +'<button class="oa-btn" style="background:#FFF9C4;border-color:#F9E04B;color:#856400;" onclick="openBindLine(this.dataset.id,this.dataset.line)" data-id="'+bk.id+'" data-line="'+(bk.ownerLineId||'')+'">🔗 '+(bk.ownerLineId?'已綁LINE':'綁定LINE')+'</button>'
     +'<button class="oa-btn" style="background:#FFF3E0;border-color:#FFCC80;color:#E65100;" onclick="openRequestPayment(this.dataset.id)" data-id="'+bk.id+'">💰 請款</button>'
     +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
@@ -2974,6 +2975,67 @@ async function saveVisitFee(){
     var msg=document.getElementById('visit-fee-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}
+}
+
+// ── 手動綁定LINE ──
+var _bindLineBookId = null;
+function openBindLine(bookId, currentLineId){
+  _bindLineBookId = bookId;
+  var inp = document.getElementById('bindLineInput');
+  var cur = document.getElementById('bindLineCurrentId');
+  if(inp) inp.value = currentLineId || '';
+  if(cur) cur.textContent = currentLineId ? '目前綁定：' + currentLineId : '目前尚未綁定';
+  document.getElementById('bindLineMsg').textContent = '';
+  document.getElementById('bindLineMod').classList.add('show');
+  setTimeout(function(){ if(inp) inp.focus(); }, 100);
+}
+async function submitBindLine(){
+  if(!_bindLineBookId) return;
+  var lineId = document.getElementById('bindLineInput')?.value.trim();
+  if(!lineId){ alert('請輸入 LINE User ID'); return; }
+  if(!lineId.startsWith('U')){ alert('LINE User ID 格式錯誤，應以 U 開頭（如：Uxxxxxxxx）'); return; }
+  var msg = document.getElementById('bindLineMsg');
+  msg.style.color='var(--tl)'; msg.textContent='⏳ 綁定中...';
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+String(_bindLineBookId),{
+      method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ owner_line_id: lineId })
+    });
+    var data = await res.json();
+    if(data.ok||data.id||data.rows!==undefined){
+      msg.style.color='var(--g)'; msg.textContent='✅ 綁定成功！';
+      setTimeout(function(){ closeM('bindLineMod'); refreshAll(); }, 1200);
+    } else { msg.style.color='var(--r)'; msg.textContent='失敗：'+JSON.stringify(data); }
+  }catch(e){ msg.style.color='var(--r)'; msg.textContent='失敗：'+e.message; }
+}
+
+async function lookupLineByPhone(){
+  var phone = document.getElementById('bindLinePhone')?.value.trim().replace(/[^0-9]/g,'');
+  if(!phone||phone.length<8){ alert('請輸入正確的電話號碼'); return; }
+  var result = document.getElementById('bindLinePhoneResult');
+  result.textContent = '⏳ 查詢中...';
+  try{
+    // 查詢這個電話號碼的所有訂單，找最近一筆有 owner_line_id 的
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?owner_phone='+encodeURIComponent(phone)+'&_order=ts&_asc=false&_limit=20');
+    var data = await res.json();
+    var orders = Array.isArray(data) ? data : (data.rows||[]);
+    var found = orders.find(function(o){ return o.owner_line_id && o.owner_line_id.startsWith('U'); });
+    if(found){
+      var lineId = found.owner_line_id;
+      document.getElementById('bindLineInput').value = lineId;
+      result.style.color = 'var(--g)';
+      result.textContent = '✅ 找到！' + found.owner_name + ' 的 LINE ID 已自動填入';
+    } else if(orders.length > 0){
+      result.style.color = 'var(--r)';
+      result.textContent = '找到 '+orders.length+' 筆訂單，但都沒有 LINE 綁定記錄';
+    } else {
+      result.style.color = 'var(--r)';
+      result.textContent = '查無此電話的訂單記錄';
+    }
+  }catch(e){
+    result.style.color = 'var(--r)';
+    result.textContent = '查詢失敗：'+e.message;
+  }
 }
 
 // ── 確認收款 ──
@@ -5578,6 +5640,37 @@ document.addEventListener('click',e=>{
         <button onclick="closeM('visitScheduleMod')" style="flex:1;padding:11px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- 手動綁定LINE Modal -->
+<div class="m-ov" id="bindLineMod">
+  <div class="m-box" style="width:420px;position:relative;">
+    <button onclick="closeM('bindLineMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#06C755;">🔗 手動綁定 LINE</h3>
+    <div style="font-size:.82rem;color:var(--tl);margin-bottom:14px;line-height:1.7;">
+      請飼主在貓窩裏官方帳號傳任意一則訊息，然後到<br>
+      <strong>Cloudflare → catwoli-api → Observability → Logs</strong><br>
+      找到該訊息的 log，複製 <code style="background:#f5f5f5;padding:2px 6px;border-radius:4px;">userId: Uxxxxxxxx...</code> 的值貼入下方。
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:.84rem;font-weight:800;display:block;margin-bottom:6px;">LINE User ID</label>
+      <input type="text" id="bindLineInput" placeholder="U1a2b3c4d5e6f7g8h9..." style="width:100%;padding:10px;border:1.5px solid #06C755;border-radius:10px;font-size:.88rem;font-family:monospace;box-sizing:border-box;">
+      <div id="bindLineCurrentId" style="margin-top:6px;font-size:.76rem;color:var(--tl);"></div>
+    </div>
+    <div style="background:#FFF9C4;border:1.5px solid #F9E04B;border-radius:10px;padding:12px;margin-bottom:14px;">
+      <div style="font-size:.82rem;font-weight:800;margin-bottom:8px;">📱 用電話號碼查詢 LINE ID</div>
+      <div style="display:flex;gap:8px;">
+        <input type="tel" id="bindLinePhone" placeholder="0912345678" style="flex:1;padding:8px;border:1.5px solid #F9E04B;border-radius:8px;font-size:.88rem;box-sizing:border-box;">
+        <button onclick="lookupLineByPhone()" style="padding:8px 14px;background:#856400;color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;white-space:nowrap;">🔍 查詢</button>
+      </div>
+      <div id="bindLinePhoneResult" style="margin-top:6px;font-size:.76rem;color:var(--tl);"></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="submitBindLine()" style="flex:1;padding:12px;background:#06C755;color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;">🔗 確認綁定</button>
+      <button onclick="closeM('bindLineMod')" style="flex:1;padding:12px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
+    </div>
+    <div id="bindLineMsg" style="margin-top:8px;font-size:.8rem;text-align:center;"></div>
   </div>
 </div>
 

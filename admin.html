@@ -3002,7 +3002,9 @@ async function submitBindLine(){
       body: JSON.stringify({ owner_line_id: lineId })
     });
     var data = await res.json();
-    if(data.ok||data.id||data.rows!==undefined){
+    // 成功：陣列、有id物件、rows陣列，或ok=true；失敗：有error欄位
+    var success = Array.isArray(data) ? data.length>0 : (data.ok || data.id || (data.rows&&data.rows.length>0) || (!data.error && res.ok));
+    if(success){
       msg.style.color='var(--g)'; msg.textContent='✅ 綁定成功！';
       setTimeout(function(){ closeM('bindLineMod'); refreshAll(); }, 1200);
     } else { msg.style.color='var(--r)'; msg.textContent='失敗：'+JSON.stringify(data); }

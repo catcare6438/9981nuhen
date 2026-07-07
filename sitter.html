@@ -2842,7 +2842,7 @@ async function submitReport(){
     services,disinfect,safety,
     diary:document.getElementById('rDiary').value,
     petPhotos:reportPhotos.map(p=>({slot:p.slot,dataUrl:p.dataUrl})),
-    cleanPhotos:cleanPhotosOut,
+    cleanPhotos:reportCleanPhotos.map(function(p){return {groupIdx:p.groupIdx,side:p.side,url:p.url||p.dataUrl||'',label:p.label||''};}),
     videoDataUrl:reportVideos.length?reportVideos[0].dataUrl:(reportVideoDataUrl||''),
     videos:reportVideos.map(function(v){return v.dataUrl;}),
   };
@@ -2860,7 +2860,7 @@ async function submitReport(){
     try{
       // 收集所有照片 URL（只傳 http/https URL，base64 不傳）
       var photoUrls = reportPhotos.map(function(p){return p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
-      var cleanUrls = (window.cleanPhotosOut||[]).map(function(p){return p.url||p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
+      var cleanUrls = reportCleanPhotos.map(function(p){return p.url||p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
       // 影片不自動傳，等待管理員在後台按「送出影片」鍵後才發送
 
       var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{

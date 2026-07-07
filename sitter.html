@@ -1098,6 +1098,18 @@ function calcSitterSalary(b){
   const total=svcTotal+addonTotal+extraTotal+transportTotal;
   return{sessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
+function getMyTransport(b, myName){
+  // 從 assigned_to 找此保母的車馬費，若無則用訂單預設值
+  const raw = b.assignedTo||b.assigned_to||'';
+  if(!raw) return Number(b.transport||0);
+  try{
+    const arr = typeof raw==='string'?JSON.parse(raw):(Array.isArray(raw)?raw:[]);
+    const mine = arr.filter(a=>a.sitter===myName);
+    if(mine.length && mine[0].transport!=null) return Number(mine[0].transport)||0;
+  }catch(e){}
+  return Number(b.transport||0);
+}
+
 const ADDON_PRICE=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
 
 const EMOTIONS20=[

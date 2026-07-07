@@ -2647,10 +2647,10 @@ async function uploadVideoToR2(file, onProgress){
   var uploadPath = _json.uploadPath;
   var publicUrl  = _json.publicUrl;
 
-  // Step2: PUT 影片到 R2（支援上傳進度）
+  // Step2: PUT 影片到 R2（uploadPath 已含完整路徑）
   await new Promise(function(resolve, reject){
     var xhr = new XMLHttpRequest();
-    xhr.open('PUT', 'https://catwoli-api.catwoli6644.workers.dev/upload/'+uploadPath);
+    xhr.open('PUT', 'https://catwoli-api.catwoli6644.workers.dev'+uploadPath);
     xhr.setRequestHeader('Content-Type', file.type||'video/mp4');
     if(onProgress) xhr.upload.onprogress = function(e){
       if(e.lengthComputable) onProgress(Math.round(e.loaded/e.total*100));

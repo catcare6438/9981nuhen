@@ -1790,6 +1790,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#FFF9C4;border-color:#F9E04B;color:#856400;" onclick="openBindLine(this.dataset.id,this.dataset.line)" data-id="'+bk.id+'" data-line="'+(bk.ownerLineId||'')+'">🔗 '+(bk.ownerLineId?'已綁LINE':'綁定LINE')+'</button>'
     +'<button class="oa-btn" style="background:#FFF3E0;border-color:#FFCC80;color:#E65100;" onclick="openRequestPayment(this.dataset.id)" data-id="'+bk.id+'">💰 請款</button>'
     +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
+    +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openVideoSend(this.dataset.id)" data-id="'+bk.id+'">🎥 傳影片給飼主</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
@@ -3038,6 +3039,56 @@ async function lookupLineByPhone(){
     result.style.color = 'var(--r)';
     result.textContent = '查詢失敗：'+e.message;
   }
+}
+
+// ── 傳影片給飼主 ──
+var _vsBookId = null;
+async function openVideoSend(bookId){
+  _vsBookId = bookId;
+  var list = document.getElementById('videoSendList');
+  var msg = document.getElementById('videoSendMsg');
+  list.innerHTML = '⏳ 載入回報中...';
+  msg.textContent = '';
+  document.getElementById('videoSendMod').classList.add('show');
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
+    var reps = await res.json();
+    var videoReps = (reps||[]).filter(function(r){
+      var vids = r.videos||[];
+      var vUrl = r.video_data_url||r.videoDataUrl||'';
+      return (vids.length>0 && vids[0].startsWith('http')) || vUrl.startsWith('http');
+    });
+    if(!videoReps.length){
+      list.innerHTML='<div style="color:var(--tl);font-size:.84rem;text-align:center;padding:16px;">此訂單目前無影片回報</div>';
+      return;
+    }
+    list.innerHTML = videoReps.map(function(r){
+      var vUrl = (r.videos&&r.videos[0]&&r.videos[0].startsWith('http'))?r.videos[0]:(r.video_data_url||r.videoDataUrl||'');
+      if(!vUrl) return '';
+      return '<div style="background:#f9f9f9;border:1.5px solid var(--pk3);border-radius:10px;padding:10px;margin-bottom:10px;">'
+        +'<video controls preload="metadata" crossorigin="anonymous" src="'+vUrl+'#t=0.1" style="width:100%;max-height:160px;border-radius:8px;background:#000;"></video>'
+        +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">'
+        +'<div style="font-size:.78rem;color:var(--tl);">📅 '+( r.date||'')+'　保母：'+(r.sitter||'')+'</div>'
+        +'<button onclick="sendRepVideo(\''+encodeURIComponent(vUrl)+'\')" style="padding:6px 12px;background:linear-gradient(135deg,#06C755,#05A847);color:#fff;border:none;border-radius:8px;font-size:.78rem;font-weight:800;cursor:pointer;">📤 傳給飼主LINE</button>'
+        +'</div></div>';
+    }).join('');
+  }catch(e){
+    list.innerHTML = '<div style="color:var(--r);">載入失敗：'+e.message+'</div>';
+  }
+}
+async function sendRepVideo(encodedUrl){
+  var videoUrl = decodeURIComponent(encodedUrl);
+  var msg = document.getElementById('videoSendMsg');
+  msg.style.color='var(--tl)'; msg.textContent='⏳ 傳送中...';
+  try{
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/send-video',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ bookId: String(_vsBookId), videoUrl })
+    });
+    var data = await res.json();
+    if(data.ok){ msg.style.color='var(--g)'; msg.textContent='✅ 影片已傳給飼主！'; }
+    else { msg.style.color='var(--r)'; msg.textContent='失敗：'+(data.reason||data.error||JSON.stringify(data)); }
+  }catch(e){ msg.style.color='var(--r)'; msg.textContent='失敗：'+e.message; }
 }
 
 // ── 確認收款 ──
@@ -5530,6 +5581,16 @@ document.addEventListener('click',e=>{
       <button onclick="closeM('bindLineMod')" style="flex:1;padding:12px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>
     </div>
     <div id="bindLineMsg" style="margin-top:8px;font-size:.8rem;text-align:center;"></div>
+  </div>
+</div>
+
+<!-- 傳影片給飼主 Modal -->
+<div class="m-ov" id="videoSendMod">
+  <div class="m-box" style="width:460px;position:relative;">
+    <button onclick="closeM('videoSendMod')" style="position:absolute;top:12px;right:14px;background:none;border:none;font-size:1.3rem;color:var(--tl);cursor:pointer;">✕</button>
+    <h3 style="color:#1B5E20;">🎥 傳影片給飼主</h3>
+    <div id="videoSendList" style="margin-bottom:14px;max-height:300px;overflow-y:auto;"></div>
+    <div id="videoSendMsg" style="font-size:.8rem;text-align:center;color:var(--tl);"></div>
   </div>
 </div>
 

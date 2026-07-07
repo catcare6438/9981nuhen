@@ -2858,26 +2858,32 @@ async function submitReport(){
   console.log('[LINE] 開始推播通知 bookId='+currentBookId);
   (async function(){
     try{
-      var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/notify',{
+      // 收集所有照片 URL（只傳 http/https URL，base64 不傳）
+      var photoUrls = reportPhotos.map(function(p){return p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
+      var cleanUrls = (window.cleanPhotosOut||[]).map(function(p){return p.url||p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
+      // 影片不自動傳，等待管理員在後台按「送出影片」鍵後才發送
+
+      var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          action:   'send-report-notify',
           bookId:   Number(currentBookId),
           sitter:   ME.name,
           date:     document.getElementById('rDate').value,
+          timeStart:document.getElementById('rTimeStart').value,
+          timeEnd:  document.getElementById('rTimeEnd').value,
           services: Array.from(document.querySelectorAll('#svcChecks input:checked')).map(function(x){return x.value;}),
+          petReports: petNames.map(function(nm,i){return Object.assign({name:nm},petData[i]||{});}),
           diary:    document.getElementById('rDiary').value,
-          videos:   reportVideos.map(function(v){return v.dataUrl;}),
-          petPhotos:reportPhotos.map(function(p){return p.dataUrl||'';}).filter(Boolean)
+          photoUrls:  photoUrls,
+          cleanUrls:  cleanUrls,
+          videoUrl:   '',   // 影片由後台另行發送
         })
       });
-      var notifyRaw=await notifyRes.text();
-      console.log('[LINE回報通知] status='+notifyRes.status+' body='+notifyRaw);
       var notifyData={};
-      try{notifyData=JSON.parse(notifyRaw);}catch(e){}
-      if(notifyData.success) alert('✅ LINE 通知已發送');
-      else alert('❌ LINE 通知失敗\n'+notifyRaw.substring(0,300));
+      try{notifyData=await notifyRes.json();}catch(e){}
+      console.log('[LINE回報] status='+notifyRes.status, notifyData);
+      if(notifyData.ok) console.log('✅ 完整回報已傳給飼主LINE');
     }catch(ne){
       console.warn('[LINE] 推播錯誤（不影響回報儲存）：',ne.message);
     }

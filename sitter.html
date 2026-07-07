@@ -495,18 +495,24 @@ async function dbInsertReport(r){
     date:   String(r.date||''),
     time_start: String(r.timeStart||''),
     time_end:   String(r.timeEnd||''),
-    pet_reports: Array.isArray(r.petReports)?r.petReports:[],
-    services:    Array.isArray(r.services)?r.services:[],
-    disinfect:   Array.isArray(r.disinfect)?r.disinfect:[],
-    safety:      Array.isArray(r.safety)?r.safety:[],
+    pet_reports:   JSON.stringify(Array.isArray(r.petReports)?r.petReports:[]),
+    services:      JSON.stringify(Array.isArray(r.services)?r.services:[]),
+    disinfect:     JSON.stringify(Array.isArray(r.disinfect)?r.disinfect:[]),
+    safety:        JSON.stringify(Array.isArray(r.safety)?r.safety:[]),
     diary:  String(r.diary||''),
-    pet_photos:   Array.isArray(r.petPhotos)?r.petPhotos:[],
-    clean_photos: Array.isArray(r.cleanPhotos)?r.cleanPhotos:[],
+    pet_photos:    JSON.stringify(Array.isArray(r.petPhotos)?r.petPhotos:[]),
+    clean_photos:  JSON.stringify(Array.isArray(r.cleanPhotos)?r.cleanPhotos:[]),
     video_data_url: String(r.videoDataUrl||''),
-    videos: Array.isArray(r.videos)?r.videos:(r.videoDataUrl?[r.videoDataUrl]:[])
+    videos: JSON.stringify(Array.isArray(r.videos)?r.videos:(r.videoDataUrl?[r.videoDataUrl]:[]))
   };
-  const{error}=await _supa.from('reports').insert([row]);
-  if(error){const m=_errMsg(error);console.error('insertReport:',m);throw new Error(m);}
+  const res = await fetch('https://catwoli-api.catwoli6644.workers.dev/reports',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify(row)
+  });
+  const j = await res.json();
+  if(j&&j.error) throw new Error(String(j.error));
+  return j;
 }
 async function dbGetCoupons(){
   const{data,error}=await _supa.from('coupons').select('*');

@@ -962,19 +962,22 @@ function getAllSlots(b){
 }
 function getMySessions(b, myName){
   const assigns=parseAssignments(b.assignedTo);
-  if(!assigns.length) return b.assignedTo===myName?(b.tpd||1):0;
-  // Format2: count slots assigned to me
-    if(assigns[0]&&assigns[0].slot!==undefined){
-      return assigns.some(a=>a.sitter===ME.name);
-    }
-    if(assigns[0]&&assigns[0].slots!==undefined){
-      const hasSitter=assigns.some(a=>a.sitter);
-      if(hasSitter) return assigns.some(a=>a.sitter===ME.name);
-      return true;
-    }
-    return false;
-  const mine=assigns.find(a=>a.sitter===myName);
-  return mine?mine.transport||0:0;
+  if(!assigns.length){
+    // 舊格式：assignedTo 直接是保母名字
+    if(b.assignedTo===myName) return (b.days||1)*(b.tpd||1);
+    return 0;
+  }
+  // Format2: [{date, slot, sitter, transport}] — 每筆算一次
+  if(assigns[0]&&assigns[0].slot!==undefined){
+    return assigns.filter(a=>a.sitter===myName).length;
+  }
+  // Format1: [{date, slots:[...], sitter}] — slots 陣列算次數
+  if(assigns[0]&&assigns[0].slots!==undefined){
+    return assigns
+      .filter(a=>!a.sitter||a.sitter===myName)
+      .reduce(function(s,d){return s+(d.slots||[]).length;}, 0);
+  }
+  return 0;
 }
 function getTeamOnOrder(b, myName){
   const assigns=parseAssignments(b.assignedTo);

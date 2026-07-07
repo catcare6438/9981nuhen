@@ -1201,12 +1201,10 @@ async function login(){
   if(btn){btn.textContent='⏳ 驗證中...';btn.disabled=true;}
 
   try{
-    // 直接從 Supabase 驗證密碼
-    var{data,error}=await _supa.from('sitter_passwords')
-      .select('name,password')
-      .eq('name',name).limit(1);
-    if(error) throw new Error(error.message);
-    if(!data||!data.length){
+    var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?name='+encodeURIComponent(name));
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var data = await res.json();
+    if(!Array.isArray(data)||!data.length){
       showLoginErr('找不到此保母帳號');return;
     }
     var row=data[0];

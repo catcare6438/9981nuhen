@@ -2875,10 +2875,33 @@ async function submitReport(){
   console.log('[LINE] 開始推播通知 bookId='+currentBookId);
   (async function(){
     try{
-      // 收集所有照片 URL（只傳 http/https URL，base64 不傳）
-      var photoUrls = reportPhotos.map(function(p){return p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
-      var cleanUrls = reportCleanPhotos.map(function(p){return p.url||p.dataUrl||'';}).filter(function(u){return u.startsWith('http');});
-      // 影片不自動傳，等待管理員在後台按「送出影片」鍵後才發送
+      // 先把 base64 照片上傳到 R2，取得 HTTP URL
+      var photoUrls = [];
+      for(var _pi2=0;_pi2<reportPhotos.length;_pi2++){
+        var _pu=reportPhotos[_pi2].dataUrl||'';
+        if(_pu.startsWith('http')){ photoUrls.push(_pu); }
+        else if(_pu.startsWith('data:')){
+          try{
+            var _purl=await uploadImageToR2(_pu,'pet-'+Date.now()+'-'+_pi2+'.jpg');
+            photoUrls.push(_purl);
+            reportPhotos[_pi2].dataUrl=_purl; // 更新為 R2 URL
+          }catch(e){ console.warn('照片上傳R2失敗:',e.message); }
+        }
+      }
+      // 清潔照片
+      var cleanUrls = [];
+      for(var _ci2=0;_ci2<reportCleanPhotos.length;_ci2++){
+        var _cu2=reportCleanPhotos[_ci2].url||reportCleanPhotos[_ci2].dataUrl||'';
+        if(_cu2.startsWith('http')){ cleanUrls.push(_cu2); }
+        else if(_cu2.startsWith('data:')){
+          try{
+            var _curl2=await uploadImageToR2(_cu2,'clean-'+Date.now()+'-'+_ci2+'.jpg');
+            cleanUrls.push(_curl2);
+            reportCleanPhotos[_ci2].url=_curl2;
+          }catch(e){ console.warn('清潔照片上傳R2失敗:',e.message); }
+        }
+      }
+      // 影片不自動傳，等待管理員在後台按「傳影片給飼主」鍵後才發送
 
       var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{
         method:'POST',

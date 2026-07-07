@@ -2937,11 +2937,22 @@ async function submitReport(){
           timeStart:document.getElementById('rTimeStart').value,
           timeEnd:  document.getElementById('rTimeEnd').value,
           services: Array.from(document.querySelectorAll('#svcChecks input:checked')).map(function(x){return x.value;}),
-          petReports: petNames.map(function(nm,i){return Object.assign({name:nm},petData[i]||{});}),
-          diary:    document.getElementById('rDiary').value,
+          petReports: petNames.map(function(nm,i){
+            var d=petData[i]||{};
+            var clean={name:nm};
+            Object.keys(d).forEach(function(k){
+              var v=d[k];
+              if(typeof v==='string') clean[k]=v.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim();
+              else clean[k]=v;
+            });
+            return clean;
+          }),
+          diary:    document.getElementById('rDiary').value.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,'').trim(),
           photoUrls:  photoUrls,
           cleanUrls:  cleanUrls,
-          videoUrl:   '',   // 影片由後台另行發送
+          cleanPhotoData: reportCleanPhotos.map(function(p){
+            return {groupIdx:p.groupIdx,side:p.side,label:p.label||'清潔',url:p.url||p.dataUrl||''};
+          }).filter(function(p){return p.url.startsWith('http');}),
         })
       });
       var notifyData={};

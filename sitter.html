@@ -2360,29 +2360,19 @@ async function loadPetPhotosFromSupabase(bookId){
 
 async function savePetPhotoToSupabase(bookId, petIdx, dataUrl){
   try{
-    // Store in orders table as part of pet_data
-    const{data,error}=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
-    if(error||!data||!data[0])return;
-    const petData=data[0].pet_data||[];
-    if(!petData[petIdx])petData[petIdx]={};
-    petData[petIdx].photo=dataUrl;
-    await _supa.from('orders').update({pet_data:petData}).eq('id',parseInt(bookId));
-  }catch(e){console.error('savePetPhoto:',e);}
-}
-
-async function loadPetPhotosFromSupabase(bookId){
-  try{
-    const{data,error}=await _supa.from('orders').select('pet_data').eq('id',parseInt(bookId)).limit(1);
-    if(error||!data||!data[0])return;
-    const petData=data[0].pet_data||[];
-    petData.forEach(function(p,i){
-      if(p&&p.photo){
-        const key='petphoto_'+bookId+'_'+i;
-        petProfilePhotos[key]=p.photo;
-        try{localStorage.setItem(key,p.photo);}catch(e){}
-      }
+    // 用 Worker API 更新 pet_data 裡的 photo
+    const res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+bookId);
+    const rows=await res.json();
+    const order=Array.isArray(rows)?rows[0]:rows;
+    if(!order) return;
+    const pd=typeof order.pet_data==='string'?JSON.parse(order.pet_data):(order.pet_data||[]);
+    if(!pd[petIdx]) pd[petIdx]={};
+    pd[petIdx].photo=dataUrl;
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+bookId,{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pet_data:pd})
     });
-  }catch(e){console.error('loadPetPhotos:',e);}
+  }catch(e){console.error('savePetPhoto:',e);}
 }
 function buildPetTabs(activeIdx){
   activePetIdx=activeIdx;

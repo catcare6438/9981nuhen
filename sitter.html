@@ -369,22 +369,25 @@ class _SupaQuery {
       let data;
       try{
         if(this._m==='insert'){
-          data = await _workerFetch(t+'/insert', {fields:this._data});
+          const r=await _wfetch('/'+t,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(this._data)});
+          data=r.data||r;
         } else if(this._m==='update'){
           const fk=Object.keys(f)[0];
-          data = await _workerFetch(t+'/update', {filterKey:fk, filterVal:f[fk], fields:this._data});
+          const r=await _wfetch('/'+t+'?'+fk+'='+encodeURIComponent(f[fk]),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(this._data)});
+          data=r.data||r;
         } else if(this._m==='upsert'){
-          data = await _workerFetch(t+'/upsert', {...this._data, ...(this._uopt||{})});
+          const r=await _wfetch('/'+t+'?_upsert=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...this._data,...(this._uopt||{})})});
+          data=r.data||r;
         } else if(this._m==='delete'){
           const fk=Object.keys(f)[0];
-          data = await _workerFetch(t+'/delete', {filterKey:fk, filterVal:f[fk]});
+          const r=await _wfetch('/'+t+'?'+fk+'='+encodeURIComponent(f[fk]),{method:'DELETE'});
+          data=r.data||r;
         } else {
-          // select
-          data = await _workerFetch(t+'/list', {filters:f, limit:this._lim});
+          // select — use _wfetch GET
+          const qs=Object.entries(f).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');
+          const r=await _wfetch('/'+t+(qs?'?'+qs:''));
+          data=r.data||r;
           if(Array.isArray(data)){
-            Object.entries(f).forEach(([k,v])=>{
-              data=data.filter(r=>String(r[k])===String(v));
-            });
             if(this._lim) data=data.slice(0,this._lim);
           }
         }

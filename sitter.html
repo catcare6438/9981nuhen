@@ -2261,6 +2261,7 @@ function buildReportText(r){
 
 // ── OPEN REPORT ──
 async function openReport(bookId,petNameStr,bkId){
+  try{
   currentBookId=bookId;
   videoDataURL=null;videoName='';videoDuration=0;petData={};reportVideos=[];
   document.getElementById('rModTitle').textContent=`照護回報 — ${petNameStr}`;
@@ -2287,6 +2288,10 @@ async function openReport(bookId,petNameStr,bkId){
   var todoEl=document.getElementById('reportTodo');
   if(todoEl) todoEl.innerHTML=buildTodoSection(bk2);
   document.getElementById('reportMod').classList.add('show');
+  }catch(err){
+    console.error('[openReport] error:', err);
+    alert('開啟回報失敗：'+err.message);
+  }
 }
 
 
@@ -2476,7 +2481,7 @@ function initPhotoSections(){
   for(let i=0;i<3;i++) row.appendChild(makePetPhotoSlot(i));
   // 影片區重置
   document.getElementById('videoPreviewWrap').style.display='none';
-  document.getElementById('rVideoInfo').textContent='';
+  var rvi=document.getElementById('rVideoInfo'); if(rvi) rvi.textContent='';
   reportVideoDataUrl='';
   // 清潔初始3組
   const cg=document.getElementById('cleanGroups');

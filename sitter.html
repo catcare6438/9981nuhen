@@ -2642,25 +2642,26 @@ async function uploadImageToR2(dataUrl, filename){
   var ia = new Uint8Array(ab);
   for(var i=0;i<byteStr.length;i++) ia[i]=byteStr.charCodeAt(i);
   var blob = new Blob([ab],{type:mime});
-  var file = new File([blob], fname, {type:mime});
 
-  // Get presigned URL
-  var res = await fetch(EDGE_FN_URL,{
+  // Step1: 向 Cloudflare Worker 取得上傳路徑
+  var res = await fetch('https://catwoli-api.catwoli6644.workers.dev/upload',{
     method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+SUPA_KEY},
-    body:JSON.stringify({action:'get-upload-url', filename:fname, contentType:mime})
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({filename:fname,contentType:mime})
   });
-  if(!res.ok) throw new Error('取得上傳網址失敗');
+  if(!res.ok) throw new Error('取得上傳路徑失敗：'+await res.text());
   var json = await res.json();
+  var uploadPath = json.uploadPath;
+  var publicUrl  = json.publicUrl;
 
-  // PUT to R2
-  var r2res = await fetch(json.uploadUrl,{
+  // Step2: PUT binary 到 R2
+  var r2res = await fetch('https://catwoli-api.catwoli6644.workers.dev'+uploadPath,{
     method:'PUT',
     headers:{'Content-Type':mime},
     body:blob
   });
   if(!r2res.ok) throw new Error('R2上傳失敗：'+r2res.status);
-  return json.publicUrl;
+  return publicUrl;
 }
 
 async function uploadVideoToR2(file, onProgress){

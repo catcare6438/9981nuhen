@@ -964,15 +964,15 @@ function getMySessions(b, myName){
   const assigns=parseAssignments(b.assignedTo);
   if(!assigns.length) return b.assignedTo===myName?(b.tpd||1):0;
   // Format2: count slots assigned to me
-  if(assigns[0]&&assigns[0].slot!==undefined){
-    return assigns.filter(a=>a.sitter===myName).length;
-  }
-  // Format1: all slots (not yet assigned to anyone specifically)
-  return assigns.reduce((s,d)=>s+(d.slots||[]).length,0);
-}
-function getMyTransport(b, myName){
-  const assigns=parseAssignments(b.assignedTo);
-  if(!assigns.length) return b.assignedTo===myName?(b.transport||0):0;
+    if(assigns[0]&&assigns[0].slot!==undefined){
+      return assigns.some(a=>a.sitter===ME.name);
+    }
+    if(assigns[0]&&assigns[0].slots!==undefined){
+      const hasSitter=assigns.some(a=>a.sitter);
+      if(hasSitter) return assigns.some(a=>a.sitter===ME.name);
+      return true;
+    }
+    return false;
   const mine=assigns.find(a=>a.sitter===myName);
   return mine?mine.transport||0:0;
 }
@@ -1257,8 +1257,12 @@ async function renderMain(){
     const assigns=parseAssignments(raw);
     if(!assigns.length) return raw===ME.name; // old string format
     if(assigns[0]&&assigns[0].slot!==undefined){
-      const match=assigns.some(a=>a.sitter===ME.name);
-      return match;
+      return assigns.some(a=>a.sitter===ME.name);
+    }
+    if(assigns[0]&&assigns[0].slots!==undefined){
+      const hasSitter=assigns.some(a=>a.sitter);
+      if(hasSitter) return assigns.some(a=>a.sitter===ME.name);
+      return false; // 未指派保母，不顯示在保母端
     }
     return false;
   });
@@ -1298,8 +1302,12 @@ async function renderCases(){
     const assigns=parseAssignments(raw);
     if(!assigns.length) return raw===ME.name; // old string format
     if(assigns[0]&&assigns[0].slot!==undefined){
-      const match=assigns.some(a=>a.sitter===ME.name);
-      return match;
+      return assigns.some(a=>a.sitter===ME.name);
+    }
+    if(assigns[0]&&assigns[0].slots!==undefined){
+      const hasSitter=assigns.some(a=>a.sitter);
+      if(hasSitter) return assigns.some(a=>a.sitter===ME.name);
+      return false; // 未指派保母，不顯示在保母端
     }
     return false;
   });

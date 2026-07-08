@@ -3953,15 +3953,18 @@ async function saveSalaryNote(sitter, bookId, note){
     var spRows=await spRes.json();
     var salaryNotes={};
     (Array.isArray(spRows)?spRows:[]).forEach(function(r){
-      if(r.key==='salary_notes'){try{salaryNotes=JSON.parse(r.value||'{}');}catch(e){}}
+      if(r.key==='salary_notes'){
+        var v=r.value;
+        if(typeof v==='string'){try{salaryNotes=JSON.parse(v||'{}');}catch(e){}}
+        else if(v&&typeof v==='object'){salaryNotes=v;}
+      }
     });
     var key=sitter+'_'+bookId;
     if(note) salaryNotes[key]=note;
     else delete salaryNotes[key];
     await saveSiteSetting('salary_notes',salaryNotes);
-  }catch(e){}
+  }catch(e){console.error('[saveSalaryNote]',e.message);alert('備註儲存失敗：'+e.message);}
 }
-
 async function saveLandmarks(){
   try{
     var rows=document.querySelectorAll('#lm-list > div');

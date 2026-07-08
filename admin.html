@@ -4703,16 +4703,50 @@ function efCalcEl(input){
 async function exportOrderPDF(bookId){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
+
+  var allReports=[];
+  try{
+    var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
+    var rj=await repRes.json();
+    allReports=(Array.isArray(rj)?rj:[]).sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
+  }catch(e){}
+
+  if(!allReports.length){alert('此訂單尚無照護回報');return;}
+
+  if(allReports.length===1){await _doPDF(bookId,bk,allReports);return;}
+
+  var dialog=document.createElement('div');
+  dialog.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;';
+  dialog.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);">'
+    +'<h3 style="margin:0 0 16px;font-size:1rem;color:var(--pk);">📄 選擇要打包的照護紀錄</h3>'
+    +'<p style="font-size:.82rem;color:var(--tl);margin-bottom:12px;">飼主：'+bk.ownerName+' ｜ 共 '+allReports.length+' 次照護</p>'
+    +'<div style="margin-bottom:10px;display:flex;gap:8px;">'
+    +'<button onclick="this.closest('div').querySelectorAll('input').forEach(function(x){x.checked=true;})" style="padding:4px 10px;font-size:.76rem;border:1.5px solid var(--pk3);border-radius:6px;background:var(--pk4);color:var(--pk);cursor:pointer;">全選</button>'
+    +'<button onclick="this.closest('div').querySelectorAll('input').forEach(function(x){x.checked=false;})" style="padding:4px 10px;font-size:.76rem;border:1.5px solid #ddd;border-radius:6px;background:#f5f5f5;cursor:pointer;">全不選</button>'
+    +'</div>'
+    +'<div id="pdfRepChecks" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;">'
+    +allReports.map(function(r,i){return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--pk3);border-radius:8px;cursor:pointer;font-size:.84rem;">'
+      +'<input type="checkbox" checked value="'+i+'" style="width:16px;height:16px;accent-color:var(--pk);">'
+      +'<span>第'+(i+1)+'次　<strong>'+(r.date||'')+'</strong>　保母：'+(r.sitter||'—')+'</span></label>';}).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:8px;margin-top:16px;">'
+    +'<button id="pdfGoBtn" style="flex:1;padding:10px;background:var(--pk);color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;">📄 開始打包</button>'
+    +'<button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:10px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>'
+    +'</div></div>';
+  document.body.appendChild(dialog);
+  dialog.querySelector('#pdfGoBtn').onclick=async function(){
+    var sel=[];
+    dialog.querySelectorAll('#pdfRepChecks input:checked').forEach(function(cb){sel.push(allReports[parseInt(cb.value)]);});
+    if(!sel.length){alert('請至少選擇一次');return;}
+    dialog.remove();
+    await _doPDF(bookId,bk,sel);
+  };
+}
+
+async function _doPDF(bookId, bk, reports){
   var btn=document.querySelector('[data-id="'+bookId+'"][onclick*="exportOrderPDF"]');
   if(btn){btn.textContent='⏳ 產生中...';btn.disabled=true;}
   try{
-    var reports=[];
-    try{
-      var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
-      var repData=await repRes.json();
-      reports=(Array.isArray(repData)?repData:[]).sort(function(a,b){return (a.date||'').localeCompare(b.date||'');});
-    }catch(e){}
-
     // 解析 assignedTo（可能是 JSON array 或純字串）
     var assignedStr='';
     try{

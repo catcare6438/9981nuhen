@@ -4715,32 +4715,67 @@ async function exportOrderPDF(bookId){
 
   if(allReports.length===1){await _doPDF(bookId,bk,allReports);return;}
 
+  // 用 DOM 建立，完全避免引號問題
+  // 用 DOM 方式建立對話框（避免字串引號問題）
   var dialog=document.createElement('div');
   dialog.style.cssText='position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;';
-  dialog.innerHTML='<div style="background:#fff;border-radius:16px;padding:24px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);">'
-    +'<h3 style="margin:0 0 16px;font-size:1rem;color:var(--pk);">📄 選擇要打包的照護紀錄</h3>'
-    +'<p style="font-size:.82rem;color:var(--tl);margin-bottom:12px;">飼主：'+bk.ownerName+' ｜ 共 '+allReports.length+' 次照護</p>'
-    +'<div style="margin-bottom:10px;display:flex;gap:8px;">'
-    +'<button onclick="document.getElementById(&quot;pdfRepChecks&quot;).querySelectorAll(&quot;input&quot;).forEach(function(x){x.checked=true;})" style="padding:4px 10px;font-size:.76rem;border:1.5px solid var(--pk3);border-radius:6px;background:var(--pk4);color:var(--pk);cursor:pointer;">全選</button>'
-    +'<button onclick="document.getElementById(&quot;pdfRepChecks&quot;).querySelectorAll(&quot;input&quot;).forEach(function(x){x.checked=false;})" style="padding:4px 10px;font-size:.76rem;border:1.5px solid #ddd;border-radius:6px;background:#f5f5f5;cursor:pointer;">全不選</button>'
-    +'</div>'
-    +'<div id="pdfRepChecks" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;">'
-    +allReports.map(function(r,i){return '<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--pk3);border-radius:8px;cursor:pointer;font-size:.84rem;">'
-      +'<input type="checkbox" checked value="'+i+'" style="width:16px;height:16px;accent-color:var(--pk);">'
-      +'<span>第'+(i+1)+'次　<strong>'+(r.date||'')+'</strong>　保母：'+(r.sitter||'—')+'</span></label>';}).join('')
-    +'</div>'
-    +'<div style="display:flex;gap:8px;margin-top:16px;">'
-    +'<button id="pdfGoBtn" style="flex:1;padding:10px;background:var(--pk);color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;">📄 開始打包</button>'
-    +'<button onclick="this.closest('[style*=fixed]').remove()" style="flex:1;padding:10px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;">取消</button>'
-    +'</div></div>';
-  document.body.appendChild(dialog);
-  dialog.querySelector('#pdfGoBtn').onclick=async function(){
+  var box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:16px;padding:24px;width:440px;max-width:90vw;box-shadow:0 8px 32px rgba(0,0,0,.2);';
+  var title=document.createElement('h3');
+  title.style.cssText='margin:0 0 16px;font-size:1rem;color:var(--pk);';
+  title.textContent='📄 選擇要打包的照護紀錄';
+  var p=document.createElement('p');
+  p.style.cssText='font-size:.82rem;color:var(--tl);margin-bottom:12px;';
+  p.textContent='飼主：'+bk.ownerName+' ｜ 共 '+allReports.length+' 次照護';
+  box.appendChild(title);
+  box.appendChild(p);
+  var btnRow=document.createElement('div');
+  btnRow.style.cssText='margin-bottom:10px;display:flex;gap:8px;';
+  var list=document.createElement('div');
+  list.style.cssText='display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;';
+  var btnAll=document.createElement('button');
+  btnAll.textContent='全選';
+  btnAll.style.cssText='padding:4px 10px;font-size:.76rem;border:1.5px solid var(--pk3);border-radius:6px;background:var(--pk4);color:var(--pk);cursor:pointer;';
+  btnAll.onclick=function(){list.querySelectorAll('input').forEach(function(x){x.checked=true;});};
+  var btnNone=document.createElement('button');
+  btnNone.textContent='全不選';
+  btnNone.style.cssText='padding:4px 10px;font-size:.76rem;border:1.5px solid #ddd;border-radius:6px;background:#f5f5f5;cursor:pointer;';
+  btnNone.onclick=function(){list.querySelectorAll('input').forEach(function(x){x.checked=false;});};
+  btnRow.appendChild(btnAll);
+  btnRow.appendChild(btnNone);
+  box.appendChild(btnRow);
+  allReports.forEach(function(r,i){
+    var lbl=document.createElement('label');
+    lbl.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid var(--pk3);border-radius:8px;cursor:pointer;font-size:.84rem;';
+    var cb=document.createElement('input');
+    cb.type='checkbox'; cb.checked=true; cb.value=String(i);
+    cb.style.cssText='width:16px;height:16px;accent-color:var(--pk);';
+    var sp=document.createElement('span');
+    sp.textContent='第'+(i+1)+'次　'+(r.date||'')+'　保母：'+(r.sitter||'—');
+    lbl.appendChild(cb); lbl.appendChild(sp);
+    list.appendChild(lbl);
+  });
+  box.appendChild(list);
+  var footRow=document.createElement('div');
+  footRow.style.cssText='display:flex;gap:8px;margin-top:16px;';
+  var goBtn=document.createElement('button');
+  goBtn.textContent='📄 開始打包';
+  goBtn.style.cssText='flex:1;padding:10px;background:var(--pk);color:#fff;border:none;border-radius:10px;font-weight:800;cursor:pointer;';
+  goBtn.onclick=async function(){
     var sel=[];
-    dialog.querySelectorAll('#pdfRepChecks input:checked').forEach(function(cb){sel.push(allReports[parseInt(cb.value)]);});
+    list.querySelectorAll('input:checked').forEach(function(cb){sel.push(allReports[parseInt(cb.value)]);});
     if(!sel.length){alert('請至少選擇一次');return;}
     dialog.remove();
     await _doPDF(bookId,bk,sel);
   };
+  var cancelBtn=document.createElement('button');
+  cancelBtn.textContent='取消';
+  cancelBtn.style.cssText='flex:1;padding:10px;background:#f5f5f5;border:1.5px solid #ddd;border-radius:10px;font-weight:800;cursor:pointer;';
+  cancelBtn.onclick=function(){dialog.remove();};
+  footRow.appendChild(goBtn); footRow.appendChild(cancelBtn);
+  box.appendChild(footRow);
+  dialog.appendChild(box);
+  document.body.appendChild(dialog);
 }
 
 async function _doPDF(bookId, bk, reports){

@@ -1918,6 +1918,28 @@ async function renderHistList(reps){
       ?`<div style="background:linear-gradient(135deg,var(--pk4),#FFFAF0);border:1.5px solid var(--pk3);border-radius:10px;padding:10px 12px;margin-top:4px;font-size:.8rem;line-height:1.7;font-style:italic;color:var(--t);">💌 ${r.diary}</div>`
       :'';
 
+    // ── 清潔前後照片 ──
+    const cleanHtml=(()=>{
+      const cp=r.cleanPhotos||[];
+      if(!cp.length) return '';
+      const gMap={};
+      cp.forEach(p=>{
+        const gi=p.groupIdx!=null?p.groupIdx:0;
+        if(!gMap[gi])gMap[gi]={label:p.label||'清潔',before:'',after:''};
+        if(p.side==='before')gMap[gi].before=p.url||p.dataUrl||'';
+        else gMap[gi].after=p.url||p.dataUrl||'';
+      });
+      const rows=Object.values(gMap).filter(g=>g.before||g.after).map(g=>`
+        <div style="margin-bottom:10px;">
+          <div style="font-size:.72rem;font-weight:700;color:var(--pk);margin-bottom:4px;">🔄 ${g.label}清潔前後</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            ${g.before?`<div><img src="${g.before}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid var(--pk3);" onclick="this.requestFullscreen?.()"><div style="font-size:.65rem;color:var(--tl);text-align:center;margin-top:3px;">清潔前</div></div>`:'<div></div>'}
+            ${g.after?`<div><img src="${g.after}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:1.5px solid #52C48A;" onclick="this.requestFullscreen?.()"><div style="font-size:.65rem;color:var(--g);text-align:center;margin-top:3px;">清潔後 ✅</div></div>`:'<div></div>'}
+          </div>
+        </div>`).join('');
+      return rows?`<div style="margin-top:8px;"><div style="font-size:.72rem;font-weight:800;color:var(--pk);margin-bottom:6px;">📸 清潔前後對比</div>${rows}</div>`:'';
+    })();
+
     return `<div class="rep-card">
       <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;padding-bottom:8px;border-bottom:1.5px dashed var(--pk3);">
         <div>
@@ -1935,6 +1957,7 @@ async function renderHistList(reps){
       ${svcHtml}
       ${safetyHtml}
       ${diaryHtml}
+      ${cleanHtml}
     </div>`;
   }).join('');
 }
@@ -2723,10 +2746,7 @@ async function loadReportVideo(input){
         var div=document.createElement('div');
         div.style.cssText='margin-bottom:8px;background:#f9f9f9;border:1.5px solid var(--pk3);border-radius:10px;padding:8px;';
         div.innerHTML='<video controls crossorigin="anonymous" preload="metadata" style="width:100%;border-radius:8px;max-height:180px;" src="'+publicUrl+'#t=0.1"></video>'
-          +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">'
-          +'<div style="font-size:.72rem;color:var(--tl);">✅ '+file.name+'</div>'
-          +'<button onclick="sendVideoToOwnerLine(\''+publicUrl+'\',\''+currentBookId+'\')" style="padding:5px 10px;background:linear-gradient(135deg,#06C755,#05A847);color:#fff;border:none;border-radius:8px;font-size:.74rem;font-weight:800;cursor:pointer;">📤 傳給飼主LINE</button>'
-          +'</div>';
+          +'<div style="font-size:.72rem;color:var(--tl);margin-top:4px;">✅ '+file.name+'</div>';
         if(el2) el2.replaceWith(div); else wrap.appendChild(div);
       }
       reportVideos.push({dataUrl:publicUrl, name:file.name, size:file.size});

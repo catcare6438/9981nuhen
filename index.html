@@ -1691,20 +1691,45 @@ async function submitBook(){
     document.getElementById('modalOv').classList.add('show');
     // 顯示說明並倒數跳轉 LINE 綁定（再次預約跳過）
     if(window._skipLineBinding){
-      // 再次預約：不需再綁定 LINE，直接提示完成
       document.querySelector('#modalOv .modal-msg').innerHTML='🎉 再次預約成功！我們會盡快與您確認 🐾';
-      // 把舊訂單的 LINE User ID 直接寫入新訂單（不需重新授權）
       if(window._oldOwnerLineId){
         fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+String(b.id),{
           method:'PUT',
           headers:{'Content-Type':'application/json'},
           body:JSON.stringify({owner_line_id:window._oldOwnerLineId})
+        }).then(function(){
+          // 發送通知
+          fetch('https://catwoli-api.catwoli6644.workers.dev/notify-booking',{
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              bookId: b.id,
+              ownerName: name, ownerPhone: phone,
+              startDate: getDateSlotsForSubmit().map(d=>d.date).sort()[0]||'',
+              endDate:   getDateSlotsForSubmit().map(d=>d.date).sort().slice(-1)[0]||'',
+              services:  Array.from(document.querySelectorAll('.svc.on')).map(c=>c.dataset.key),
+              total:     b.total||window._calcTotal||0,
+              ownerLineId: window._oldOwnerLineId
+            })
+          }).catch(function(){});
         }).catch(function(){});
       }
       setTimeout(function(){window.location.href='owner.html';},3000);
       return;
     }
     var _orderId = String(b.id);
+    // 發送管理員新訂單通知（新預約，飼主尚未完成LINE綁定）
+    fetch('https://catwoli-api.catwoli6644.workers.dev/notify-booking',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        bookId: b.id,
+        ownerName: name, ownerPhone: phone,
+        startDate: getDateSlotsForSubmit().map(function(d){return d.date;}).sort()[0]||'',
+        endDate:   getDateSlotsForSubmit().map(function(d){return d.date;}).sort().slice(-1)[0]||'',
+        services:  Array.from(document.querySelectorAll('.svc.on')).map(function(c){return c.dataset.key;}),
+        total:     b.total||window._calcTotal||0,
+        ownerLineId: null
+      })
+    }).catch(function(){});
     var _countdown = 5;
     var _countEl = document.getElementById('lineBindCountdown');
     var _countTimer = setInterval(function(){

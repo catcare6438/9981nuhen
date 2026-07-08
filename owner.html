@@ -2002,8 +2002,8 @@ function renderReport(r){
     r.cleanPhotos.forEach(p=>{
       var gIdx=p.groupIdx!=null?p.groupIdx:0;
       if(!groupMap[gIdx])groupMap[gIdx]={label:p.label||'清潔',before:null,after:null};
-      if(p.side==='before')groupMap[gIdx].before=p.dataUrl;
-      else groupMap[gIdx].after=p.dataUrl;
+      if(p.side==='before')groupMap[gIdx].before=p.url||p.dataUrl||'';
+      else groupMap[gIdx].after=p.url||p.dataUrl||'';
     });
     const groupHtml=Object.entries(groupMap).map(([idx,g])=>`
       <div style="margin-bottom:12px;">

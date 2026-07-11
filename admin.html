@@ -1988,6 +1988,29 @@ function renderSettingsPage(){
     +'</div>'
     +'</div>';
 
+  // ── 保母端寵物加收設定 ──
+  var petExtraFees=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
+  var petFreeCount=typeof petExtraFees.free==='number'?petExtraFees.free:2;
+  var petUnit=typeof petExtraFees.unit==='number'?petExtraFees.unit:100;
+  html+='<div class="detail-section">'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🐾 保母端薪資－寵物加收設定</div>'
+    +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">保母端薪資明細顯示的加收規則（超過免費隻數才加收）</div>'
+    +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+    +'<div style="display:flex;align-items:center;gap:6px;">'
+    +'<span style="font-size:.84rem;">前</span>'
+    +'<input type="number" id="pet-free-count" value="'+petFreeCount+'" min="0" max="10" style="width:60px;padding:8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.88rem;text-align:center;">'
+    +'<span style="font-size:.84rem;">隻免加收</span>'
+    +'</div>'
+    +'<div style="display:flex;align-items:center;gap:6px;">'
+    +'<span style="font-size:.84rem;">超出每隻加收</span>'
+    +'<input type="number" id="pet-unit-price" value="'+petUnit+'" min="0" step="10" style="width:80px;padding:8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.88rem;text-align:center;">'
+    +'<span style="font-size:.84rem;">元 / 次</span>'
+    +'</div>'
+    +'<button onclick="savePetExtraFee()" style="padding:8px 16px;background:var(--pk);color:#fff;border:none;border-radius:8px;font-weight:800;cursor:pointer;font-size:.82rem;">💾 儲存</button>'
+    +'<span id="pet-extra-fee-msg" style="font-size:.76rem;color:var(--g);"></span>'
+    +'</div>'
+    +'</div>';
+
   // ── 付款帳戶設定（動態銀行列表，可新增）──
   var payAccounts=(_siteSettings&&_siteSettings.payment_accounts)||{};
   // 從現有帳戶取得銀行清單，預設包含 5 個，之後可新增
@@ -2967,6 +2990,19 @@ async function sendPaymentInfo(method){
       setTimeout(function(){closeM('paymentSendMod');refreshAll();},1500);
     } else { msg.textContent='發送失敗：'+(data.error||JSON.stringify(data)); }
   }catch(e){ msg.textContent='發送失敗：'+e.message; }
+}
+
+async function savePetExtraFee(){
+  var freeCount=parseInt(document.getElementById('pet-free-count')?.value)||0;
+  var unitPrice=parseInt(document.getElementById('pet-unit-price')?.value)||0;
+  var msg=document.getElementById('pet-extra-fee-msg');
+  if(msg){msg.style.color='var(--tl)';msg.textContent='⏳ 儲存中...';}
+  try{
+    await saveSiteSetting('pet_extra_fees',{free:freeCount,unit:unitPrice});
+    if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存';}
+  }catch(e){
+    if(msg){msg.style.color='var(--r)';msg.textContent='失敗：'+e.message;}
+  }
 }
 
 async function saveVisitFee(){

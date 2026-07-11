@@ -469,11 +469,14 @@ function mapReport(r){
   };
 }
 async function dbGetReports(bookId){
-  let q=_supa.from('reports').select('*').order('ts',{ascending:false});
-  if(bookId)q=q.eq('book_id',bookId);
-  const{data,error}=await q;
-  if(error){console.error('getReports:',_errMsg(error));return[];}
-  return(data||[]).map(mapReport);
+  try{
+    var url='https://catwoli-api.catwoli6644.workers.dev/reports?_order=ts&_asc=false';
+    if(bookId) url+='&book_id='+encodeURIComponent(bookId);
+    var res=await fetch(url);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    var data=await res.json();
+    return(Array.isArray(data)?data:[]).map(mapReport);
+  }catch(e){console.error('getReports:',e.message);return[];}
 }
 
 function _unused_r(r){return {ts:r.ts,bookId:r.book_id,bookName:r.book_name,sitter:r.sitter,

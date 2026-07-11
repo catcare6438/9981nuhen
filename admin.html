@@ -4687,8 +4687,10 @@ function buildExtraFeeHTML(bk){
     var sitterFees=fees.filter(function(f){return (f.sitter||'')===sitter;});
     html+='<div style="background:#fffde7;border:1.5px solid #ffe082;border-radius:10px;padding:10px;margin-bottom:10px;">';
     html+='<div style="font-size:.78rem;font-weight:900;color:#e65100;margin-bottom:8px;">👤 '+sitter+'</div>';
-    // 車馬費輸入
-    var curTransport=bk.transport||0;
+    // 車馬費：從 assigned_to 讀各保母自己的值
+    var assignedArr=parseAssignments(bk.assignedTo);
+    var sitterAssign=assignedArr.find(function(a){return a.sitter===sitter;})||{};
+    var curTransport=sitterAssign.transport!=null?sitterAssign.transport:(sitter==='（未指派）'?bk.transport||0:0);
     var sitterTransportKey='st-'+bk.id+'-'+encodeURIComponent(sitter);
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#FFF3E0;border-radius:8px;">'
       +'<span style="font-size:.78rem;font-weight:800;color:#E65100;min-width:60px;">🚗 車馬費</span>'
@@ -5291,16 +5293,21 @@ async function saveSitterTransport(btn){
   var val=parseInt(document.getElementById(inputId)?.value)||0;
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
-  // Save transport per sitter in sitter_extra_fees with type='transport'
-  var fees=(bk.sitterExtraFees||[]).filter(function(f){
-    return !(f.type==='transport'&&(f.sitter||'')===sitter);
+  // 更新 assigned_to 裡該保母的 transport（不影響其他保母）
+  var assigns=parseAssignments(bk.assignedTo);
+  var updated=false;
+  assigns=assigns.map(function(a){
+    if(a.sitter===sitter){updated=true;return Object.assign({},a,{transport:val});}
+    return a;
   });
-  if(val>0) fees.push({sitter:sitter,type:'transport',name:'車馬費',unitPrice:val,times:1});
+  if(!updated&&sitter!=='（未指派）'){
+    assigns.push({sitter:sitter,transport:val});
+  }
   try{
-    await dbUpdateOrder(bookId,{transport:val,sitter_extra_fees:fees});
-    bk.transport=val;
-    bk.sitterExtraFees=fees;
-    alert('✅ '+sitter+' 車馬費已更新 $'+val+'/次');
+    await dbUpdateOrder(bookId,{assigned_to:assigns});
+    bk.assignedTo=JSON.stringify(assigns);
+    btn.textContent='✅';
+    setTimeout(function(){btn.textContent='儲存';},1500);
   }catch(e){alert('儲存失敗：'+e.message);}
 }
 

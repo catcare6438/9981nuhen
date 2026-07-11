@@ -628,10 +628,11 @@ function dbRowToOrder(r){
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
     petData:parsePetData(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,
     petNotes:r.pet_notes||'',visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],
-    addonItems:r.addon_items||[],
+    addonItems:(function(){try{var s=r.addon_items;return Array.isArray(s)?s:JSON.parse(s||'[]');}catch(e){return [];}}()),
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,
-    services:r.services||[],addons:r.addons||[],
+    services:(function(){try{var s=r.services;return Array.isArray(s)?s:JSON.parse(s||'[]');}catch(e){return [];}}()),
+    addons:(function(){try{var s=r.addons;return Array.isArray(s)?s:JSON.parse(s||'[]');}catch(e){return [];}}()),
     urgent:r.urgent||0,distance:r.distance||0,
     transport:r.transport||0,transportTotal:r.transport_total||0,
     isHoliday:r.is_holiday||false,
@@ -1421,6 +1422,7 @@ async function renderCases(){
         // ── 計算附加服務小計（優先用 addonItems 日期，否則用整單天數）──
         var addonItems=b.addonItems||[];
         var addonTotal=0;
+        console.log('[salary] bookId='+b.id+' addons='+JSON.stringify(addons).slice(0,80)+' addonItems='+addonItems.length);
         if(addonItems.length){
           // 用 addonItems 各自的日期算天數
           addonItems.forEach(function(item){

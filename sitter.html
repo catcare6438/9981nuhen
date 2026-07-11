@@ -579,8 +579,12 @@ async function dbGetSitterPw(name){
   return pw!=null?String(pw).trim():null;
 }
 async function dbSetSitterPw(name,pw){
-  const{error}=await _supa.from('sitter_passwords').upsert([{name,password:pw,updated_at:new Date().toISOString()}],{onConflict:'name'});
-  if(error){console.error('setSitterPw:',_errMsg(error));throw new Error(_errMsg(error));}
+  const res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?_upsert=1&_conflict=name',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({name:name,password:pw,updated_at:new Date().toISOString()})
+  });
+  if(!res.ok){const t=await res.text();throw new Error(t.substring(0,200));}
 }
 async function dbGetAllSitterPws(){
   const{data,error}=await _supa.from('sitter_passwords').select('*');

@@ -1023,7 +1023,10 @@ function getChangedPws(){
 }
 
 async function getCorrectPw(name){
-  // 從資料庫查詢（確保取得最新密碼）
+  // 優先用 sessionStorage 裡的登入密碼（最可靠）
+  var sessionPw=sessionStorage.getItem('sitterPw');
+  if(sessionPw) return sessionPw;
+  // 其次查資料庫
   try{
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?name='+encodeURIComponent(name));
     if(res.ok){
@@ -1031,10 +1034,9 @@ async function getCorrectPw(name){
       if(Array.isArray(rows)&&rows.length&&rows[0].password) return String(rows[0].password).trim();
     }
   }catch(e){}
-  // fallback：localStorage 快取
+  // 最後 fallback
   var changed=getChangedPws();
   if(changed[name]) return changed[name];
-  // 最後 fallback：初始密碼
   return SITTER_INIT_PWS[name]||null;
 }
 
@@ -3065,6 +3067,7 @@ async function doChangePw(){
   if(!n1){alert('請輸入新密碼');return;}
   if(n1!==n2){alert('兩次密碼不符');return;}
   await saveSitterPw(ME.name,n1);
+  sessionStorage.setItem('sitterPw',n1);
   closeM('changePwMod');
   alert('✅ 密碼已更新！下次請用新密碼登入。');
 }

@@ -1827,6 +1827,7 @@ function calcPetExtra(totalPets, pf){
 }
 
 function renderSettingsPage(){
+  try{
   if(!_siteSettings) _siteSettings={};
   var svcP=(_siteSettings&&_siteSettings.svc_prices)||[];
   // Support both old object format and new array format
@@ -2105,6 +2106,10 @@ function renderSettingsPage(){
 
   html+='</div>';
   document.getElementById('settingsContent').innerHTML=html;
+  }catch(err){
+    console.error('[renderSettingsPage] error:', err.message, err.stack);
+    document.getElementById('settingsContent').innerHTML='<div style="color:red;padding:20px;">設定頁渲染失敗：'+err.message+'</div>';
+  }
 }
 
 async function setSlotTransport(orderId, sitter, amount){

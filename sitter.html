@@ -1505,6 +1505,23 @@ async function renderCases(){
             row+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:.78rem;border-top:1px solid #FFD54F;margin:4px 0 8px;">'
               +'<span style="color:#8B6000;">💊 附加服務合計</span>'
               +'<span style="color:#FF6D00;">$'+addonTotal+'</span></div>';
+          } else if(addons.length) {
+            // 舊格式 addons 字串陣列的明細顯示
+            row+='<div style="font-weight:800;color:#8B6000;margin-bottom:4px;font-size:.8rem;">🛍 寵物服務加購項目</div>';
+            addons.forEach(function(a){
+              var m2=a.match(/^(.+?)[×x](\d+)/);
+              var name=m2?m2[1].trim():a;
+              var qty=m2?parseInt(m2[2]):1;
+              var unitP=(ADDON_P[name]||50)*qty;
+              var total2=unitP*sal.sessions;
+              row+='<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #FFE4EC;font-size:.78rem;">'
+                +'<span>'+a+'</span>'
+                +'<span style="font-family:Nunito;">$'+unitP+'×'+sal.sessions+'次=<strong style="color:var(--pk);">$'+total2+'</strong></span>'
+                +'</div>';
+            });
+            row+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-weight:900;font-size:.78rem;border-top:1px solid #FFD54F;margin:4px 0 8px;">'
+              +'<span style="color:#8B6000;">💊 附加服務合計</span>'
+              +'<span style="color:#FF6D00;">$'+addonTotal+'</span></div>';
           }
 
           // ── 保母附加費：🐾 服務費 ──

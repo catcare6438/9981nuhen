@@ -1023,11 +1023,18 @@ function getChangedPws(){
 }
 
 async function getCorrectPw(name){
-  // Use index-based lookup to avoid Unicode encoding issues with Supabase
-  const SITTER_ORDER=['小語','小汶','菓菓','小茹','阿瑛'];
-  const SITTER_PWS=['666','cc','333','aa','111'];
-  const idx=SITTER_ORDER.indexOf(name);
-  if(idx>=0) return SITTER_PWS[idx];
+  // 從資料庫查詢（確保取得最新密碼）
+  try{
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?name='+encodeURIComponent(name));
+    if(res.ok){
+      var rows=await res.json();
+      if(Array.isArray(rows)&&rows.length&&rows[0].password) return String(rows[0].password).trim();
+    }
+  }catch(e){}
+  // fallback：localStorage 快取
+  var changed=getChangedPws();
+  if(changed[name]) return changed[name];
+  // 最後 fallback：初始密碼
   return SITTER_INIT_PWS[name]||null;
 }
 

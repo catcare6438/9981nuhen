@@ -1989,6 +1989,7 @@ function renderSettingsPage(){
     +'</div>'
     +'</div>';
 
+  console.log('[settings] reached pet_extra_fees section');
   // ── 保母端寵物加收設定 ──
   var petExtraFees=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
   var petFreeCount=typeof petExtraFees.free==='number'?petExtraFees.free:2;
@@ -2012,6 +2013,7 @@ function renderSettingsPage(){
     +'</div>'
     +'</div>';
 
+  console.log('[settings] reached payment_accounts section');
   // ── 付款帳戶設定（動態銀行列表，可新增）──
   var payAccounts=(_siteSettings&&_siteSettings.payment_accounts)||{};
   // 從現有帳戶取得銀行清單，預設包含 5 個，之後可新增
@@ -2105,6 +2107,7 @@ function renderSettingsPage(){
     +'<span id="si-msg" style="margin-left:8px;font-size:.76rem;color:var(--g);"></span></div>';
 
   html+='</div>';
+  console.log('[settings] setting innerHTML, html length='+html.length);
   document.getElementById('settingsContent').innerHTML=html;
   }catch(err){
     console.error('[renderSettingsPage] error:', err.message, err.stack);
@@ -2289,7 +2292,25 @@ function showDetail(bookId){
     rows+=R('第'+(_pf2.free+1)+'隻起加收（共'+totalPets+'隻，超額'+overPets2+'隻）',eu,'× '+totalSessions+'次',eu*totalSessions);
   }
   if(urgent>0) rows+=R('急件加收',urgent,'×1',urgent);
-  if(bk.transport>0) rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
+  // 車馬費：每位保母各自的次數和金額
+  var assigns4=parseAssignments(bk.assignedTo);
+  var transportRows=[];
+  if(assigns4.length){
+    var sitterSessions4={};
+    if(assigns4[0]&&assigns4[0].slots!==undefined){
+      assigns4.forEach(function(d){var cnt=(d.slots||[]).length;if(d.sitter){sitterSessions4[d.sitter]=(sitterSessions4[d.sitter]||0)+cnt;}});
+    } else {
+      assigns4.forEach(function(a){if(a.sitter&&a.slot){sitterSessions4[a.sitter]=(sitterSessions4[a.sitter]||0)+1;}});
+    }
+    Object.entries(sitterSessions4).forEach(function(e){
+      var sName=e[0],sSess=e[1];
+      var sAssign=assigns4.find(function(a){return a.sitter===sName;})||{};
+      var sTrans=sAssign.transport!=null?Number(sAssign.transport):Number(bk.transport||0);
+      if(sTrans>0) rows+=R('🚗 車馬費（'+sName+'）',sTrans,'× '+sSess+'次',sTrans*sSess);
+    });
+  } else if(bk.transport>0){
+    rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
+  }
 
   // 折扣（從資料庫bk.discounts讀取，顯示折扣資訊）
   var grossTotal=cal.total+manualAdj2;

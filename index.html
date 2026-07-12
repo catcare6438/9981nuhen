@@ -511,6 +511,11 @@ function dbRowToOrder(r){
     </div>
     <!-- 每日時段列 (自動生成) -->
     <div id="dateSlots" style="display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="margin-top:10px;background:linear-gradient(135deg,#FFF8E1,#FFF3CD);border:1.5px solid #FFD54F;border-radius:12px;padding:12px 14px;font-size:.78rem;line-height:1.8;color:#6D4C00;">
+      為確保📣每位毛孩都能享有『最完整的陪伴品質🚴並保障保姆行車安全』<br>
+      保姆將於您『選擇的時段內彈性抵達』🔺恕無法指定確切時間。<br>
+      📢但家長請不用擔心✅保姆抵達與離開，💬皆會有 LINE推播通知
+    </div>
     <div class="date-info" id="dateInfo" style="margin-top:12px;">請選擇日期範圍</div>
     <div id="urgentAutoNote" style="display:none;background:var(--y2);border:1.5px solid var(--y1);
       border-radius:10px;padding:8px 12px;font-size:.8rem;color:#7A5C00;font-weight:700;margin-top:8px;">
@@ -643,7 +648,7 @@ function dbRowToOrder(r){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;">
       <div class="field">
         <label>優惠券編碼（選填）</label>
-        <input type="text" id="couponCode" placeholder="輸入折抵券編碼" style="letter-spacing:1px;" oninput="calc()">
+        <input type="text" id="couponCode" placeholder="輸入折抵券編碼" style="letter-spacing:1px;" oninput="validateCoupon(this.value)">
         <div id="couponMsg" style="font-size:.74rem;color:var(--p1);font-weight:700;margin-top:4px;"></div>
       </div>
       <div class="field">
@@ -935,9 +940,9 @@ let isHoliday=false;
 // ── DATE SLOT SYSTEM ──
 let dateSlots=[];
 const SLOT_LABELS=[
-  {key:'morning',label:'🌅 早上'},
-  {key:'noon',   label:'☀️ 中午'},
-  {key:'evening',label:'🌙 晚上'},
+  {key:'morning',label:'🌅 早(8~12)'},
+  {key:'noon',   label:'☀️ 中(12~16)'},
+  {key:'evening',label:'🌙 晚(17~21)'},
 ];
 
 function getTotalSessions(){
@@ -1211,6 +1216,32 @@ async function checkRefCode(){
   }
   calc();
 }
+async function validateCoupon(val){
+  const cc=(val||'').trim().toUpperCase();
+  const cm=document.getElementById('couponMsg');
+  if(!cc){
+    if(cm){cm.textContent='';cm.style.color='';}
+    window._validCouponDiscount=0;
+    calc(); return;
+  }
+  if(cm){cm.textContent='⏳ 驗證中...';cm.style.color='var(--tl)';}
+  try{
+    const coupons=await dbGetCoupons();
+    const cp=coupons.find(function(x){return (x.code||x.coupon_code||'').toUpperCase()===cc&&!x.used;});
+    if(cp){
+      window._validCouponDiscount=30;
+      if(cm){cm.textContent='✅ 折抵券有效！折扣 $30';cm.style.color='#06C755';}
+    } else {
+      window._validCouponDiscount=0;
+      if(cm){cm.textContent='❌ 券碼無效或已使用';cm.style.color='#F87171';}
+    }
+  }catch(e){
+    window._validCouponDiscount=0;
+    if(cm){cm.textContent='⚠️ 驗證失敗，請稍後再試';cm.style.color='#F87171';}
+  }
+  calc();
+}
+
 function closeModal(){document.getElementById('modalOv').classList.remove('show');}
 
 // ── REVIEW SUBMIT ──
@@ -1424,23 +1455,8 @@ function calc(){
 
   const cc=(document.getElementById('couponCode')?.value||'').trim();
   const cm=document.getElementById('couponMsg');
-  if(cc){
-    if(cm)cm.textContent='⏳ 驗證中...';
-    dbGetCoupons().then(function(coupons){
-      const cp=coupons.find(function(x){
-        return (x.code||x.coupon_code||'').toUpperCase()===cc.toUpperCase()&&!x.used;
-      });
-      if(cp){
-        const pct=cp.percent||0.05; // 預設 95折，扣5%
-        window._validCouponDiscount=pct;
-        if(cm){cm.textContent='✅ 折抵券有效！折扣 $30';cm.style.color='#06C755';}
-      } else {
-        window._validCouponDiscount=0;
-        if(cm){cm.textContent='❌ 券碼無效或已使用';cm.style.color='#F87171';}
-      }
-      calc();
-    });
-  } else { if(cm){cm.textContent='';} window._validCouponDiscount=window._validCouponDiscount||0; }
+  if(!cc){if(cm){cm.textContent='';} window._validCouponDiscount=0; }
+  // 驗證狀態由 checkCoupon() 獨立處理，calc() 不重複設定驗證中
 
   // 三層計算：平日 / 一般連假 / 春節
   let normSessions=0,holSessions=0,cnySessions=0;

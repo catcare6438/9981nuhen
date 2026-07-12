@@ -5335,7 +5335,11 @@ async function saveSitterTransport(btn){
   }
   try{
     await dbUpdateOrder(bookId,{assigned_to:assigns});
+    // 若所有保母 transport 都是 0，同步清空訂單的 transport 欄位
+    var allZero=assigns.every(function(a){return !Number(a.transport);});
+    if(allZero) await dbUpdateOrder(bookId,{transport:0});
     bk.assignedTo=JSON.stringify(assigns);
+    if(allZero) bk.transport=0;
     btn.textContent='✅';
     setTimeout(function(){btn.textContent='儲存';},1500);
   }catch(e){alert('儲存失敗：'+e.message);}

@@ -1849,12 +1849,20 @@ function renderSettingsPage(){
 
   // ── 服務價格（完全自由編輯）──
   html+='<div class="detail-section"><div class="det-label" style="font-size:.9rem;margin-bottom:12px;">💰 主要服務價格</div>';
+  // 欄位標題名稱（可編輯）
+  var colNames=(_siteSettings&&_siteSettings.svc_col_names)||{companion:'到府陪伴',walk:'散步服務',both:'陪伴+散步'};
+  html+='<div style="background:#FFF8E1;border:1px solid #FFD54F;border-radius:8px;padding:10px;margin-bottom:10px;font-size:.78rem;color:#6D4C00;">📝 可修改欄位標題名稱後儲存價格：</div>';
+  html+='<div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">'
+    +'<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:.76rem;color:var(--tl);">陪伴欄名：</span><input id="col-companion" value="'+(colNames.companion||'到府陪伴')+'" style="width:90px;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.82rem;"></div>'
+    +'<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:.76rem;color:var(--tl);">散步欄名：</span><input id="col-walk" value="'+(colNames.walk||'散步服務')+'" style="width:90px;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.82rem;"></div>'
+    +'<div style="display:flex;align-items:center;gap:4px;"><span style="font-size:.76rem;color:var(--tl);">複合欄名：</span><input id="col-both" value="'+(colNames.both||'陪伴+散步')+'" style="width:100px;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.82rem;"></div>'
+    +'</div>';
   html+='<div style="overflow-x:auto;"><table style="width:100%;min-width:360px;border-collapse:collapse;font-size:.82rem;margin-bottom:8px;">'
     +'<thead><tr style="background:var(--pk4);">'
     +'<th style="padding:7px 10px;text-align:left;border:1px solid var(--pk3);">方案名稱</th>'
-    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">到府陪伴</th>'
-    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">散步服務</th>'
-    +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">陪伴+散步</th>'
+    +'<th id="th-companion" style="padding:7px;text-align:center;border:1px solid var(--pk3);">'+(colNames.companion||'到府陪伴')+'</th>'
+    +'<th id="th-walk" style="padding:7px;text-align:center;border:1px solid var(--pk3);">'+(colNames.walk||'散步服務')+'</th>'
+    +'<th id="th-both" style="padding:7px;text-align:center;border:1px solid var(--pk3);">'+(colNames.both||'陪伴+散步')+'</th>'
     +'<th style="padding:7px;text-align:center;border:1px solid var(--pk3);">操作</th>'
     +'</tr></thead>'
     +'<tbody id="svc-price-list">';
@@ -3602,7 +3610,16 @@ async function savePrices(){
       });
     });
     console.log('[savePrices] 準備儲存:',JSON.stringify(val));
-    await saveSiteSetting('svc_prices',val);
+    // 儲存欄位標題名稱
+    var colNames={
+      companion:(document.getElementById('col-companion')?.value||'到府陪伴').trim(),
+      walk:(document.getElementById('col-walk')?.value||'散步服務').trim(),
+      both:(document.getElementById('col-both')?.value||'陪伴+散步').trim()
+    };
+    await Promise.all([
+      saveSiteSetting('svc_prices',val),
+      saveSiteSetting('svc_col_names',colNames)
+    ]);
 
     // 驗證：重新從 Worker 撈取確認資料真的寫入
     var verifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings?key=svc_prices',{cache:'no-store'});

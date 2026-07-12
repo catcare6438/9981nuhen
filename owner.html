@@ -2133,8 +2133,26 @@ function ownerCalcDetail(bk){
   // ── 急件 ──
   if(bk.urgent>0) rows.push({label:'⚡ 急件加收',price:bk.urgent,times:1,sub:bk.urgent});
 
-  // ── 車馬費 ──
-  if(bk.transport>0) rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
+  // ── 車馬費：從 assigned_to 讀各保母的 transport ──
+  var assigns_t=bk.assignedTo;
+  var assignsArr_t=[];
+  try{assignsArr_t=typeof assigns_t==='string'?JSON.parse(assigns_t||'[]'):(Array.isArray(assigns_t)?assigns_t:[]);}catch(e){}
+  var transportTotal_t=0;
+  if(assignsArr_t.length){
+    // 計算各保母車馬費合計
+    var sitterMap_t={};
+    if(assignsArr_t[0]&&assignsArr_t[0].slots!==undefined){
+      assignsArr_t.forEach(function(d){var cnt=(d.slots||[]).length;if(d.sitter){sitterMap_t[d.sitter]={cnt:(sitterMap_t[d.sitter]?.cnt||0)+cnt,trans:Number(d.transport||0)};}});
+    } else {
+      assignsArr_t.forEach(function(a){if(a.sitter&&a.slot){sitterMap_t[a.sitter]={cnt:(sitterMap_t[a.sitter]?.cnt||0)+1,trans:Number(a.transport||0)};}});
+    }
+    Object.entries(sitterMap_t).forEach(function(e){
+      var s=e[1]; if(s.trans>0){rows.push({label:'🚗 車馬費（'+e[0]+'）',price:s.trans,times:s.cnt,sub:s.trans*s.cnt}); transportTotal_t+=s.trans*s.cnt;}
+    });
+  } else if(bk.transport>0){
+    rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
+    transportTotal_t=bk.transport*total;
+  }
 
   // 折扣顯示
   var discAmt=bk.discounts||0;

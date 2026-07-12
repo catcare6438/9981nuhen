@@ -5122,17 +5122,19 @@ async function clearOrderData(bookId){
   if(btn){btn.textContent='⏳ 清空中...';btn.disabled=true;}
 
   try{
-    // 1. 刪除此訂單的所有照護回報
-    var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId);
-    var reps=await repRes.json();
-    var delCount=0;
-    for(var i=0;i<(reps||[]).length;i++){
-      await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?id='+reps[i].id,{method:'DELETE'});
-      delCount++;
-    }
+    // 呼叫 Worker 一次性刪除 DB 記錄 + R2 檔案
+    var clearRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/clear-order-reports',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({bookId:String(bookId)})
+    });
+    var clearData=await clearRes.json();
+    if(!clearData.ok) throw new Error(clearData.error||'刪除失敗');
+    var delCount=clearData.delDbCount||0;
+    var r2Count=clearData.delR2Count||0;
 
     clearOrdersCache();
-    alert('✅ 已清空【'+bk.ownerName+'】的照護回報（共'+delCount+'筆），客戶及寵物資料保留。');
+    alert('✅ 已清空【'+bk.ownerName+'】的照護回報\n• 資料庫記錄：'+delCount+'筆\n• R2 檔案：'+r2Count+'個\n（客戶資料及訂單資訊保留）');
     refreshAll();
   }catch(e){
     alert('清空失敗：'+e.message);

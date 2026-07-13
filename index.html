@@ -1331,14 +1331,14 @@ function dcostInfo(km){
     }
   });
   if(km<=freeKm) return {price:0,freeKm:freeKm,chargeKm:0,perKm:0,label:'🎉 '+freeKm+'km 內免收車馬費'};
-  var chargeKm=parseFloat((km-freeKm).toFixed(1));
-  // 找每 km 費率
+  // 找 km 所在的計費段
   var perKm=50;
   rates.forEach(function(r){
     var mn=r.km_min!=null?Number(r.km_min):(r.min?Number(r.min):0);
     var mx=r.km_max!=null?Number(r.km_max):(r.max?Number(r.max):999);
-    if(km>freeKm&&mn>=freeKm&&(r.price||0)>0) perKm=r.price;
+    if((r.price||0)>0 && km>mn && km<=mx) perKm=Number(r.price);
   });
+  var chargeKm=parseFloat((km-freeKm).toFixed(1));
   var price=Math.round(chargeKm*perKm);
   var label=freeKm+'km 內免費，超'+chargeKm+'km × $'+perKm+'/km = $'+price;
   return {price,freeKm,chargeKm,perKm,label};

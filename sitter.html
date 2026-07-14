@@ -3166,8 +3166,9 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
   }
   sessionStorage.removeItem('sitterName');
   sessionStorage.removeItem('sitterPw');
-})()
-});;
+})();
+// 更新保母清單（Worker最新）
+window.addEventListener('load', function(){ loadSitterSelect(); });
 </script>
 
 <!-- CHANGE SITTER PASSWORD MODAL -->

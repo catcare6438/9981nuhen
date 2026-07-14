@@ -1189,7 +1189,12 @@ let activePetIdx=0;
 
 async function loadSitterSelect(){
   var sel=document.getElementById('sitterSel');
-  if(!sel){ console.error('[sitter] sitterSel not found'); return; }
+  if(!sel){
+    // DOM 未就緒，等待後重試
+    await new Promise(function(r){setTimeout(r,100);});
+    sel=document.getElementById('sitterSel');
+    if(!sel){ console.error('[sitter] sitterSel not found'); return; }
+  }
   // Show hardcoded list immediately so user can try logging in
   var FALLBACK_NAMES=['Ying','小語','小汶','菓菓','小茹','阿瑛'];
   sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
@@ -3140,12 +3145,6 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
 
 
 // 動態載入保母名稱 + 自動還原登入
-// 確保 DOM 已就緒才載入
-if(document.readyState==='loading'){
-  document.addEventListener('DOMContentLoaded', function(){ loadSitterSelect(); });
-} else {
-  loadSitterSelect(); // DOM 已就緒，直接執行
-}
 (async function initSitter(){
   await loadSitterSelect();
   // Try to restore session

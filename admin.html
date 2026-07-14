@@ -3133,10 +3133,15 @@ async function resendReportLine(bookId, btn){
     var petPhotosRaw=[];
     try{petPhotosRaw=Array.isArray(r.pet_photos)?r.pet_photos:JSON.parse(r.pet_photos||'[]');}catch(e){}
     petPhotosRaw.forEach(function(p){
-      var u=typeof p==='string'?p:(p.url||p.dataUrl||'');
+      var u=typeof p==='string'?p:(p.url||p.dataUrl||p.src||'');
       if(u&&u.startsWith('http'))photoUrls.push(u);
     });
-    console.log('[補發] pet_photos原始:',JSON.stringify(petPhotosRaw).slice(0,100),'→ http URLs:',photoUrls.length);
+    // 如果還是0張，嘗試直接從第一筆record所有欄位找URL
+    if(!photoUrls.length){
+      alert('⚠️ 資料庫內照片格式：\n'+JSON.stringify(petPhotosRaw).slice(0,200)+'\n\n請截圖給工程師');
+      if(btn){btn.textContent='📤 補發回報通知';btn.disabled=false;}
+      return;
+    }
     var cpRaw=[];
     try{cpRaw=Array.isArray(r.clean_photos)?r.clean_photos:JSON.parse(r.clean_photos||'[]');}catch(e){}
     cpRaw.forEach(function(p){

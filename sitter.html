@@ -3140,6 +3140,12 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
 
 
 // 動態載入保母名稱 + 自動還原登入
+// 確保 DOM 已就緒才載入
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded', function(){ loadSitterSelect(); });
+} else {
+  loadSitterSelect(); // DOM 已就緒，直接執行
+}
 (async function initSitter(){
   await loadSitterSelect();
   // Try to restore session

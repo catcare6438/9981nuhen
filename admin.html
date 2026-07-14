@@ -3127,20 +3127,26 @@ async function resendReportLine(bookId, btn){
     var reps2=(Array.isArray(reps)?reps:[]).sort(function(a,b){return (b.ts||0)-(a.ts||0);});
     if(!reps2.length){alert('此訂單尚無回報記錄');if(btn){btn.textContent='📤 補發回報通知';btn.disabled=false;}return;}
     var r=reps2[0];
-    // 收集照片 URL
+    // 收集照片 URL（支援多種格式）
     var photoUrls=[];
     var cleanPhotoData=[];
-    (Array.isArray(r.pet_photos)?r.pet_photos:JSON.parse(r.pet_photos||'[]')).forEach(function(p){
+    var petPhotosRaw=[];
+    try{petPhotosRaw=Array.isArray(r.pet_photos)?r.pet_photos:JSON.parse(r.pet_photos||'[]');}catch(e){}
+    petPhotosRaw.forEach(function(p){
       var u=typeof p==='string'?p:(p.url||p.dataUrl||'');
       if(u&&u.startsWith('http'))photoUrls.push(u);
     });
-    var cp=Array.isArray(r.clean_photos)?r.clean_photos:JSON.parse(r.clean_photos||'[]');
-    cp.forEach(function(p){
+    console.log('[補發] pet_photos原始:',JSON.stringify(petPhotosRaw).slice(0,100),'→ http URLs:',photoUrls.length);
+    var cpRaw=[];
+    try{cpRaw=Array.isArray(r.clean_photos)?r.clean_photos:JSON.parse(r.clean_photos||'[]');}catch(e){}
+    cpRaw.forEach(function(p){
       var u=p.url||p.dataUrl||'';
       if(u&&u.startsWith('http'))cleanPhotoData.push({groupIdx:p.groupIdx,side:p.side,label:p.label||'清潔',url:u});
     });
-    var svcs=Array.isArray(r.services)?r.services:JSON.parse(r.services||'[]');
-    var petReports=Array.isArray(r.pet_reports)?r.pet_reports:JSON.parse(r.pet_reports||'[]');
+    var svcs=[];
+    try{svcs=Array.isArray(r.services)?r.services:JSON.parse(r.services||'[]');}catch(e){}
+    var petReports=[];
+    try{petReports=Array.isArray(r.pet_reports)?r.pet_reports:JSON.parse(r.pet_reports||'[]');}catch(e){}
     if(btn){btn.textContent='⏳ 發送中...';}
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{
       method:'POST',
@@ -3160,7 +3166,7 @@ async function resendReportLine(bookId, btn){
     });
     var data=await res.json();
     if(data.ok){
-      alert('✅ 回報通知已重新發送給飼主！\n回報日期：'+(r.date||'')+'　保母：'+(r.sitter||'')+'\n照片：'+photoUrls.length+'張');
+      alert('✅ 回報通知已重新發送給飼主！\n回報日期：'+(r.date||'')+'　保母：'+(r.sitter||'')+'\n照片：'+photoUrls.length+'張　清潔照：'+cleanPhotoData.length+'張');
       if(btn){btn.textContent='✅ 已發送';setTimeout(function(){btn.textContent='📤 補發回報通知';btn.disabled=false;},3000);}
     } else {
       alert('❌ 發送失敗：'+(data.reason||data.error||JSON.stringify(data)));

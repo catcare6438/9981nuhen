@@ -1794,6 +1794,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#FFF3E0;border-color:#FFCC80;color:#E65100;" onclick="openRequestPayment(this.dataset.id)" data-id="'+bk.id+'">💰 請款</button>'
     +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#1565C0;" onclick="openVisitSchedule(this.dataset.id)" data-id="'+bk.id+'">🗓 家訪預約</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openVideoSend(this.dataset.id)" data-id="'+bk.id+'">🎥 傳影片給飼主</button>'
+    +'<button class="oa-btn" style="background:#E3F2FD;border-color:#90CAF9;color:#0D47A1;" onclick="resendReportLine(this.dataset.id,this)" data-id="'+bk.id+'">📤 補發回報通知</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
@@ -1810,7 +1811,7 @@ var _siteSettings={};
 // 共用：取得寵物加收設定（免費隻數 free、超額單價 unit），統一從後台設定讀取，
 // 避免各處寫死數字導致後台改了設定卻沒同步生效。
 function getPetExtraFee(){
-  var p=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
+  var p=(_siteSettings&&_siteSettings.pet_fees_client)||(_siteSettings&&_siteSettings.pet_extra_fees)||{};
   var tiers=Array.isArray(p.tiers)&&p.tiers.length?p.tiers:[{label:'第3隻',price:p.unit||80}];
   return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:80), tiers:tiers};
 }
@@ -2001,11 +2002,11 @@ function renderSettingsPage(){
 
   console.log('[settings] reached pet_extra_fees section');
   // ── 保母端寵物加收設定 ──
-  var petExtraFees=(_siteSettings&&_siteSettings.pet_extra_fees)||{};
+  var petExtraFees=(_siteSettings&&_siteSettings.pet_fees_sitter)||(_siteSettings&&_siteSettings.pet_extra_fees)||{};
   var petFreeCount=typeof petExtraFees.free==='number'?petExtraFees.free:2;
   var petUnit=typeof petExtraFees.unit==='number'?petExtraFees.unit:100;
   html+='<div class="detail-section">'
-    +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🐾 保母端薪資－寵物加收設定</div>'
+    +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🐾 保母端薪資寵物加收（保母領的）</div>'
     +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">保母端薪資明細顯示的加收規則（超過免費隻數才加收）</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
     +'<div style="display:flex;align-items:center;gap:6px;">'
@@ -3034,7 +3035,7 @@ async function savePetExtraFee(){
   var msg=document.getElementById('pet-extra-fee-msg');
   if(msg){msg.style.color='var(--tl)';msg.textContent='⏳ 儲存中...';}
   try{
-    await saveSiteSetting('pet_extra_fees',{free:freeCount,unit:unitPrice});
+    await saveSiteSetting('pet_fees_sitter',{free:freeCount,unit:unitPrice});
     if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存';}
   }catch(e){
     if(msg){msg.style.color='var(--r)';msg.textContent='失敗：'+e.message;}
@@ -3111,6 +3112,63 @@ async function lookupLineByPhone(){
   }catch(e){
     result.style.color = 'var(--r)';
     result.textContent = '查詢失敗：'+e.message;
+  }
+}
+
+// ── 補發回報通知 ──
+async function resendReportLine(bookId, btn){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk){alert('找不到訂單');return;}
+  if(btn){btn.textContent='⏳ 讀取中...';btn.disabled=true;}
+  try{
+    // 讀取此訂單最新一筆回報
+    var repRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/reports?book_id='+bookId+'&_order=ts&_asc=false');
+    var reps=await repRes.json();
+    var reps2=(Array.isArray(reps)?reps:[]).sort(function(a,b){return (b.ts||0)-(a.ts||0);});
+    if(!reps2.length){alert('此訂單尚無回報記錄');if(btn){btn.textContent='📤 補發回報通知';btn.disabled=false;}return;}
+    var r=reps2[0];
+    // 收集照片 URL
+    var photoUrls=[];
+    var cleanPhotoData=[];
+    (Array.isArray(r.pet_photos)?r.pet_photos:JSON.parse(r.pet_photos||'[]')).forEach(function(p){
+      var u=typeof p==='string'?p:(p.url||p.dataUrl||'');
+      if(u&&u.startsWith('http'))photoUrls.push(u);
+    });
+    var cp=Array.isArray(r.clean_photos)?r.clean_photos:JSON.parse(r.clean_photos||'[]');
+    cp.forEach(function(p){
+      var u=p.url||p.dataUrl||'';
+      if(u&&u.startsWith('http'))cleanPhotoData.push({groupIdx:p.groupIdx,side:p.side,label:p.label||'清潔',url:u});
+    });
+    var svcs=Array.isArray(r.services)?r.services:JSON.parse(r.services||'[]');
+    var petReports=Array.isArray(r.pet_reports)?r.pet_reports:JSON.parse(r.pet_reports||'[]');
+    if(btn){btn.textContent='⏳ 發送中...';}
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        bookId:String(bookId),
+        sitter:r.sitter||'保母',
+        date:r.date||'',
+        timeStart:r.time_start||'',
+        timeEnd:r.time_end||'',
+        services:svcs,
+        petReports:petReports,
+        diary:r.diary||'',
+        photoUrls:photoUrls,
+        cleanPhotoData:cleanPhotoData
+      })
+    });
+    var data=await res.json();
+    if(data.ok){
+      alert('✅ 回報通知已重新發送給飼主！\n回報日期：'+(r.date||'')+'　保母：'+(r.sitter||'')+'\n照片：'+photoUrls.length+'張');
+      if(btn){btn.textContent='✅ 已發送';setTimeout(function(){btn.textContent='📤 補發回報通知';btn.disabled=false;},3000);}
+    } else {
+      alert('❌ 發送失敗：'+(data.reason||data.error||JSON.stringify(data)));
+      if(btn){btn.textContent='📤 補發回報通知';btn.disabled=false;}
+    }
+  }catch(e){
+    alert('發送失敗：'+e.message);
+    if(btn){btn.textContent='📤 補發回報通知';btn.disabled=false;}
   }
 }
 
@@ -3678,7 +3736,7 @@ async function savePetFees(){
   if(!tiers.length){alert('請至少設定一個階梯');return;}
   try{
     // 為了向下相容，同時保存 unit（取第一個階梯的price）
-    await saveSiteSetting('pet_extra_fees',{free:2, unit:tiers[0].price, tiers:tiers});
+    await saveSiteSetting('pet_fees_client',{free:2, unit:tiers[0].price, tiers:tiers});
     var msg=document.getElementById('pet-fee-msg');
     if(msg){msg.textContent='✅ 已儲存';setTimeout(function(){msg.textContent='';},2000);}
   }catch(e){alert('儲存失敗:'+e.message);}

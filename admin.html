@@ -4011,7 +4011,8 @@ async function saveSitters(){
     for(var j=0;j<curData.length;j++){
       var cur2=curData[j];
       if(!sitters.find(function(s){return s.name===cur2.name;})){
-        await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?id='+cur2.id,{method:'DELETE'});
+        // 用 name 刪除（id 可能為 bigint 精度問題）
+        await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?name='+encodeURIComponent(cur2.name),{method:'DELETE'});
       }
     }
 

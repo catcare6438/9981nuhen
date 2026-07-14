@@ -1167,7 +1167,7 @@ var _sitterSiteSettings={};
 })();
 // 共用：取得寵物加收設定（免費隻數 free、超額單價 unit）。
 function getPetExtraFee(){
-  var p=(_sitterSiteSettings&&_sitterSiteSettings.pet_extra_fees)||{};
+  var p=(_sitterSiteSettings&&(_sitterSiteSettings.pet_fees_sitter||_sitterSiteSettings.pet_extra_fees))||{};
   return {free:(typeof p.free==='number'?p.free:2), unit:(typeof p.unit==='number'?p.unit:100)};
 }
 let petData={};
@@ -2988,7 +2988,7 @@ async function submitReport(){
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({
-          bookId:   Number(currentBookId),
+          bookId:   String(currentBookId),
           sitter:   ME.name,
           date:     document.getElementById('rDate').value,
           timeStart:document.getElementById('rTimeStart').value,

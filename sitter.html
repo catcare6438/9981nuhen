@@ -654,7 +654,13 @@ function dbRowToOrder(r){
     <div class="l-title">保母專區</div>
     <div class="l-sub">貓窩裏 到府寵物褓姆</div>
     <select class="l-sel" id="sitterSel">
-      <option value="">⏳ 載入中...</option>
+      <option value="">— 選擇您的名字 —</option>
+      <option value="Ying">Ying</option>
+      <option value="小語">小語</option>
+      <option value="小汶">小汶</option>
+      <option value="菓菓">菓菓</option>
+      <option value="小茹">小茹</option>
+      <option value="阿瑛">阿瑛</option>
     </select>
     <input class="l-in" type="password" id="sitterPw" placeholder="個人密碼" onkeydown="if(event.key==='Enter')login()">
     <button class="l-btn" onclick="login()">登入保母專區 →</button>
@@ -1188,33 +1194,18 @@ let activePetIdx=0;
 // ── LOGIN ──
 
 async function loadSitterSelect(){
+  // 從 Worker 更新保母清單（HTML 已有預設名單）
   var sel=document.getElementById('sitterSel');
-  if(!sel){
-    // DOM 未就緒，等待後重試
-    await new Promise(function(r){setTimeout(r,100);});
-    sel=document.getElementById('sitterSel');
-    if(!sel){ console.error('[sitter] sitterSel not found'); return; }
-  }
-  // Show hardcoded list immediately so user can try logging in
-  var FALLBACK_NAMES=['Ying','小語','小汶','菓菓','小茹','阿瑛'];
-  sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
-    +FALLBACK_NAMES.map(function(n){return '<option value="'+n+'">'+n+'</option>';}).join('');
+  if(!sel) return;
   try{
-    // 直接用 Worker GET /sitter_passwords 取全部資料
     var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords');
     var data=await res.json();
-    if(!Array.isArray(data)||!data.length){
-      console.warn('[sitter] no sitter data, using fallback');
-      return; // 已有 fallback
-    }
+    if(!Array.isArray(data)||!data.length) return;
     sel.innerHTML='<option value="">— 選擇您的名字 —</option>'
-      +data.map(function(r){
-        return '<option value="'+r.name+'">'+r.name+'</option>';
-      }).join('');
-    console.log('[sitter] select loaded',data.length,'sitters');
+      +data.map(function(r){return '<option value="'+r.name+'">'+r.name+'</option>';}).join('');
+    console.log('[sitter] select updated from Worker:',data.length);
   }catch(e){
-    console.error('[sitter] loadSitterSelect exception:',e.message);
-    // 保留 fallback
+    console.error('[sitter] loadSitterSelect:',e.message);
   }
 }
 async function login(){
@@ -2997,8 +2988,6 @@ async function submitReport(){
   (async function(){
     try{
       // 照片已在 dbInsertReport 前上傳完成，直接使用 photoUrls / cleanUrls
-        }
-      }
       // 影片不自動傳，等待管理員在後台按「傳影片給飼主」鍵後才發送
 
       var notifyRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/send-report-line',{

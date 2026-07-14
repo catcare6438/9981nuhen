@@ -590,9 +590,11 @@ async function dbSetSitterPw(name,pw){
   if(!res.ok){const t=await res.text();throw new Error(t.substring(0,200));}
 }
 async function dbGetAllSitterPws(){
-  const{data,error}=await _supa.from('sitter_passwords').select('*');
-  if(error){console.error('getAllSitterPws:',_errMsg(error));return{};}
-  const map={};(data||[]).forEach(r=>{map[r.name]=r.password;});return map;
+  try{
+    const res=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords');
+    const data=await res.json();
+    const map={};(Array.isArray(data)?data:[]).forEach(r=>{map[r.name]=r.password;});return map;
+  }catch(e){console.error('getAllSitterPws:',e.message);return {};}
 }
 
 // ── Row ↔ Object converters ──

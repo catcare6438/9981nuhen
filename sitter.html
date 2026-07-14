@@ -3145,9 +3145,9 @@ function closeM(id){document.getElementById(id).classList.remove('show');}
   var savedPw=sessionStorage.getItem('sitterPw');
   if(savedName && savedPw){
     try{
-      var{data}=await _supa.from('sitter_passwords')
-        .select('name,password')
-        .eq('name',savedName).limit(1);
+      var _sr2=await fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords?name='+encodeURIComponent(savedName));
+      var _sd2=await _sr2.json();
+      var data=Array.isArray(_sd2)&&_sd2.length?_sd2:null;
       if(data&&data.length&&data[0].password===savedPw){
         var row=data[0];
         ME={name:row.name,displayName:row.name,info:{role:'到府褓姆',av:'🐾'}};

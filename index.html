@@ -2090,19 +2090,19 @@ async function initFromSiteSettings(){
           var em=a.emoji||'🐾';
           return em+' '+a.key+' +$'+a.price;
         });
-        var pf2=(settings.pet_extra_fees&&typeof settings.pet_extra_fees==='object')?settings.pet_extra_fees:{free:2,unit:100};
+        var pf2=(settings.pet_fees_client||settings.pet_extra_fees);pf2=(pf2&&typeof pf2==='object')?pf2:{free:2,unit:100};
         addonLines.push('🐾 前'+(pf2.free||2)+'隻免加收 ｜ 第'+((pf2.free||2)+1)+'隻起 +$'+(pf2.unit||100)+'/隻');
         addonTableEl.innerHTML=addonLines.join(' ｜ ');
       }
     }
 
     // 寵物加收設定
-    if(settings.pet_extra_fees&&typeof settings.pet_extra_fees==='object'){
-      window._petExtraFees=settings.pet_extra_fees;
+    if((settings.pet_fees_client||settings.pet_extra_fees)&&typeof (settings.pet_fees_client||settings.pet_extra_fees)==='object'){
+      window._petExtraFees=settings.pet_fees_client||settings.pet_extra_fees;
       // 更新備注說明
       var petNoteEl=document.querySelector('.pet-extra-note');
       if(petNoteEl){
-        var pf=settings.pet_extra_fees;
+        var pf=settings.pet_fees_client||settings.pet_extra_fees;
         petNoteEl.innerHTML='🐾 前'+(pf.free||2)+'隻免加收 ｜ 第'+(( pf.free||2)+1)+'隻起 +$'+(pf.unit||100)+'/ 次';
       }
     }

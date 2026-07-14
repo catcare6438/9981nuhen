@@ -3132,14 +3132,37 @@ async function resendReportLine(bookId, btn){
     var cleanPhotoData=[];
     var petPhotosRaw=[];
     try{petPhotosRaw=Array.isArray(r.pet_photos)?r.pet_photos:JSON.parse(r.pet_photos||'[]');}catch(e){}
-    petPhotosRaw.forEach(function(p){
-      var u=typeof p==='string'?p:(p.url||p.dataUrl||p.src||'');
-      if(u&&u.startsWith('http'))photoUrls.push(u);
-    });
-    // 若DB存的是base64（舊格式），告知但繼續發送文字回報
-    if(!photoUrls.length&&petPhotosRaw.length){
-      console.warn('[補發] 照片為舊格式(base64)，只發送文字回報');
+    // 收集照片URL，base64的重新上傳到R2
+    for(var _pi=0;_pi<petPhotosRaw.length;_pi++){
+      var _p=petPhotosRaw[_pi];
+      var _u=typeof _p==='string'?_p:(_p.url||_p.dataUrl||'');
+      if(_u.startsWith('http')){
+        photoUrls.push(_u);
+      } else if(_u.startsWith('data:')){
+        try{
+          // 重新上傳base64到R2
+          var _mime=_u.split(',')[0].match(/:(.*?);/)[1];
+          var _bytes=atob(_u.split(',')[1]);
+          var _ab=new ArrayBuffer(_bytes.length);
+          var _ia=new Uint8Array(_ab);
+          for(var _b=0;_b<_bytes.length;_b++) _ia[_b]=_bytes.charCodeAt(_b);
+          var _blob=new Blob([_ab],{type:_mime});
+          var _fname='resend-'+Date.now()+'-'+_pi+'.jpg';
+          var _upRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/upload',{
+            method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({filename:_fname,contentType:_mime})
+          });
+          var _upJson=await _upRes.json();
+          if(_upJson.uploadPath){
+            await fetch('https://catwoli-api.catwoli6644.workers.dev'+_upJson.uploadPath,{
+              method:'PUT',headers:{'Content-Type':_mime},body:_blob
+            });
+            photoUrls.push(_upJson.publicUrl);
+          }
+        }catch(e2){console.warn('[補發] base64上傳R2失敗:',e2.message);}
+      }
     }
+    if(btn) btn.textContent='⏳ 發送中('+(photoUrls.length)+'張照片)...'
     var cpRaw=[];
     try{cpRaw=Array.isArray(r.clean_photos)?r.clean_photos:JSON.parse(r.clean_photos||'[]');}catch(e){}
     cpRaw.forEach(function(p){
@@ -3427,11 +3450,11 @@ function goPage(page,el){
   if(page==='reviews') loadReviewsMgmt();
   if(page==='settings'){
     document.getElementById('settingsContent').innerHTML='<div style="padding:20px;color:var(--tl);">⏳ 載入設定中...</div>';
-    fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords')
-      .then(function(r){return r.json();})
-      .then(function(d){window._cachedSitters=Array.isArray(d)?d:[];})
-      .catch(function(){window._cachedSitters=[];});
-    loadSiteSettings().then(function(){
+    // 先讀保母清單，再渲染設定頁（確保保母管理有資料）
+    Promise.all([
+      fetch('https://catwoli-api.catwoli6644.workers.dev/sitter_passwords').then(function(r){return r.json();}).then(function(d){window._cachedSitters=Array.isArray(d)?d:[];}).catch(function(){window._cachedSitters=[];}),
+      loadSiteSettings()
+    ]).then(function(){
       renderSettingsPage();
     }).catch(function(e){
       console.error('[settings] load error:', e);

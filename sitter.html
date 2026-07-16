@@ -1846,9 +1846,13 @@ async function renderSalaryView(){
   try{
     var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
     var spRows=await spRes.json();
+    var salaryNotes={};
     (Array.isArray(spRows)?spRows:[]).forEach(function(r){
       if(r.key==='salary_paid'){
         salaryPaid=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+      }
+      if(r.key==='salary_notes'){
+        salaryNotes=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
       }
     });
   }catch(e){}
@@ -1859,6 +1863,7 @@ async function renderSalaryView(){
     grand+=sal;
     var key=ME.name+'_'+b.id;
     var isPaid=!!salaryPaid[key];
+    var noteText=salaryNotes[key]||'';
     var statusHtml=isPaid
       ?'<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">✅ 已支付</span>'
       :'<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">⏳ 未支付</span>';
@@ -1876,6 +1881,7 @@ async function renderSalaryView(){
       +'</div>'
       +'<div id="'+detailId+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--pk3);font-size:.76rem;color:var(--tl);">'
       +'點擊展開詳細費用明細（如需查看請聯繫管理員）'
+      +(noteText?'<div style="margin-top:8px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:8px;padding:8px 10px;color:#6D4C00;font-size:.78rem;"><strong>📝 管理員備註：</strong>'+noteText+'</div>':'')
       +'</div>'
       +'</div>';
   }).join('');

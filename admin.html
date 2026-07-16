@@ -1755,7 +1755,7 @@ function buildOrderCard(bk, sCls, ownerPws){
   const addonRow=bk.addons&&bk.addons.length?'<div class="order-row"><span class="order-label">加購：</span><span class="order-val">'+bk.addons.join('、')+'</span></div>':'';
   const noteRow=bk.petNotes?'<div class="order-row"><span class="order-label">備註：</span><span class="order-val">'+bk.petNotes+'</span></div>':'';
   const hvRow=bk.homeVisitDate?('<div class="order-row"><span class="order-label">🏠 家訪：</span><span class="order-val">'+bk.homeVisitDate+'</span></div>'):'';
-  const statusOpts=['待確認','已確認','接案中','已完成','已取消'].map(function(s){
+  const statusOpts=['待確認','已確認','接案中','待家訪','待付款','已付款','已完成','已取消'].map(function(s){
     return '<option value="'+s+'"'+(bk.status===s?' selected':'')+'>'+s+'</option>';
   }).join('');
 

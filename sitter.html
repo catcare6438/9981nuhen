@@ -1136,7 +1136,11 @@ function getMyTransport(b, myName){
   try{
     const arr = typeof raw==='string'?JSON.parse(raw):(Array.isArray(raw)?raw:[]);
     const mine = arr.filter(a=>a.sitter===myName);
-    if(mine.length && mine[0].transport!=null) return Number(mine[0].transport)||0;
+    if(mine.length && mine[0].transport!=null){
+      // 若 showTransport 明確為 false，保母端不顯示車馬費
+      if(mine[0].showTransport===false) return 0;
+      return Number(mine[0].transport)||0;
+    }
   }catch(e){}
   return Number(b.transport||0);
 }

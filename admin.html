@@ -691,14 +691,14 @@ function dbRowToOrder(r){
     status:r.status||'待確認',assignedTo:r.assigned_to||'',manualAdj:r.manual_adj||0,manualAdjs:r.manual_adjs||[],
     visitDate:r.visit_date||'',visitNotes:r.visit_notes||'',caution:r.caution||'',
     visitPhotos:r.visit_photos||[],sitterExtraFees:r.sitter_extra_fees||[],
-    addonItems:r.addon_items||[],
+    addonItems:(function(){try{var v=r.addon_items;return Array.isArray(v)?v:(typeof v==='string'?JSON.parse(v||'[]'):[]);}catch(e){return[];}}()),
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
     payMethod:r.pay_method||'',payNote:r.pay_note||'',
     contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',
     homeVisitDate:r.visit_date||r.home_visit_date||'',homeVisitNote:r.visit_notes||r.home_visit_note||'',
     ownerLineId:r.owner_line_id||'',
-    addonItems:r.addon_items||[],
+    addonItems:(function(){try{var v2=r.addon_items;return Array.isArray(v2)?v2:(typeof v2==='string'?JSON.parse(v2||'[]'):[]);}catch(e){return[];}}()),
     sitterExtraFees:r.sitter_extra_fees||[]
   };
 }
@@ -4827,13 +4827,16 @@ function buildExtraFeeHTML(bk){
     var assignedArr=parseAssignments(bk.assignedTo);
     var sitterAssign=assignedArr.find(function(a){return a.sitter===sitter;})||{};
     var curTransport=sitterAssign.transport!=null?sitterAssign.transport:(sitter==='（未指派）'?bk.transport||0:0);
-    var sitterTransportKey='st-'+bk.id+'-'+encodeURIComponent(sitter);
+    var showTransKey='show-transport-'+bk.id+'-'+encodeURIComponent(sitter);
+    var showTransport=sitterAssign.showTransport!==false;
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#FFF3E0;border-radius:8px;">'
       +'<span style="font-size:.78rem;font-weight:800;color:#E65100;min-width:60px;">🚗 車馬費</span>'
       +'<span style="font-size:.76rem;color:#888;">$</span>'
       +'<input type="number" id="'+sitterTransportKey+'" value="'+curTransport+'" min="0" step="10" style="width:80px;padding:4px 6px;border:1.5px solid #FFB74D;border-radius:6px;font-size:.82rem;" placeholder="0">'
       +'<span style="font-size:.76rem;color:#888;">/次</span>'
-      +'<button onclick="saveSitterTransport(this)" data-bid="'+bk.id+'" data-sitter="'+encodeURIComponent(sitter)+'" data-input="'+sitterTransportKey+'" style="padding:4px 10px;background:#FF6D00;color:#fff;border:none;border-radius:6px;font-size:.74rem;cursor:pointer;font-weight:800;">儲存</button>'
+      +'<label style="display:flex;align-items:center;gap:4px;font-size:.74rem;color:#555;cursor:pointer;margin-left:4px;">'
+      +'<input type="checkbox" id="'+showTransKey+'" '+(showTransport?'checked':'')+' style="width:14px;height:14px;accent-color:#FF6D00;">保母端顯示</label>'
+      +'<button onclick="saveSitterTransport(this)" data-bid="'+bk.id+'" data-sitter="'+encodeURIComponent(sitter)+'" data-input="'+sitterTransportKey+'" data-show="'+showTransKey+'" style="padding:4px 10px;background:#FF6D00;color:#fff;border:none;border-radius:6px;font-size:.74rem;cursor:pointer;font-weight:800;">儲存</button>'
       +'</div>';
     html+='<div id="ef-list-'+bk.id+'-'+encodeURIComponent(sitter)+'">';
     sitterFees.forEach(function(f,i){
@@ -5432,14 +5435,16 @@ async function saveSitterTransport(btn){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk){alert('找不到訂單');return;}
   // 更新 assigned_to 裡該保母的 transport（不影響其他保母）
+  var showInputId=btn.dataset.show;
+  var showTransport=showInputId?document.getElementById(showInputId)?.checked!==false:true;
   var assigns=parseAssignments(bk.assignedTo);
   var updated=false;
   assigns=assigns.map(function(a){
-    if(a.sitter===sitter){updated=true;return Object.assign({},a,{transport:val});}
+    if(a.sitter===sitter){updated=true;return Object.assign({},a,{transport:val,showTransport:showTransport});}
     return a;
   });
   if(!updated&&sitter!=='（未指派）'){
-    assigns.push({sitter:sitter,transport:val});
+    assigns.push({sitter:sitter,transport:val,showTransport:showTransport});
   }
   try{
     await dbUpdateOrder(bookId,{assigned_to:assigns});

@@ -2230,6 +2230,11 @@ async function prefillFromOldOrder(){
     // 備注
     var petNotes=document.getElementById('petNotes');
     if(petNotes&&old.pet_notes)petNotes.value=old.pet_notes;
+    // 家訪備註 / 注意事項
+    var visitNotesEl=document.getElementById('visitNotes')||document.getElementById('homeVisitNote');
+    if(visitNotesEl&&(old.visit_notes||old.home_visit_note)) visitNotesEl.value=old.visit_notes||old.home_visit_note||'';
+    var cautionEl=document.getElementById('caution')||document.getElementById('petCaution');
+    if(cautionEl&&old.caution) cautionEl.value=old.caution;
 
     // ── 隱藏不需重填的區塊，只顯示日期和寵物資料 ──
     // 把「飼主資料」區折疊並顯示摘要

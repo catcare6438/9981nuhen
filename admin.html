@@ -4827,6 +4827,7 @@ function buildExtraFeeHTML(bk){
     var assignedArr=parseAssignments(bk.assignedTo);
     var sitterAssign=assignedArr.find(function(a){return a.sitter===sitter;})||{};
     var curTransport=sitterAssign.transport!=null?sitterAssign.transport:(sitter==='（未指派）'?bk.transport||0:0);
+    var sitterTransportKey='st-'+bk.id+'-'+encodeURIComponent(sitter);
     var showTransKey='show-transport-'+bk.id+'-'+encodeURIComponent(sitter);
     var showTransport=sitterAssign.showTransport!==false;
     html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 10px;background:#FFF3E0;border-radius:8px;">'

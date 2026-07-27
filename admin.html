@@ -1205,6 +1205,7 @@ function login(){
         console.log('[login] settings loaded');
         refreshAll();
         loadSitterMgmt();
+        refreshAddonOpts();
         console.log('[login] done');
       }catch(e){ console.error('[login] error:',e.message); }
     })();
@@ -5258,6 +5259,14 @@ async function clearOrderData(bookId){
 
 // ── 附加服務明細（每筆獨立日期）──
 var ADDON_OPTS = ['餵藥','點藥','擦藥','舒緩按摩','剪指甲','協助排便導尿'];
+// 動態更新ADDON_OPTS（在設定頁存檔或讀取設定後呼叫）
+function refreshAddonOpts(){
+  var addonPrices=(_siteSettings&&_siteSettings.addon_prices)||[];
+  if(Array.isArray(addonPrices)&&addonPrices.length){
+    var names=addonPrices.map(function(a){return a.key||a.name||'';}).filter(Boolean);
+    if(names.length) ADDON_OPTS=names;
+  }
+}
 var ADDON_PRICE_MAP = {餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80};
 
 // 儲存所有訂單的附加服務編輯狀態

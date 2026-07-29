@@ -2104,13 +2104,16 @@ function renderSettingsPage(){
   html+='<div id="si-list">';
   svcItems.forEach(function(s,i){
     html+='<div style="background:var(--pk4);border-radius:10px;padding:10px;margin-bottom:8px;">'
-      +'<div style="display:flex;gap:8px;margin-bottom:6px;">'
-      +'<input type="text" value="'+s.emoji+'" id="se-'+i+'" style="width:40px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;">'
-      +'<input type="text" value="'+s.title+'" id="st-'+i+'" style="flex:1;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;">'
-      +'<input type="text" value="'+(s.duration||'')+'" id="sd-'+i+'" style="width:80px;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="時長">'
-      +'<button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:4px 8px;cursor:pointer;font-size:.74rem;">刪除</button>'
+      +'<div style="font-size:.72rem;color:var(--tl);margin-bottom:4px;">前台顯示：'+( s.emoji||'🐾')+' <strong>'+(s.title||'')+'</strong>'+(s.duration?' '+s.duration:'')+'</div>'
+      +'<div style="display:flex;gap:8px;margin-bottom:6px;flex-wrap:wrap;">'
+      +'<label style="font-size:.72rem;color:var(--tl);">圖示<br><input type="text" value="'+(s.emoji||'🐾')+'" id="se-'+i+'" style="width:50px;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;text-align:center;font-size:1rem;"></label>'
+      +'<label style="font-size:.72rem;color:var(--tl);flex:2;">服務標題<br><input type="text" value="'+(s.title||'')+'" id="st-'+i+'" style="width:100%;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;"></label>'
+      +'<label style="font-size:.72rem;color:var(--tl);width:90px;">時長/單位<br><input type="text" value="'+(s.duration||'')+'" id="sd-'+i+'" style="width:100%;padding:5px;border:1.5px solid var(--pk3);border-radius:6px;" placeholder="/0.5H"></label>'
+      +'<label style="display:flex;align-items:flex-end;"><button onclick="removeAddonRow(this)" style="background:#FFF5F5;border:1.5px solid #FFBDBD;color:#E05252;border-radius:6px;padding:5px 10px;cursor:pointer;font-size:.76rem;margin-bottom:0;">✕</button></label>'
       +'</div>'
-      +'<textarea id="ss-'+i+'" rows="2" style="width:100%;padding:4px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.8rem;box-sizing:border-box;">'+s.desc+'</textarea>'
+      +'<label style="font-size:.72rem;color:var(--tl);">說明內容（換行 = 前台換行）<br>'
+      +'<textarea id="ss-'+i+'" rows="4" style="width:100%;padding:6px;border:1.5px solid var(--pk3);border-radius:6px;font-size:.8rem;box-sizing:border-box;line-height:1.6;">'+(s.desc||'')+'</textarea>'
+      +'</label>'
       +'</div>';
   });
   html+='</div>'

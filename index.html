@@ -1960,9 +1960,10 @@ async function initFromSiteSettings(){
       var svcOverview=document.getElementById('svcOverviewGrid');
       if(svcOverview){
         svcOverview.innerHTML=settings.service_items.map(function(s){
+          var descHtml=(s.desc||'').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>');
           return '<div style="background:var(--p4);border-radius:16px;padding:18px;">'
             +'<div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:\'Nunito\',sans-serif;">'+(s.emoji||'🐾')+' '+(s.title||'')+(s.duration?' '+s.duration:'')+'</div>'
-            +'<div style="font-size:.8rem;line-height:1.9;color:var(--tl);">'+(s.desc||'').replace(/\n/g,'<br>')+'</div>'
+            +'<div style="font-size:.8rem;line-height:1.9;color:var(--tl);">'+descHtml+'</div>'
             +'</div>';
         }).join('');
       }

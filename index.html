@@ -1691,6 +1691,14 @@ async function submitBook(){
     tpd:tpd4,
     services:Array.from(cards).map(c=>c.dataset.key),
     addons,
+    addonItems:addonItems.map(function(item){
+      // 補上日期和時段資訊，讓後台可以正確計算費用
+      return Object.assign({},item,{
+        startDate:document.getElementById('startDate')?.value||'',
+        endDate:document.getElementById('endDate')?.value||'',
+        slots:getDateSlotsForSubmit().length&&getDateSlotsForSubmit()[0].slots||['早','中','晚']
+      });
+    }),
     urgent:urg,
     distance:km,
     transport:dc,
@@ -1943,6 +1951,19 @@ async function initFromSiteSettings(){
         CNY_PRICES.companion=n(cny.companion,600);
         CNY_PRICES.walk=n(cny.walk,500);
         CNY_PRICES.both=n(cny.both,1000);
+      }
+    }
+
+    // ── 服務項目一覽（由後台 service_items 設定）──
+    if(settings.service_items&&Array.isArray(settings.service_items)&&settings.service_items.length){
+      var svcOverview=document.getElementById('svcOverviewGrid');
+      if(svcOverview){
+        svcOverview.innerHTML=settings.service_items.map(function(s){
+          return '<div style="background:var(--p4);border-radius:16px;padding:18px;">'
+            +'<div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:\'Nunito\',sans-serif;">'+(s.emoji||'🐾')+' '+(s.title||'')+(s.duration?' '+s.duration:'')+'</div>'
+            +'<div style="font-size:.8rem;line-height:1.9;color:var(--tl);">'+(s.desc||'').replace(/\n/g,'<br>')+'</div>'
+            +'</div>';
+        }).join('');
       }
     }
 

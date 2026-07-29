@@ -1955,6 +1955,7 @@ async function initFromSiteSettings(){
     }
 
     // ── 服務項目一覽（由後台 service_items 設定）──
+    console.log('[settings] service_items:', settings.service_items?settings.service_items.length:'none');
     if(settings.service_items&&Array.isArray(settings.service_items)&&settings.service_items.length){
       var svcOverview=document.getElementById('svcOverviewGrid');
       if(svcOverview){
@@ -1973,7 +1974,7 @@ async function initFromSiteSettings(){
       // 更新全域名稱對照表
       settings.svc_items.forEach(function(item){ if(item.key&&item.name) SVC_NAME_MAP[item.key]=item.name; });
       var svcGrid=document.getElementById('svcGrid');
-      var overviewGrid=document.getElementById('svcOverviewGrid');
+      // overviewGrid 由 service_items 控制，不在此更新
 
       if(svcGrid){
         svcGrid.innerHTML=settings.svc_items.map(function(item,i){
@@ -1994,18 +1995,7 @@ async function initFromSiteSettings(){
         }).join('');
       }
 
-      if(overviewGrid){
-        var addonCardHtml=document.getElementById('svcTableAddon')?document.getElementById('svcTableAddon').closest('div[style*="background"]').outerHTML:'';
-        var serviceCardsHtml=settings.svc_items.map(function(item){
-          var detailItems=(item.detailItems||[]).map(function(d){return '✦ '+d;}).join('<br>');
-          var priceVal=SVCBASE[item.key]!==undefined?SVCBASE[item.key]:(item.price||0);
-          return '<div style="background:var(--p4);border-radius:16px;padding:18px;">'
-            +'<div style="font-weight:900;color:var(--p1);margin-bottom:8px;font-family:\'Nunito\',sans-serif;">'+(item.icon||'')+' '+(item.name||'')+' $'+priceVal+(item.unit||'')+'</div>'
-            +'<div style="font-size:.8rem;line-height:1.9;color:var(--tl);">'+detailItems+'</div>'
-            +'</div>';
-        }).join('');
-        overviewGrid.innerHTML=serviceCardsHtml+addonCardHtml;
-      }
+      // overviewGrid 由 service_items 控制（見上方）
     } else {
       // 沒有 svc_items 設定時，至少同步價格數字到既有固定卡片
       var cpEl=document.getElementById('priceCompanion');

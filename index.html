@@ -1691,14 +1691,25 @@ async function submitBook(){
     tpd:tpd4,
     services:Array.from(cards).map(c=>c.dataset.key),
     addons,
-    addonItems:addonItems.map(function(item){
-      // 補上日期和時段資訊，讓後台可以正確計算費用
-      return Object.assign({},item,{
-        startDate:document.getElementById('startDate')?.value||'',
-        endDate:document.getElementById('endDate')?.value||'',
-        slots:getDateSlotsForSubmit().length&&getDateSlotsForSubmit()[0].slots||['早','中','晚']
+    addonItems:(function(){
+      var items=[];
+      document.querySelectorAll('#addonPills input[type=checkbox]:checked').forEach(function(cb){
+        var n=cb.dataset.name||'';
+        var qty=1; var timesMulti=1;
+        var qtyMap={餵藥:'feed-qty',點藥:'drop-qty',擦藥:'rub-qty'};
+        var timesMap={餵藥:'feed-times',擦藥:'rub-times'};
+        if(qtyMap[n]){var qEl=document.getElementById(qtyMap[n]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
+        if(timesMap[n]){var tEl=document.getElementById(timesMap[n]);timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;}
+        var unitPrice=(ADDON_PRICES[n]||parseInt(cb.value)||0)*timesMulti;
+        items.push({name:n,qty:qty,unitPrice:unitPrice,isFlat:cb.dataset.billing==='單次',
+          startDate:document.getElementById('startDate')?.value||'',
+          endDate:document.getElementById('endDate')?.value||''});
       });
-    }),
+      var gv=(document.querySelector('input[name=garbage]:checked')?.value)||'無';
+      if(gv==='每天') items.push({name:'倒垃圾(每天)',qty:1,unitPrice:50,isFlat:false});
+      else if(gv==='單次') items.push({name:'倒垃圾(單次)',qty:1,unitPrice:30,isFlat:true});
+      return items;
+    })(),
     urgent:urg,
     distance:km,
     transport:dc,

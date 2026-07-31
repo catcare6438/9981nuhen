@@ -1593,12 +1593,8 @@ async function submitOwnerReview(){
     }
     cpBox.style.display='block';
 
-    // 更新訂單卡片（不 reload）
+    // 清除好評快取（不重新渲染整頁）
     _reviewsCache=null;_reviewsCacheTime=0;
-    setTimeout(async function(){
-      var books=await getB();
-      await renderAllOrders(books);
-    },1000);
   }catch(e){alert('送出失敗：'+e.message);}
 }
 

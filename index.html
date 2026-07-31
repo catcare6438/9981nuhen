@@ -719,7 +719,7 @@ function dbRowToOrder(r){
 <div class="wrap" id="team" style="padding-top:0;">
   <div class="card">
     <div class="card-title">👩‍⚕️ 保母團隊介紹</div>
-    <div class="team-grid">
+    <div class="team-grid" id="teamGrid">
       <div class="team-c"><div class="team-av">👩‍⚕️</div><div class="team-name">May</div><div class="team-badge consult">✦ 醫療顧問 不接案</div><div class="team-desc">現役護理師，擁有數十年豐富的貓咪照護資歷。醫療背景讓她能精準判斷毛孩健康狀況，是全團隊最強力的諮詢後盾。</div></div>
       <div class="team-c"><div class="team-av">🐱</div><div class="team-name">Ying</div><div class="team-badge">資深貓咪照護</div><div class="team-desc">深耕貓咪日常照護逾10年，老年貓照護實戰經驗豐富，曾協助多位飼主學習居家皮下點滴，溫柔有耐心是她的招牌。</div></div>
       <div class="team-c"><div class="team-av">🐶</div><div class="team-name">小語</div><div class="team-badge">資深犬貓保母</div><div class="team-desc">多年犬系照護，以細膩之心奶大無數幼貓。堅持一匙匙親手餵食，專屬一對一陪伴，建立毛孩信任並精準把關健康。用認真專業的態度對待每位毛孩。</div></div>
@@ -1981,6 +1981,23 @@ async function initFromSiteSettings(){
         CNY_PRICES.companion=n(cny.companion,600);
         CNY_PRICES.walk=n(cny.walk,500);
         CNY_PRICES.both=n(cny.both,1000);
+      }
+    }
+
+    // ── 保母團隊介紹（由後台 team_members 設定）──
+    if(settings.team_members&&Array.isArray(settings.team_members)&&settings.team_members.length){
+      var teamGrid=document.getElementById('teamGrid');
+      if(teamGrid){
+        teamGrid.innerHTML=settings.team_members.map(function(m){
+          var descHtml=(m.desc||'').replace(/\n/g,'<br>');
+          var badgeClass=(m.badge||'').includes('顧問')||( m.badge||'').includes('不接案')?'consult':'';
+          return '<div class="team-c">'
+            +'<div class="team-av">'+(m.avatar||'🐾')+'</div>'
+            +'<div class="team-name">'+(m.name||'')+'</div>'
+            +'<div class="team-badge '+badgeClass+'">'+(m.badge||'')+'</div>'
+            +'<div class="team-desc">'+descHtml+'</div>'
+            +'</div>';
+        }).join('');
       }
     }
 

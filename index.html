@@ -1101,21 +1101,20 @@ function updateHolidayUI(){
   Object.keys(SVCBASE).forEach(k=>{
     const el=document.getElementById(NAMES[k]);
     const orig=document.getElementById(ORIGS[k]);
+    if(!el) return; // 動態服務項目可能沒有對應元素，跳過
       const hasCny=dateSlots.some(d=>CNY_HOLIDAYS.has(d.date));
     const hasOtherHol=!hasCny&&dateSlots.some(d=>OTHER_HOLIDAYS.has(d.date));
     const p=hasCny?CNY_PRICES[k]:hasOtherHol?HOLIDAY_PRICES[k]:SVCBASE[k];
     const unit=k==='both'?'/45min':'/0.5H';
     if(hasCny){
       el.textContent=`$${p} ${unit}`;
-      orig.textContent=`平日 $${SVCBASE[k]}`;
-      orig.style.display='block';
+      if(orig){orig.textContent=`平日 $${SVCBASE[k]}`;orig.style.display='block';}
     } else if(hasOtherHol){
       el.textContent=`$${p} ${unit}`;
-      orig.textContent=`平日 $${SVCBASE[k]}`;
-      orig.style.display='block';
+      if(orig){orig.textContent=`平日 $${SVCBASE[k]}`;orig.style.display='block';}
     } else {
       el.textContent=`$${SVCBASE[k]} ${unit}`;
-      orig.style.display='none';
+      if(orig) orig.style.display='none';
     }
   });
   calc();
@@ -1304,14 +1303,23 @@ function toggleSvc(el){
 
 function updateFeedAddon(){
   const cb=document.getElementById('addon-feed');
-  const qty=parseInt(document.getElementById('feed-qty').value)||1;
-  if(cb){cb.value=50*qty; cb.dataset.name='餵藥×'+qty+'隻';}
+  const qty=parseInt(document.getElementById('feed-qty')?.value)||1;
+  const price=ADDON_PRICES['餵藥']||50;
+  if(cb){cb.value=price*qty; cb.dataset.name='餵藥×'+qty+'隻';}
   calc();
 }
 function updateDropAddon(){
   const cb=document.getElementById('addon-drop');
-  const qty=parseInt(document.getElementById('drop-qty').value)||1;
-  if(cb){cb.value=50*qty; cb.dataset.name='點藥×'+qty+'隻';}
+  const qty=parseInt(document.getElementById('drop-qty')?.value)||1;
+  const price=ADDON_PRICES['點藥']||50;
+  if(cb){cb.value=price*qty; cb.dataset.name='點藥×'+qty+'隻';}
+  calc();
+}
+function updateRubAddon(){
+  const cb=document.getElementById('addon-rub');
+  const qty=parseInt(document.getElementById('rub-qty')?.value)||1;
+  const price=ADDON_PRICES['擦藥']||50;
+  if(cb){cb.value=price*qty; cb.dataset.name='擦藥×'+qty+'隻';}
   calc();
 }
 // setLandmark removed - no dist

@@ -308,9 +308,20 @@ async function dbInsertCoupon(cp){
   try{await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cp)});}catch(e){console.error('insertCoupon:',e);}
 }
 async function dbMarkCouponUsed(code){
-  try{await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons?code='+encodeURIComponent(code),{
-    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({used:true})
-  });}catch(e){}
+  try{
+    const cc=String(code).trim().toUpperCase();
+    // 先確認券未被使用
+    const checkRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons?code='+encodeURIComponent(cc));
+    const cks=await checkRes.json();
+    const ck=(Array.isArray(cks)?cks:[]).find(function(x){return (x.code||'').toUpperCase()===cc;});
+    if(!ck){console.warn('[coupon] 找不到券碼:',cc);return false;}
+    if(ck.used){console.warn('[coupon] 券碼已使用:',cc);return false;}
+    // 標記已使用
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons?code='+encodeURIComponent(ck.code),{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({used:true})
+    });
+    return true;
+  }catch(e){console.error('[coupon] markUsed error:',e);return false;}
 }
 async function dbGetReviews(){
   try{

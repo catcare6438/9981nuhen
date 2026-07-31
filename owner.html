@@ -1886,22 +1886,12 @@ async function submitReviewFor(bookId){
   // 更新前台好評（prepend 到 index.html REVIEWS 陣列無法直接做，改為存 Supabase 讓前台讀取）
   // 已存入 reviews 表，前台下次載入即顯示
 
-  // 替換表單為已填結果
+  // 替換表單為已填結果（不觸發重新渲染）
   var formEl=document.getElementById(`rvForm-${bookId}`);
   if(formEl){
     const rv={rating,best,comment,author,coupon_code:code};
-    formEl.outerHTML=buildReviewDoneHTML(rv,bookId).replace(`<div class="section-sub-title">💬 我的好評</div>`,'').trimStart();
-    // 重新插入 section title
-    const body=document.getElementById(`body-${bookId}`);
-    if(body){
-      const done=body.querySelector(`[id^="rvForm-"]`);
-      if(!done){
-        // form was replaced, find the new content
-        const newDoneHTML=buildReviewDoneHTML(rv,bookId);
-        const rvSection=body.querySelector('.section-sub-title:last-of-type');
-        if(rvSection)rvSection.insertAdjacentHTML('afterend',newDoneHTML.replace('<div class="section-sub-title">💬 我的好評</div>',''));
-      }
-    }
+    const doneHtml=buildReviewDoneHTML(rv,bookId).replace('<div class="section-sub-title">💬 我的好評</div>','').trimStart();
+    formEl.outerHTML=doneHtml;
   }
 
   alert('🎉 感謝您的好評！$30 折抵券碼：'+code);

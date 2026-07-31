@@ -1416,7 +1416,7 @@ function calc(){
     var timesMap={餵藥:'feed-times',擦藥:'rub-times'};
     if(qtyMap[name]){var qEl=document.getElementById(qtyMap[name]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
     if(timesMap[name]){var tEl=document.getElementById(timesMap[name]);timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;}
-    var unitPrice=(ADDON_PRICES[name]||parseInt(cb.value)||0)*timesMulti;
+    var unitPrice=(ADDON_PRICES[name]!=null?ADDON_PRICES[name]:(parseInt(cb.value)||0))*timesMulti;
     var isFlat=(cb.dataset.billing==='單次'||name==='倒垃圾(單次)');
     var dispName=name+(timesMulti>1?'×'+timesMulti+'次':'')+(qty>1?'×'+qty+'隻':'');
     addonItems.push({name:dispName,unitPrice:unitPrice*qty,isFlat});
@@ -1618,7 +1618,7 @@ async function submitBook(){
     var timesMap={餵藥:'feed-times',擦藥:'rub-times'};
     if(qtyMap[name]){var qEl=document.getElementById(qtyMap[name]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
     if(timesMap[name]){var tEl=document.getElementById(timesMap[name]);timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;}
-    var unitPrice=(ADDON_PRICES[name]||parseInt(cb.value)||0)*timesMulti;
+    var unitPrice=(ADDON_PRICES[name]!=null?ADDON_PRICES[name]:(parseInt(cb.value)||0))*timesMulti;
     var billing=cb.dataset.billing||'';
     if(billing==='單次'||name==='倒垃圾(單次)'){ addonFlat2+=unitPrice*qty; }
     else { addon+=unitPrice*qty; }
@@ -1700,7 +1700,7 @@ async function submitBook(){
         var timesMap={餵藥:'feed-times',擦藥:'rub-times'};
         if(qtyMap[n]){var qEl=document.getElementById(qtyMap[n]);qty=qEl?Math.max(1,parseInt(qEl.value)||1):1;}
         if(timesMap[n]){var tEl=document.getElementById(timesMap[n]);timesMulti=tEl?Math.max(1,parseInt(tEl.value)||1):1;}
-        var unitPrice=(ADDON_PRICES[n]||parseInt(cb.value)||0)*timesMulti;
+        var unitPrice=(ADDON_PRICES[n]!=null?ADDON_PRICES[n]:(parseInt(cb.value)||0))*timesMulti;
         items.push({name:n,qty:qty,unitPrice:unitPrice,isFlat:cb.dataset.billing==='單次',
           startDate:document.getElementById('startDate')?.value||'',
           endDate:document.getElementById('endDate')?.value||''});
@@ -2023,6 +2023,10 @@ async function initFromSiteSettings(){
 
     // ── 附加服務：完整重建 addonPills ──
     if(settings.addon_prices&&Array.isArray(settings.addon_prices)&&settings.addon_prices.length){
+      // 第一步：先更新全域 ADDON_PRICES（確保 calc() 用最新價格）
+      settings.addon_prices.forEach(function(a){
+        if(a.key&&a.price!=null) ADDON_PRICES[a.key]=Number(a.price)||0;
+      });
       var emojiMap={餵藥:'💊',點藥:'💧',擦藥:'🩹',舒緩按摩:'💆',剪指甲:'✂️',協助排便導尿:'🚿',收信:'📮',澆花:'🌿',倒垃圾:'🗑️'};
       var hasQtyMap={餵藥:true,點藥:true,擦藥:true};
       var cbIdMap={餵藥:'addon-feed',點藥:'addon-drop',擦藥:'addon-rub'};

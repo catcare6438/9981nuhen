@@ -771,8 +771,8 @@ function dbRowToOrder(r){
     depositDate:r.deposit_date||'',depositAmount:r.deposit_amount||0,
     depositPaid:r.deposit_paid||false,fullPaid:r.full_paid||false,
     payMethod:r.pay_method||'',payNote:r.pay_note||'',contractUrl:r.contract_url||'',feeTableUrl:r.fee_table_url||'',visitPhotos:r.visit_photos||[],ownerLineId:r.owner_line_id||'',
-    addonItems:r.addon_items||[],
-    sitterExtraFees:r.sitter_extra_fees||[]
+    addonItems:(function(){try{var v=r.addon_items;return Array.isArray(v)?v:(typeof v==='string'?JSON.parse(v||'[]'):[]);}catch(e){return[];}}()),
+    sitterExtraFees:(function(){try{var v=r.sitter_extra_fees;return Array.isArray(v)?v:(typeof v==='string'?JSON.parse(v||'[]'):[]);}catch(e){return[];}}())
   };
 }
 </script>
@@ -2138,6 +2138,18 @@ function ownerCalcDetail(bk){
   } else if(bk.transport>0){
     rows.push({label:'🚗 車馬費',price:bk.transport,times:total,sub:bk.transport*total});
     transportTotal_t=bk.transport*total;
+  }
+
+  // ── 保母附加費用（後台新增，需同步到飼主端）──
+  var sitterExtras=bk.sitterExtraFees||[];
+  if(sitterExtras.length){
+    rows.push({label:'➕ 附加費用',price:'',times:'',sub:0,isSectionHeader:true});
+    sitterExtras.forEach(function(f){
+      if(!f.name) return;
+      var sp=Number(f.unitPrice)||0;
+      var st=Number(f.times)||1;
+      rows.push({label:f.name+(f.sitter?' ('+f.sitter+')':''),price:sp,times:st,sub:sp*st});
+    });
   }
 
   // 折扣顯示

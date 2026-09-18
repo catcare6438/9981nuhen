@@ -1506,14 +1506,23 @@ function clearPwCache(){_opCache={};_opCacheTime=0;}
 async function saveOwnerPws(o){} // no-op, use dbSetOwnerPw
 
 function calcBForSitter(b, sitterName){
-  // Calculate salary for a specific sitter based on their assigned slots
   const assigns=parseAssignments(b.assignedTo);
-  const mySessions=assigns.filter(a=>a.sitter===sitterName).length||0;
-  const myTransport=getSlotTransport(assigns,sitterName);
-  const hp=b.isHoliday;
-  const rateTable=hp?{companion:300,walk:300,both:580}:{companion:200,walk:200,both:380};
-  const svcRate=(b.services||[]).reduce((s,k)=>s+(rateTable[k]||200),0)||200;
-  return{sessions:mySessions,svcRate,svcTotal:svcRate*mySessions,transport:myTransport,total:svcRate*mySessions+myTransport};
+  const mySessions=assigns.filter(function(a){return a.sitter===sitterName;}).length||
+    (b.dateSlotData&&b.dateSlotData.length?b.dateSlotData.reduce(function(s,d){return s+(d.slots||[]).length;},0):((b.days||0)*(b.tpd||1)))||0;
+  var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
+  var svcRate=Number(pfSitter.svcRate||200);
+  var svcTotal=svcRate*mySessions;
+  var ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_siteSettings&&_siteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
+  var addonTotal=0;
+  var addonItems=b.addonItems||[];
+  if(addonItems.length){addonItems.forEach(function(item){if(!item.name)return;var sd=item.startDate||b.startDate||'';var ed=item.endDate||b.endDate||'';var itemDays=1;if(sd&&ed){var d1=new Date(sd),d2=new Date(ed);if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1)itemDays=Math.round((d2-d1)/86400000)+1;}var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];addonTotal+=(ADDON_P[item.name]||50)*(item.qty||1)*(itemDays*slots.length);});}
+  else{addonTotal=(b.addons||[]).reduce(function(s,a){var m=a.match(/^(.+?)×(\d+)/);var name=m?m[1]:a;var qty=m?parseInt(m[2]):1;return s+(ADDON_P[name]||50)*qty*mySessions;},0);}
+  var myExtraFees=(b.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===sitterName;});
+  var extraTotal=myExtraFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+  var myTransport=getSlotTransport(assigns,sitterName);
+  var transportTotal=myTransport*mySessions;
+  var total=svcTotal+addonTotal+extraTotal+transportTotal;
+  return{sessions:mySessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
 function calcB(b){return calcBv2(b);}
 
@@ -7535,14 +7544,23 @@ function clearPwCache(){_opCache={};_opCacheTime=0;}
 async function saveOwnerPws(o){} // no-op, use dbSetOwnerPw
 
 function calcBForSitter(b, sitterName){
-  // Calculate salary for a specific sitter based on their assigned slots
   const assigns=parseAssignments(b.assignedTo);
-  const mySessions=assigns.filter(a=>a.sitter===sitterName).length||0;
-  const myTransport=getSlotTransport(assigns,sitterName);
-  const hp=b.isHoliday;
-  const rateTable=hp?{companion:300,walk:300,both:580}:{companion:200,walk:200,both:380};
-  const svcRate=(b.services||[]).reduce((s,k)=>s+(rateTable[k]||200),0)||200;
-  return{sessions:mySessions,svcRate,svcTotal:svcRate*mySessions,transport:myTransport,total:svcRate*mySessions+myTransport};
+  const mySessions=assigns.filter(function(a){return a.sitter===sitterName;}).length||
+    (b.dateSlotData&&b.dateSlotData.length?b.dateSlotData.reduce(function(s,d){return s+(d.slots||[]).length;},0):((b.days||0)*(b.tpd||1)))||0;
+  var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
+  var svcRate=Number(pfSitter.svcRate||200);
+  var svcTotal=svcRate*mySessions;
+  var ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_siteSettings&&_siteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
+  var addonTotal=0;
+  var addonItems=b.addonItems||[];
+  if(addonItems.length){addonItems.forEach(function(item){if(!item.name)return;var sd=item.startDate||b.startDate||'';var ed=item.endDate||b.endDate||'';var itemDays=1;if(sd&&ed){var d1=new Date(sd),d2=new Date(ed);if(!isNaN(d1)&&!isNaN(d2)&&d2>=d1)itemDays=Math.round((d2-d1)/86400000)+1;}var slots=item.slots&&item.slots.length?item.slots:['早','中','晚'];addonTotal+=(ADDON_P[item.name]||50)*(item.qty||1)*(itemDays*slots.length);});}
+  else{addonTotal=(b.addons||[]).reduce(function(s,a){var m=a.match(/^(.+?)×(\d+)/);var name=m?m[1]:a;var qty=m?parseInt(m[2]):1;return s+(ADDON_P[name]||50)*qty*mySessions;},0);}
+  var myExtraFees=(b.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===sitterName;});
+  var extraTotal=myExtraFees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+  var myTransport=getSlotTransport(assigns,sitterName);
+  var transportTotal=myTransport*mySessions;
+  var total=svcTotal+addonTotal+extraTotal+transportTotal;
+  return{sessions:mySessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
 function calcB(b){return calcBv2(b);}
 

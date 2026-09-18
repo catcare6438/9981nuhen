@@ -2041,10 +2041,16 @@ console.log('[settings] reached pet_extra_fees section');
   var petExtraFees=(_siteSettings&&_siteSettings.pet_fees_sitter)||(_siteSettings&&_siteSettings.pet_extra_fees)||{};
   var petFreeCount=typeof petExtraFees.free==='number'?petExtraFees.free:2;
   var petUnit=typeof petExtraFees.unit==='number'?petExtraFees.unit:100;
+  var petSvcRate=typeof petExtraFees.svcRate==='number'?petExtraFees.svcRate:200;
   html+='<div class="detail-section">'
     +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🐾 保母端薪資寵物加收（保母領的）</div>'
     +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">保母端薪資明細顯示的加收規則（超過免費隻數才加收）</div>'
     +'<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">'
+    +'<div style="display:flex;align-items:center;gap:6px;background:#FFF3E0;border:1.5px solid #FFD54F;border-radius:8px;padding:6px 12px;">'
+    +'<span style="font-size:.84rem;font-weight:800;color:#E65100;">💼 每次服務費率</span>'
+    +'<input type="number" id="pet-svc-rate" value="'+petSvcRate+'" min="0" step="10" style="width:80px;padding:8px;border:1.5px solid #FFB74D;border-radius:8px;font-size:.88rem;text-align:center;">'
+    +'<span style="font-size:.84rem;">元 / 次</span>'
+    +'</div>'
     +'<div style="display:flex;align-items:center;gap:6px;">'
     +'<span style="font-size:.84rem;">前</span>'
     +'<input type="number" id="pet-free-count" value="'+petFreeCount+'" min="0" max="10" style="width:60px;padding:8px;border:1.5px solid var(--pk3);border-radius:8px;font-size:.88rem;text-align:center;">'
@@ -2879,6 +2885,19 @@ function exportAll(){
 }
 
 // ── COUPONS ──
+
+async function voidCoupon(code){
+  if(!confirm('確定要核銷券碼「'+code+'」？\n核銷後此券將無法再使用。')) return;
+  try{
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/coupons?code='+encodeURIComponent(code),{
+      method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({used:true})
+    });
+    clearCouponCache();
+    await renderCoupons();
+    alert('✅ 券碼已核銷：'+code);
+  }catch(e){alert('核銷失敗：'+e.message);}
+}
+
 async function renderCoupons(){
   let c=await getCoupons();
   const f=document.getElementById('couponFilter').value;
@@ -2911,7 +2930,10 @@ async function renderCoupons(){
         +'<div class="cpn-code">'+(cp.code||'')+sourceBadge+'</div>'
         +'<div style="font-size:.74rem;color:var(--tl);margin-top:2px;">折 $'+discount+' ｜ '+( cp.book_id?'訂單#'+cp.book_id:'')+' ｜ 到期 '+expiry+'</div>'
         +'</div>'
+        +'<div style="display:flex;align-items:center;gap:6px;">'
         +'<div class="'+(cp.used?'cpn-used':'cpn-ok')+'">'+(cp.used?'已使用':'有效')+'</div>'
+        +(!cp.used?'<button onclick="voidCoupon(\'' +(cp.code||'')+ '\')\'" style="padding:3px 10px;background:#FFF3E0;border:1.5px solid #FFB74D;color:#E65100;border-radius:8px;font-size:.72rem;font-weight:800;cursor:pointer;">🚫 核銷</button>':'')
+        +'</div>'
         +'</div>';
     }).join('');
   }
@@ -3114,11 +3136,12 @@ async function saveTeamMembers(){
 async function savePetExtraFee(){
   var freeCount=parseInt(document.getElementById('pet-free-count')?.value)||0;
   var unitPrice=parseInt(document.getElementById('pet-unit-price')?.value)||0;
+  var svcRate=parseInt(document.getElementById('pet-svc-rate')?.value)||200;
   var msg=document.getElementById('pet-extra-fee-msg');
   if(msg){msg.style.color='var(--tl)';msg.textContent='⏳ 儲存中...';}
   try{
-    await saveSiteSetting('pet_fees_sitter',{free:freeCount,unit:unitPrice});
-    if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存';}
+    await saveSiteSetting('pet_fees_sitter',{free:freeCount,unit:unitPrice,svcRate:svcRate});
+    if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存（服務費率 $'+svcRate+'/次）';}
   }catch(e){
     if(msg){msg.style.color='var(--r)';msg.textContent='失敗：'+e.message;}
   }
@@ -8012,6 +8035,7 @@ function renderSettingsPage(){
   var petExtraFees=(_siteSettings&&_siteSettings.pet_fees_sitter)||(_siteSettings&&_siteSettings.pet_extra_fees)||{};
   var petFreeCount=typeof petExtraFees.free==='number'?petExtraFees.free:2;
   var petUnit=typeof petExtraFees.unit==='number'?petExtraFees.unit:100;
+  var petSvcRate=typeof petExtraFees.svcRate==='number'?petExtraFees.svcRate:200;
   html+='<div class="detail-section">'
     +'<div class="det-label" style="font-size:.9rem;margin-bottom:8px;">🐾 保母端薪資寵物加收（保母領的）</div>'
     +'<div style="font-size:.76rem;color:var(--tl);margin-bottom:10px;">保母端薪資明細顯示的加收規則（超過免費隻數才加收）</div>'
@@ -9085,11 +9109,12 @@ async function saveTeamMembers(){
 async function savePetExtraFee(){
   var freeCount=parseInt(document.getElementById('pet-free-count')?.value)||0;
   var unitPrice=parseInt(document.getElementById('pet-unit-price')?.value)||0;
+  var svcRate=parseInt(document.getElementById('pet-svc-rate')?.value)||200;
   var msg=document.getElementById('pet-extra-fee-msg');
   if(msg){msg.style.color='var(--tl)';msg.textContent='⏳ 儲存中...';}
   try{
-    await saveSiteSetting('pet_fees_sitter',{free:freeCount,unit:unitPrice});
-    if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存';}
+    await saveSiteSetting('pet_fees_sitter',{free:freeCount,unit:unitPrice,svcRate:svcRate});
+    if(msg){msg.style.color='var(--g)';msg.textContent='✅ 已儲存（服務費率 $'+svcRate+'/次）';}
   }catch(e){
     if(msg){msg.style.color='var(--r)';msg.textContent='失敗：'+e.message;}
   }

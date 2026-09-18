@@ -1885,19 +1885,35 @@ async function renderSalaryView(){
       ?'<span style="background:#D1FAE5;color:#065F46;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">✅ 已支付</span>'
       :'<span style="background:#FEF3C7;color:#92400E;padding:3px 10px;border-radius:10px;font-size:.74rem;font-weight:800;">⏳ 未支付</span>';
     var detailId='salDetail-'+b.id;
+    var calSal=calcSitterSalary(b);
+    var detailRows='';
+    detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🏠 照護費</span><span><strong>$'+calSal.svcRate+'×'+calSal.sessions+'次 = $'+calSal.svcTotal.toLocaleString()+'</strong></span></div>';
+    if(calSal.addonTotal>0){
+      var _AP=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price);});return r;})();
+      (b.addonItems||[]).forEach(function(item){if(item&&item.name)detailRows+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--tl);"><span>　└ '+item.name+(item.qty>1?'×'+item.qty+'隻':'')+'</span><span>$'+item.unitPrice+'</span></div>';});
+      if(!(b.addonItems&&b.addonItems.length))(b.addons||[]).forEach(function(a){var m=a.match(/^(.+?)×(\d+)/);var n=m?m[1]:a;var q=m?parseInt(m[2]):1;detailRows+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--tl);"><span>　└ '+n+(q>1?'×'+q+'隻':'')+'</span><span>$'+(_AP[n]||50)*q+'×'+calSal.sessions+'次</span></div>';});
+      detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🛍 加購費</span><span><strong>$'+calSal.addonTotal.toLocaleString()+'</strong></span></div>';
+    }
+    var _myExt=(b.sitterExtraFees||[]).filter(function(f){return !f.sitter||f.sitter===ME.name;});
+    if(calSal.extraTotal>0){
+      _myExt.forEach(function(f){if(f.name)detailRows+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--tl);"><span>　└ '+f.name+'</span><span>$'+(f.unitPrice||0)+'×'+(f.times||0)+'次</span></div>';});
+      detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>➕ 附加費</span><span><strong>$'+calSal.extraTotal.toLocaleString()+'</strong></span></div>';
+    }
+    if(calSal.transport>0)detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🚗 車馬費</span><span><strong>$'+calSal.transport+'×'+calSal.sessions+'次 = $'+calSal.transportTotal.toLocaleString()+'</strong></span></div>';
+    detailRows+='<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1.5px solid var(--pk3);margin-top:4px;"><span style="font-weight:900;color:var(--pk);">💰 本單合計</span><span style="font-weight:900;color:var(--pk);">$'+calSal.total.toLocaleString()+'</span></div>';
     return '<div class="sal-card" style="padding:12px 14px;">'
-      +'<div style="display:flex;justify-content:space-between;align-items:center;" onclick="document.getElementById(\''+detailId+'\').style.display=document.getElementById(\''+detailId+'\').style.display===\'none\'?\'block\':\'none\';" style="cursor:pointer;">'
+      +'<div style="display:flex;justify-content:space-between;align-items:center;">'
       +'<div>'
-      +'<div style="font-weight:800;font-size:.84rem;">'+( b.ownerName||'飼主')+'</div>'
-      +'<div style="font-size:.72rem;color:var(--tl);">'+( b.startDate||'')+'</div>'
+      +'<div style="font-weight:800;font-size:.84rem;">'+(b.ownerName||'飼主')+'</div>'
+      +'<div style="font-size:.72rem;color:var(--tl);">'+(b.startDate||'')+'</div>'
       +'</div>'
       +'<div style="text-align:right;">'
       +'<div style="font-size:1.05rem;font-weight:900;color:var(--pk);">$'+sal.toLocaleString()+'</div>'
       +statusHtml
       +'</div>'
       +'</div>'
-      +'<div id="'+detailId+'" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--pk3);font-size:.76rem;color:var(--tl);">'
-      +'點擊展開詳細費用明細（如需查看請聯繫管理員）'
+      +'<div style="margin-top:10px;padding:10px;background:#FFF5F8;border-radius:10px;border:1px dashed var(--pk3);font-size:.78rem;">'
+      +detailRows
       +(noteText?'<div style="margin-top:8px;background:#FFF8E1;border:1.5px solid #FFD54F;border-radius:8px;padding:8px 10px;color:#6D4C00;font-size:.78rem;"><strong>📝 管理員備註：</strong>'+noteText+'</div>':'')
       +'</div>'
       +'</div>';

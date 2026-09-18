@@ -1408,7 +1408,7 @@ async function renderCases(){
           </div>
         </div>
         <div style="min-width:0;flex-shrink:0;text-align:right;">
-          <div class="case-fee-amount" style="cursor:pointer;" onclick="toggleSalDetail('sal-detail-${b.id}')">$${calcSitterSalary(b).total.toLocaleString()} <span style="font-size:.7rem;color:var(--tl);">▼ 明細</span></div>
+          <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
           <div style="font-size:.72rem;color:var(--tl);">💰 本單薪資</div>
           <div id="paid-badge-${b.id}" style="font-size:.7rem;margin-top:2px;"></div>
         </div>
@@ -1468,7 +1468,7 @@ async function renderCases(){
         },0);
         var grandTotal=careTotal+addonTotal+extraTotal;
 
-        var row='<div id="sal-detail-'+b.id+'" style="display:none;background:linear-gradient(135deg,#FFF5F8,#FFF8F0);border:1.5px solid var(--pk3);border-radius:12px;padding:14px 16px;margin:10px 0;font-size:.82rem;">';
+        var row='<div style="background:linear-gradient(135deg,#FFF5F8,#FFF8F0);border:1.5px solid var(--pk3);border-radius:12px;padding:14px 16px;margin:10px 0;font-size:.82rem;">';
         row+='<div style="font-weight:900;color:var(--pk);margin-bottom:10px;font-family:Nunito,sans-serif;font-size:.92rem;">💰 費用明細（'+ME.name+'）</div>';
 
         // 基本照護

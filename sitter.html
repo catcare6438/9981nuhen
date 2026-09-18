@@ -1087,10 +1087,24 @@ const SITTER_HOLIDAY_RATE={companion:300,walk:300,both:580}; // 連假：到府/
 const SITTER_RATE=200; // 保留相容，實際用 calcSitterSalary
 
 // 計算單筆訂單保母薪資
+
+function toggleSalDetail(id){
+  var el=document.getElementById(id);
+  if(!el) return;
+  var visible=el.style.display!=='none';
+  el.style.display=visible?'none':'block';
+  // 更新箭頭符號
+  var btn=el.previousElementSibling&&el.previousElementSibling.querySelector('.case-fee-amount');
+  if(!btn) return;
+  var arrow=btn.querySelector('span');
+  if(arrow) arrow.textContent=visible?'▼ 明細':'▲ 收起';
+}
 function calcSitterSalary(b){
   const mySess=getMySessions(b,ME?.name||'');
   const sessions=mySess||(b.dateSlotData?.length?b.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1)));
-  const svcRate=200;
+  // 服務費率從 pet_fees_sitter 讀取
+  var pfSitter=(_sitterSiteSettings&&(_sitterSiteSettings.pet_fees_sitter||_sitterSiteSettings.pet_extra_fees))||{};
+  const svcRate=Number(pfSitter.svcRate||pfSitter.rate||200);
   const svcTotal=svcRate*sessions;
   // 加購費：優先用 addonItems（各自日期），否則舊格式
   const ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
@@ -1394,7 +1408,7 @@ async function renderCases(){
           </div>
         </div>
         <div style="min-width:0;flex-shrink:0;text-align:right;">
-          <div class="case-fee-amount">$${calcSitterSalary(b).total.toLocaleString()}</div>
+          <div class="case-fee-amount" style="cursor:pointer;" onclick="toggleSalDetail('sal-detail-${b.id}')">$${calcSitterSalary(b).total.toLocaleString()} <span style="font-size:.7rem;color:var(--tl);">▼ 明細</span></div>
           <div style="font-size:.72rem;color:var(--tl);">💰 本單薪資</div>
           <div id="paid-badge-${b.id}" style="font-size:.7rem;margin-top:2px;"></div>
         </div>
@@ -1454,7 +1468,7 @@ async function renderCases(){
         },0);
         var grandTotal=careTotal+addonTotal+extraTotal;
 
-        var row='<div style="background:linear-gradient(135deg,#FFF5F8,#FFF8F0);border:1.5px solid var(--pk3);border-radius:12px;padding:14px 16px;margin:10px 0;font-size:.82rem;">';
+        var row='<div id="sal-detail-'+b.id+'" style="display:none;background:linear-gradient(135deg,#FFF5F8,#FFF8F0);border:1.5px solid var(--pk3);border-radius:12px;padding:14px 16px;margin:10px 0;font-size:.82rem;">';
         row+='<div style="font-weight:900;color:var(--pk);margin-bottom:10px;font-family:Nunito,sans-serif;font-size:.92rem;">💰 費用明細（'+ME.name+'）</div>';
 
         // 基本照護

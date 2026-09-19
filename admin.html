@@ -5265,23 +5265,30 @@ async function _doPDF(bookId, bk, reports){
         LINE(ctT,14,py,PW-14,py,JP.gray4,0.7); py+=8;
       }
 
-      petReps.forEach(function(pr){
-        if(!pr) return;
-        var pName=pr.name||pr.petName||'寶貝';
-        ctT.fillStyle=pal.light; ctT.fillRect(14,py,PW-28,15);
-        T(ctT,'🐾 '+pName,18,py+11,pal.text,9,true); py+=17;
-        var fields=[['精神',pr.spirit],['眼睛',pr.eyes],['飲食',pr.food||pr.eating],['飲水',pr.water||pr.drinking],['排便',pr.poop],['排尿',pr.urine]].filter(function(f){return f[1];});
-        var col=0;
-        fields.forEach(function(f){
-          var fx=14+col*145;
-          T(ctT,f[0],fx,py+10,JP.gray2,8,false);
-          T(ctT,f[1],fx+28,py+10,JP.ink,9,false);
-          col++; if(col>=2){col=0;py+=15;}
+      // ── 寵物回報：每頁5隻 ──
+      var PETS_PER_PAGE=5;
+      var petRepPages=[];
+      for(var pp=0;pp<petReps.length;pp+=PETS_PER_PAGE) petRepPages.push(petReps.slice(pp,pp+PETS_PER_PAGE));
+      if(!petRepPages.length) petRepPages.push([]);
+      petRepPages.forEach(function(pageReps,pageIdx){
+        var isFirst=(pageIdx===0);
+        var cvPage,ctPage;
+        if(isFirst){cvPage=cvT;ctPage=ctT;}
+        else{var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);T(ctPage,'Day '+(ri+1)+'  毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,28,pal.bg,12,true);T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');py=50;}
+        pageReps.forEach(function(pr){
+          if(!pr) return;
+          var pName=pr.name||pr.petName||'寶貝';
+          ctPage.fillStyle=pal.light;ctPage.fillRect(14,py,PW-28,15);
+          T(ctPage,'🐾 '+pName,18,py+11,pal.text,9,true);py+=17;
+          var fields=[['精神',pr.spirit],['眼睛',pr.eyes],['飲食',pr.food||pr.eating],['飲水',pr.water||pr.drinking],['排便',pr.poop],['排尿',pr.urine]].filter(function(f){return f[1];});
+          var col=0;
+          fields.forEach(function(f){var fx=14+col*145;T(ctPage,f[0],fx,py+10,JP.gray2,8,false);T(ctPage,f[1],fx+28,py+10,JP.ink,9,false);col++;if(col>=2){col=0;py+=15;}});
+          if(col>0)py+=15;
+          if(pr.emotions&&pr.emotions.length){T(ctPage,'情緒',14,py+10,JP.gray2,8,false);T(ctPage,pr.emotions.join('・'),40,py+10,JP.ink,9,false);py+=15;}
+          if(pr.notes)py=WT(ctPage,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
+          LINE(ctPage,14,py+3,PW-14,py+3,JP.gray4,0.7);py+=9;
         });
-        if(col>0) py+=15;
-        if(pr.emotions&&pr.emotions.length){T(ctT,'情緒',14,py+10,JP.gray2,8,false);T(ctT,pr.emotions.join('・'),40,py+10,JP.ink,9,false);py+=15;}
-        if(pr.notes) py=WT(ctT,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
-        LINE(ctT,14,py+3,PW-14,py+3,JP.gray4,0.7); py+=9;
+        if(!isFirst){ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');addToPDF(cvPage,false);}
       });
 
       if(diary){
@@ -11252,23 +11259,30 @@ async function _doPDF(bookId, bk, reports){
         LINE(ctT,14,py,PW-14,py,JP.gray4,0.7); py+=8;
       }
 
-      petReps.forEach(function(pr){
-        if(!pr) return;
-        var pName=pr.name||pr.petName||'寶貝';
-        ctT.fillStyle=pal.light; ctT.fillRect(14,py,PW-28,15);
-        T(ctT,'🐾 '+pName,18,py+11,pal.text,9,true); py+=17;
-        var fields=[['精神',pr.spirit],['眼睛',pr.eyes],['飲食',pr.food||pr.eating],['飲水',pr.water||pr.drinking],['排便',pr.poop],['排尿',pr.urine]].filter(function(f){return f[1];});
-        var col=0;
-        fields.forEach(function(f){
-          var fx=14+col*145;
-          T(ctT,f[0],fx,py+10,JP.gray2,8,false);
-          T(ctT,f[1],fx+28,py+10,JP.ink,9,false);
-          col++; if(col>=2){col=0;py+=15;}
+      // ── 寵物回報：每頁5隻 ──
+      var PETS_PER_PAGE=5;
+      var petRepPages=[];
+      for(var pp=0;pp<petReps.length;pp+=PETS_PER_PAGE) petRepPages.push(petReps.slice(pp,pp+PETS_PER_PAGE));
+      if(!petRepPages.length) petRepPages.push([]);
+      petRepPages.forEach(function(pageReps,pageIdx){
+        var isFirst=(pageIdx===0);
+        var cvPage,ctPage;
+        if(isFirst){cvPage=cvT;ctPage=ctT;}
+        else{var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);T(ctPage,'Day '+(ri+1)+'  毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,28,pal.bg,12,true);T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');py=50;}
+        pageReps.forEach(function(pr){
+          if(!pr) return;
+          var pName=pr.name||pr.petName||'寶貝';
+          ctPage.fillStyle=pal.light;ctPage.fillRect(14,py,PW-28,15);
+          T(ctPage,'🐾 '+pName,18,py+11,pal.text,9,true);py+=17;
+          var fields=[['精神',pr.spirit],['眼睛',pr.eyes],['飲食',pr.food||pr.eating],['飲水',pr.water||pr.drinking],['排便',pr.poop],['排尿',pr.urine]].filter(function(f){return f[1];});
+          var col=0;
+          fields.forEach(function(f){var fx=14+col*145;T(ctPage,f[0],fx,py+10,JP.gray2,8,false);T(ctPage,f[1],fx+28,py+10,JP.ink,9,false);col++;if(col>=2){col=0;py+=15;}});
+          if(col>0)py+=15;
+          if(pr.emotions&&pr.emotions.length){T(ctPage,'情緒',14,py+10,JP.gray2,8,false);T(ctPage,pr.emotions.join('・'),40,py+10,JP.ink,9,false);py+=15;}
+          if(pr.notes)py=WT(ctPage,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
+          LINE(ctPage,14,py+3,PW-14,py+3,JP.gray4,0.7);py+=9;
         });
-        if(col>0) py+=15;
-        if(pr.emotions&&pr.emotions.length){T(ctT,'情緒',14,py+10,JP.gray2,8,false);T(ctT,pr.emotions.join('・'),40,py+10,JP.ink,9,false);py+=15;}
-        if(pr.notes) py=WT(ctT,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
-        LINE(ctT,14,py+3,PW-14,py+3,JP.gray4,0.7); py+=9;
+        if(!isFirst){ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');addToPDF(cvPage,false);}
       });
 
       if(diary){

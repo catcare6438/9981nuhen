@@ -2745,7 +2745,9 @@ async function renderSalary(){
 
   function calcOneSalary(bk, sitterName){
     var sessions=getMySessionsAdmin(bk,sitterName)||((bk.days||1)*(bk.tpd||1));
-    var svcTotal=200*sessions;
+    var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
+    var svcRate=Number(pfSitter.svcRate||200);
+    var svcTotal=svcRate*sessions;
     // 附加服務（同保母端邏輯）
     var addonTotal=0;
     var addonItems=bk.addonItems||[];
@@ -8743,7 +8745,9 @@ async function renderSalary(){
 
   function calcOneSalary(bk, sitterName){
     var sessions=getMySessionsAdmin(bk,sitterName)||((bk.days||1)*(bk.tpd||1));
-    var svcTotal=200*sessions;
+    var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
+    var svcRate=Number(pfSitter.svcRate||200);
+    var svcTotal=svcRate*sessions;
     // 附加服務（同保母端邏輯）
     var addonTotal=0;
     var addonItems=bk.addonItems||[];

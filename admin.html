@@ -5295,7 +5295,7 @@ async function _doPDF(bookId, bk, reports){
       addToPDF(cvT,false);
 
       // ── 照片頁（每頁4張，寵物照與清潔照分開） ──
-      function drawPhotoPage(imgArr, title, pageLabel, palC){
+      function drawPhotoPage(imgArr, title, palC){
         var valid=imgArr.filter(Boolean);
         if(!valid.length) return;
         var MARG=12,GAP=8,COLS=2;
@@ -5328,8 +5328,8 @@ async function _doPDF(bookId, bk, reports){
           addToPDF(cvP,false);
         });
       }
-      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pageLabel,pal);
-      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',pageLabel,{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
+      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pal);
+      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
     }
 
     var fname='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';
@@ -11282,7 +11282,7 @@ async function _doPDF(bookId, bk, reports){
       addToPDF(cvT,false);
 
       // ── 照片頁（每頁4張，寵物照與清潔照分開） ──
-      function drawPhotoPage(imgArr, title, pageLabel, palC){
+      function drawPhotoPage(imgArr, title, palC){
         var valid=imgArr.filter(Boolean);
         if(!valid.length) return;
         var MARG=12,GAP=8,COLS=2;
@@ -11315,8 +11315,8 @@ async function _doPDF(bookId, bk, reports){
           addToPDF(cvP,false);
         });
       }
-      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pageLabel,pal);
-      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',pageLabel,{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
+      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pal);
+      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
     }
 
     var fname='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';

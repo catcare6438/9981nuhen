@@ -5225,11 +5225,15 @@ async function _doPDF(bookId, bk, reports){
       var petReps=rep.pet_reports||rep.petReports||[];
       var diary=rep.diary||rep.note||'';
 
-      var photos=[];
-      (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))photos.push(u);});
-      (rep.clean_photos||rep.cleanPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))photos.push(u);});
-      var loadedImgs=[];
-      for(var pi=0;pi<photos.length;pi++) loadedImgs.push(await loadImg(photos[pi]));
+      var petPhotoUrls=[];
+      var cleanPhotoUrls=[];
+      (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))petPhotoUrls.push(u);});
+      (rep.clean_photos||rep.cleanPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))cleanPhotoUrls.push(u);});
+      var photos=petPhotoUrls.concat(cleanPhotoUrls);
+      var loadedPetImgs=[];
+      for(var pi=0;pi<petPhotoUrls.length;pi++) loadedPetImgs.push(await loadImg(petPhotoUrls[pi]));
+      var loadedCleanImgs=[];
+      for(var pi=0;pi<cleanPhotoUrls.length;pi++) loadedCleanImgs.push(await loadImg(cleanPhotoUrls[pi]));
 
       // ── 文字頁 ──
       var {cv:cvT,ctx:ctT}=mkCV();
@@ -5290,43 +5294,42 @@ async function _doPDF(bookId, bk, reports){
       T(ctT,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
       addToPDF(cvT,false);
 
-      // ── 照片頁 ──
-      var validImgs2=loadedImgs.filter(Boolean);
-      if(validImgs2.length){
-        var MARG2=12,GAP2=6,IW2=Math.floor((PW-MARG2*2-GAP2)/2);
-        var imgInfos2=validImgs2.map(function(img){
-          var nw=img.naturalWidth||img.width||1,nh=img.naturalHeight||img.height||1;
-          var ih=Math.min(Math.max(Math.round(IW2*nh/nw),Math.round(IW2*0.35)),Math.round(IW2*1.5));
-          return {img:img,h:ih};
-        });
-        var rows3=[]; for(var ii=0;ii<imgInfos2.length;ii+=2){var a2=imgInfos2[ii],b2=imgInfos2[ii+1];rows3.push({imgs:[a2,b2||null],rh:b2?Math.max(a2.h,b2.h):a2.h});}
-        var avail3=PH-44-16-8;
-        var pgs=[],pr3=[],acc3=0;
-        rows3.forEach(function(row){if(acc3+row.rh+GAP2>avail3&&pr3.length){pgs.push(pr3);pr3=[];acc3=0;}pr3.push(row);acc3+=row.rh+GAP2;});
-        if(pr3.length) pgs.push(pr3);
-        pgs.forEach(function(pgR2,pi3){
-          var {cv:cvP2,ctx:cp2}=mkCV();
-          cp2.fillStyle='#FFFFFF'; cp2.fillRect(0,0,PW,PH);
-          cp2.fillStyle=pal.bar; cp2.fillRect(0,0,PW,44);
-          T(cp2,'Day '+(ri+1)+'  照護照片',14,28,pal.bg,12,true);
-          T(cp2,dateStr+(pgs.length>1?' ('+(pi3+1)+'/'+pgs.length+')':''),PW-14,28,pal.bg,9,false,'right');
-          var py4=48;
-          pgR2.forEach(function(row2){
-            row2.imgs.forEach(function(info2,col2){
-              if(!info2||!info2.img) return;
-              var ix2=MARG2+col2*(IW2+GAP2),iy4=py4;
-              var sc2=Math.min(IW2/info2.img.naturalWidth,row2.rh/info2.img.naturalHeight);
-              var dw2=info2.img.naturalWidth*sc2,dh2=info2.img.naturalHeight*sc2;
-              cp2.drawImage(info2.img,ix2+(IW2-dw2)/2,iy4+(row2.rh-dh2)/2,dw2,dh2);
-              RR(cp2,ix2,iy4,IW2,row2.rh,2,null,JP.gray3,0.5);
-            });
-            py4+=row2.rh+GAP2;
+      // ── 照片頁（每頁4張，寵物照與清潔照分開） ──
+      function drawPhotoPage(imgArr, title, pageLabel, palC){
+        var valid=imgArr.filter(Boolean);
+        if(!valid.length) return;
+        var MARG=12,GAP=8,COLS=2;
+        var IW=Math.floor((PW-MARG*2-GAP*(COLS-1))/COLS);
+        var MAX_PER_PAGE=4;
+        var pages=[];
+        for(var pi4=0;pi4<valid.length;pi4+=MAX_PER_PAGE) pages.push(valid.slice(pi4,pi4+MAX_PER_PAGE));
+        pages.forEach(function(pg,pgIdx){
+          var{cv:cvP,ctx:cpx}=mkCV();
+          cpx.fillStyle='#FFFFFF'; cpx.fillRect(0,0,PW,PH);
+          cpx.fillStyle=palC.bar; cpx.fillRect(0,0,PW,44);
+          T(cpx,'Day '+(ri+1)+'  '+title,14,28,palC.bg,12,true);
+          T(cpx,dateStr+(pages.length>1?' ('+(pgIdx+1)+'/'+pages.length+')':''),PW-14,28,palC.bg,9,false,'right');
+          var ROWS=2;
+          var IH=Math.floor((PH-44-16-MARG-(ROWS-1)*GAP)/ROWS);
+          var py5=50;
+          pg.forEach(function(img,idx){
+            if(!img) return;
+            var col=idx%COLS, row=Math.floor(idx/COLS);
+            var ix=MARG+col*(IW+GAP);
+            var iy=py5+row*(IH+GAP);
+            var nw=img.naturalWidth||img.width||1,nh=img.naturalHeight||img.height||1;
+            var sc=Math.min(IW/nw,IH/nh);
+            var dw=nw*sc,dh=nh*sc;
+            cpx.drawImage(img,ix+(IW-dw)/2,iy+(IH-dh)/2,dw,dh);
+            RR(cpx,ix,iy,IW,IH,3,null,JP.gray3,0.5);
           });
-          cp2.fillStyle=pal.bar; cp2.fillRect(0,PH-16,PW,16);
-          T(cp2,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
-          addToPDF(cvP2,false);
+          cpx.fillStyle=palC.bar; cpx.fillRect(0,PH-16,PW,16);
+          T(cpx,'貓窩裏  Day '+(ri+1)+'  '+title+'  '+dateStr,PW/2,PH-4,palC.bg,8,false,'center');
+          addToPDF(cvP,false);
         });
       }
+      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pageLabel,pal);
+      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',pageLabel,{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
     }
 
     var fname='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';
@@ -11209,11 +11212,15 @@ async function _doPDF(bookId, bk, reports){
       var petReps=rep.pet_reports||rep.petReports||[];
       var diary=rep.diary||rep.note||'';
 
-      var photos=[];
-      (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))photos.push(u);});
-      (rep.clean_photos||rep.cleanPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))photos.push(u);});
-      var loadedImgs=[];
-      for(var pi=0;pi<photos.length;pi++) loadedImgs.push(await loadImg(photos[pi]));
+      var petPhotoUrls=[];
+      var cleanPhotoUrls=[];
+      (rep.pet_photos||rep.petPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))petPhotoUrls.push(u);});
+      (rep.clean_photos||rep.cleanPhotos||[]).forEach(function(p){var u=typeof p==='string'?p:(p.url||p.dataUrl||'');if(u&&(u.startsWith('http')||u.startsWith('data:')))cleanPhotoUrls.push(u);});
+      var photos=petPhotoUrls.concat(cleanPhotoUrls);
+      var loadedPetImgs=[];
+      for(var pi=0;pi<petPhotoUrls.length;pi++) loadedPetImgs.push(await loadImg(petPhotoUrls[pi]));
+      var loadedCleanImgs=[];
+      for(var pi=0;pi<cleanPhotoUrls.length;pi++) loadedCleanImgs.push(await loadImg(cleanPhotoUrls[pi]));
 
       // ── 文字頁 ──
       var {cv:cvT,ctx:ctT}=mkCV();
@@ -11274,43 +11281,42 @@ async function _doPDF(bookId, bk, reports){
       T(ctT,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
       addToPDF(cvT,false);
 
-      // ── 照片頁 ──
-      var validImgs2=loadedImgs.filter(Boolean);
-      if(validImgs2.length){
-        var MARG2=12,GAP2=6,IW2=Math.floor((PW-MARG2*2-GAP2)/2);
-        var imgInfos2=validImgs2.map(function(img){
-          var nw=img.naturalWidth||img.width||1,nh=img.naturalHeight||img.height||1;
-          var ih=Math.min(Math.max(Math.round(IW2*nh/nw),Math.round(IW2*0.35)),Math.round(IW2*1.5));
-          return {img:img,h:ih};
-        });
-        var rows3=[]; for(var ii=0;ii<imgInfos2.length;ii+=2){var a2=imgInfos2[ii],b2=imgInfos2[ii+1];rows3.push({imgs:[a2,b2||null],rh:b2?Math.max(a2.h,b2.h):a2.h});}
-        var avail3=PH-44-16-8;
-        var pgs=[],pr3=[],acc3=0;
-        rows3.forEach(function(row){if(acc3+row.rh+GAP2>avail3&&pr3.length){pgs.push(pr3);pr3=[];acc3=0;}pr3.push(row);acc3+=row.rh+GAP2;});
-        if(pr3.length) pgs.push(pr3);
-        pgs.forEach(function(pgR2,pi3){
-          var {cv:cvP2,ctx:cp2}=mkCV();
-          cp2.fillStyle='#FFFFFF'; cp2.fillRect(0,0,PW,PH);
-          cp2.fillStyle=pal.bar; cp2.fillRect(0,0,PW,44);
-          T(cp2,'Day '+(ri+1)+'  照護照片',14,28,pal.bg,12,true);
-          T(cp2,dateStr+(pgs.length>1?' ('+(pi3+1)+'/'+pgs.length+')':''),PW-14,28,pal.bg,9,false,'right');
-          var py4=48;
-          pgR2.forEach(function(row2){
-            row2.imgs.forEach(function(info2,col2){
-              if(!info2||!info2.img) return;
-              var ix2=MARG2+col2*(IW2+GAP2),iy4=py4;
-              var sc2=Math.min(IW2/info2.img.naturalWidth,row2.rh/info2.img.naturalHeight);
-              var dw2=info2.img.naturalWidth*sc2,dh2=info2.img.naturalHeight*sc2;
-              cp2.drawImage(info2.img,ix2+(IW2-dw2)/2,iy4+(row2.rh-dh2)/2,dw2,dh2);
-              RR(cp2,ix2,iy4,IW2,row2.rh,2,null,JP.gray3,0.5);
-            });
-            py4+=row2.rh+GAP2;
+      // ── 照片頁（每頁4張，寵物照與清潔照分開） ──
+      function drawPhotoPage(imgArr, title, pageLabel, palC){
+        var valid=imgArr.filter(Boolean);
+        if(!valid.length) return;
+        var MARG=12,GAP=8,COLS=2;
+        var IW=Math.floor((PW-MARG*2-GAP*(COLS-1))/COLS);
+        var MAX_PER_PAGE=4;
+        var pages=[];
+        for(var pi4=0;pi4<valid.length;pi4+=MAX_PER_PAGE) pages.push(valid.slice(pi4,pi4+MAX_PER_PAGE));
+        pages.forEach(function(pg,pgIdx){
+          var{cv:cvP,ctx:cpx}=mkCV();
+          cpx.fillStyle='#FFFFFF'; cpx.fillRect(0,0,PW,PH);
+          cpx.fillStyle=palC.bar; cpx.fillRect(0,0,PW,44);
+          T(cpx,'Day '+(ri+1)+'  '+title,14,28,palC.bg,12,true);
+          T(cpx,dateStr+(pages.length>1?' ('+(pgIdx+1)+'/'+pages.length+')':''),PW-14,28,palC.bg,9,false,'right');
+          var ROWS=2;
+          var IH=Math.floor((PH-44-16-MARG-(ROWS-1)*GAP)/ROWS);
+          var py5=50;
+          pg.forEach(function(img,idx){
+            if(!img) return;
+            var col=idx%COLS, row=Math.floor(idx/COLS);
+            var ix=MARG+col*(IW+GAP);
+            var iy=py5+row*(IH+GAP);
+            var nw=img.naturalWidth||img.width||1,nh=img.naturalHeight||img.height||1;
+            var sc=Math.min(IW/nw,IH/nh);
+            var dw=nw*sc,dh=nh*sc;
+            cpx.drawImage(img,ix+(IW-dw)/2,iy+(IH-dh)/2,dw,dh);
+            RR(cpx,ix,iy,IW,IH,3,null,JP.gray3,0.5);
           });
-          cp2.fillStyle=pal.bar; cp2.fillRect(0,PH-16,PW,16);
-          T(cp2,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
-          addToPDF(cvP2,false);
+          cpx.fillStyle=palC.bar; cpx.fillRect(0,PH-16,PW,16);
+          T(cpx,'貓窩裏  Day '+(ri+1)+'  '+title+'  '+dateStr,PW/2,PH-4,palC.bg,8,false,'center');
+          addToPDF(cvP,false);
         });
       }
+      drawPhotoPage(loadedPetImgs,'🐾 寵物照片',pageLabel,pal);
+      drawPhotoPage(loadedCleanImgs,'🧹 清潔照片',pageLabel,{bg:'#E8F5E9',bar:'#4CAF50',text:'#1B5E20',light:'#F1F8E9'});
     }
 
     var fname='貓窩裏_'+(bk.ownerName||'')+'_照護紀錄_'+new Date().toISOString().slice(0,10)+'.pdf';

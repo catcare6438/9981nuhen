@@ -5270,11 +5270,21 @@ async function _doPDF(bookId, bk, reports){
       var petRepPages=[];
       for(var pp=0;pp<petReps.length;pp+=PETS_PER_PAGE) petRepPages.push(petReps.slice(pp,pp+PETS_PER_PAGE));
       if(!petRepPages.length) petRepPages.push([]);
+      var pyAfterFirstPage=py; // 記錄第一頁渲染後的py位置
       petRepPages.forEach(function(pageReps,pageIdx){
         var isFirst=(pageIdx===0);
         var cvPage,ctPage;
         if(isFirst){cvPage=cvT;ctPage=ctT;}
-        else{var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);T(ctPage,'Day '+(ri+1)+'  毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,28,pal.bg,12,true);T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');py=50;}
+        else{
+          py=50;
+          var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;
+          ctPage.clearRect(0,0,cvPage.width,cvPage.height);
+          ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);
+          ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);
+          T(ctPage,'Day '+(ri+1),14,17,pal.bg,12,true);
+          T(ctPage,'毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,33,pal.bg,9,false);
+          T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');
+        }
         pageReps.forEach(function(pr){
           if(!pr) return;
           var pName=pr.name||pr.petName||'寶貝';
@@ -5288,8 +5298,15 @@ async function _doPDF(bookId, bk, reports){
           if(pr.notes)py=WT(ctPage,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
           LINE(ctPage,14,py+3,PW-14,py+3,JP.gray4,0.7);py+=9;
         });
-        if(!isFirst){ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');addToPDF(cvPage,false);}
+        if(isFirst){
+          pyAfterFirstPage=py; // 記錄第一頁最終py供日記使用
+        } else {
+          ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);
+          T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
+          addToPDF(cvPage,false);
+        }
       });
+      py=pyAfterFirstPage; // 還原第一頁的py，供後續日記等渲染使用
 
       if(diary){
         ctT.fillStyle=pal.bar; ctT.fillRect(14,py,3,40);
@@ -11264,11 +11281,21 @@ async function _doPDF(bookId, bk, reports){
       var petRepPages=[];
       for(var pp=0;pp<petReps.length;pp+=PETS_PER_PAGE) petRepPages.push(petReps.slice(pp,pp+PETS_PER_PAGE));
       if(!petRepPages.length) petRepPages.push([]);
+      var pyAfterFirstPage=py; // 記錄第一頁渲染後的py位置
       petRepPages.forEach(function(pageReps,pageIdx){
         var isFirst=(pageIdx===0);
         var cvPage,ctPage;
         if(isFirst){cvPage=cvT;ctPage=ctT;}
-        else{var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);T(ctPage,'Day '+(ri+1)+'  毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,28,pal.bg,12,true);T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');py=50;}
+        else{
+          py=50;
+          var mk=mkCV();cvPage=mk.cv;ctPage=mk.ctx;
+          ctPage.clearRect(0,0,cvPage.width,cvPage.height);
+          ctPage.fillStyle='#FFFFFF';ctPage.fillRect(0,0,PW,PH);
+          ctPage.fillStyle=pal.bar;ctPage.fillRect(0,0,PW,44);
+          T(ctPage,'Day '+(ri+1),14,17,pal.bg,12,true);
+          T(ctPage,'毛孩狀態 ('+(pageIdx+1)+'/'+petRepPages.length+')',14,33,pal.bg,9,false);
+          T(ctPage,dateStr,PW-14,28,pal.bg,9,false,'right');
+        }
         pageReps.forEach(function(pr){
           if(!pr) return;
           var pName=pr.name||pr.petName||'寶貝';
@@ -11282,8 +11309,15 @@ async function _doPDF(bookId, bk, reports){
           if(pr.notes)py=WT(ctPage,pr.notes,14,py+10,PW-28,14,JP.gray1,9);
           LINE(ctPage,14,py+3,PW-14,py+3,JP.gray4,0.7);py+=9;
         });
-        if(!isFirst){ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');addToPDF(cvPage,false);}
+        if(isFirst){
+          pyAfterFirstPage=py; // 記錄第一頁最終py供日記使用
+        } else {
+          ctPage.fillStyle=pal.bar;ctPage.fillRect(0,PH-16,PW,16);
+          T(ctPage,'貓窩裏  Day '+(ri+1)+'  '+dateStr,PW/2,PH-4,pal.bg,8,false,'center');
+          addToPDF(cvPage,false);
+        }
       });
+      py=pyAfterFirstPage; // 還原第一頁的py，供後續日記等渲染使用
 
       if(diary){
         ctT.fillStyle=pal.bar; ctT.fillRect(14,py,3,40);

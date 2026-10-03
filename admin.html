@@ -1630,7 +1630,7 @@ async function doVisitFill(){
       })
     });
     alert('✅ 家訪資料已成功填入訂單 #'+_visitFillTarget);
-    closeM('visitFillMod');
+    document.getElementById('visitFillMod').style.display='none';
     refreshAll();
   }catch(e){
     alert('填入失敗：'+e.message);
@@ -12318,7 +12318,7 @@ document.addEventListener('click',e=>{
         <div class="m-body" id="visitFillBody" style="font-size:.84rem;"></div>
         <div style="display:flex;gap:8px;margin-top:14px;">
           <button class="btn btn-pk" id="visitFillConfirm" onclick="doVisitFill()" style="flex:1;" disabled>✅ 填入選擇的資料</button>
-          <button class="btn btn-ghost" onclick="closeM('visitFillMod')" style="flex:1;">關閉</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('visitFillMod').style.display='none';" style="flex:1;">關閉</button>
         </div>
       </div>
     </div>

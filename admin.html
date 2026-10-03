@@ -1562,6 +1562,81 @@ function toggleOrderCard(id){
   body.classList.toggle('collapsed',!isCollapsed);
   if(toggle)toggle.classList.toggle('open',isCollapsed);
 }
+
+// ── 補填家訪資料：找舊單 visit_notes/visit_photos 補到新單 ──
+async function backfillVisitData(){
+  if(!confirm('將掃描所有訂單，找出缺少家訪資料的訂單並從同一飼主的舊單補填。\n確定執行？')) return;
+  var orders=allBks||[];
+  var byPhone={};
+  orders.forEach(function(bk){
+    var ph=bk.ownerPhone||'';
+    if(!ph) return;
+    if(!byPhone[ph]) byPhone[ph]=[];
+    byPhone[ph].push(bk);
+  });
+  var updated=0;
+  for(var ph in byPhone){
+    var group=byPhone[ph].sort(function(a,b){return String(a.id)>String(b.id)?1:-1;});
+    // 找有家訪資料的最新舊單
+    var sourceVisitNotes='', sourceVisitPhotos=[], sourceVisitDate='', sourcePw='';
+    for(var i=0;i<group.length;i++){
+      var bk=group[i];
+      var photos=[];
+      try{photos=Array.isArray(bk.visitPhotos)?bk.visitPhotos:(typeof bk.visitPhotos==='string'?JSON.parse(bk.visitPhotos||'[]'):[]);}catch(e){}
+      if(bk.homeVisitNote||bk.visitNotes||photos.length){
+        sourceVisitNotes=bk.homeVisitNote||bk.visitNotes||'';
+        sourceVisitPhotos=photos;
+        sourceVisitDate=bk.homeVisitDate||bk.visitDate||'';
+      }
+    }
+    if(!sourceVisitNotes&&!sourceVisitPhotos.length) continue;
+    // 補填沒有家訪資料的訂單
+    for(var j=0;j<group.length;j++){
+      var bk2=group[j];
+      var has=[];
+      try{has=Array.isArray(bk2.visitPhotos)?bk2.visitPhotos:(typeof bk2.visitPhotos==='string'?JSON.parse(bk2.visitPhotos||'[]'):[]);}catch(e){}
+      if(!bk2.homeVisitNote&&!bk2.visitNotes&&!has.length){
+        try{
+          await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+bk2.id,{
+            method:'PUT',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+              visit_notes:sourceVisitNotes,
+              visit_date:sourceVisitDate,
+              visit_photos:JSON.stringify(sourceVisitPhotos)
+            })
+          });
+          updated++;
+        }catch(e){console.warn('補填失敗:',bk2.id,e);}
+      }
+    }
+    // 補填密碼
+    for(var k=0;k<group.length;k++){
+      var bk3=group[k];
+      if(!bk3.ownerPw){
+        try{
+          var pwRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+bk3.id);
+          var pwRows=await pwRes.json();
+          if(Array.isArray(pwRows)&&pwRows.length&&pwRows[0].password) continue; // 已有密碼
+          // 找同客戶其他訂單的密碼
+          var srcPw='';
+          for(var kk=0;kk<group.length;kk++){
+            var pr=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+group[kk].id);
+            var prData=await pr.json();
+            if(Array.isArray(prData)&&prData.length&&prData[0].password){srcPw=prData[0].password;break;}
+          }
+          if(srcPw){
+            await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
+              method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({book_id:String(bk3.id),password:srcPw})
+            });
+          }
+        }catch(e){}
+      }
+    }
+  }
+  alert('✅ 補填完成，共更新 '+updated+' 筆訂單\n請重新整理頁面查看結果。');
+}
+
 async function renderOrders(){
   let allB=await getB();
   const q=document.getElementById('searchQ').value.toLowerCase();
@@ -1622,10 +1697,30 @@ async function renderDoneOrders(){
   if(!doneB.length){doneListEl.innerHTML='<div class="empty-msg" style="padding:14px;">尚無已完成訂單</div>';return;}
   var sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
   var ownerPws=await getOwnerPws();
-  doneListEl.innerHTML=doneB.map(function(bk){
-    try{ return buildOrderCard(bk,sCls,ownerPws); }
-    catch(e){ return ''; }
-  }).join('');
+  // ── 按名字分組，折疊顯示 ──
+  var nameGroups={};
+  doneB.forEach(function(bk){
+    var name=bk.ownerName||'未知';
+    if(!nameGroups[name]) nameGroups[name]=[];
+    nameGroups[name].push(bk);
+  });
+  var html='';
+  Object.keys(nameGroups).sort().forEach(function(name){
+    var grp=nameGroups[name];
+    var groupId='dg-'+name.replace(/[^a-zA-Z0-9一-龥]/g,'');
+    var arrowId='arr-'+groupId;
+    html+='<div style="margin-bottom:10px;">'
+      +'<div onclick="(function(){var el=document.getElementById(\"'+groupId+'\");var arr=document.getElementById(\"'+arrowId+'\");var show=el.style.display!==\'none\';el.style.display=show?\'none\':\'block\';arr.textContent=show?\'▼\':\'▲\';})()";style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
+      +'<span>👤 '+name+'</span>'
+      +'<span style="font-size:.76rem;color:var(--tl);font-weight:400;">（'+grp.length+'筆）</span>'
+      +'<span id="'+arrowId+'" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
+      +'</div>'
+      +'<div id="'+groupId+'" style="display:none;margin-top:4px;">'
+      +grp.map(function(bk){try{return buildOrderCard(bk,sCls,ownerPws);}catch(e){return '';}}).join('')
+      +'</div>'
+      +'</div>';
+  });
+  doneListEl.innerHTML=html;
 }
 
 
@@ -5854,6 +5949,42 @@ async function uploadPetProfilePhoto(bookId,petIdx,dataUrl){
   if(bk&&bk.petData&&bk.petData[petIdx]) bk.petData[petIdx].photo=dataUrl;
   showPetDetail(bookId);
 }
+
+async function backfillVisitData(){
+  if(!confirm('將為每位客戶的新單補入最舊單的家訪資料（visit_notes/visit_photos/caution/owner_pw）\n確定執行？')) return;
+  var orders=ORDERS_CACHE||[];
+  if(!orders.length){alert('請先載入訂單');return;}
+  // 按電話分組，找各客戶最早一筆有家訪資料的訂單
+  var byPhone={};
+  orders.forEach(function(bk){
+    if(!bk.ownerPhone) return;
+    if(!byPhone[bk.ownerPhone]) byPhone[bk.ownerPhone]=[];
+    byPhone[bk.ownerPhone].push(bk);
+  });
+  var updated=0,skipped=0;
+  for(var phone of Object.keys(byPhone)){
+    var grp=byPhone[phone].sort(function(a,b){return String(a.id)<String(b.id)?-1:1;});
+    var srcBk=grp.find(function(b){return (b.visitNotes||b.caution||(b.visitPhotos&&b.visitPhotos.length));});
+    if(!srcBk){skipped++;continue;}
+    for(var bk of grp){
+      if(String(bk.id)===String(srcBk.id)) continue;
+      if(bk.visitNotes||bk.caution||(bk.visitPhotos&&bk.visitPhotos.length)) continue;
+      await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+encodeURIComponent(String(bk.id)),{
+        method:'PUT',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          visit_notes:srcBk.visitNotes||'',
+          caution:srcBk.caution||'',
+          visit_photos:srcBk.visitPhotos||[],
+          visit_date:srcBk.visitDate||'',
+          owner_pw:srcBk.ownerPw||''
+        })
+      });
+      updated++;
+    }
+  }
+  alert('✅ 完成！已補全 '+updated+' 筆訂單，'+skipped+' 位客戶無家訪資料可補。');
+  refreshAll();
+}
 async function refreshAll(){
   try{
     await loadSittersList();
@@ -7689,10 +7820,30 @@ async function renderDoneOrders(){
   if(!doneB.length){doneListEl.innerHTML='<div class="empty-msg" style="padding:14px;">尚無已完成訂單</div>';return;}
   var sCls={待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'};
   var ownerPws=await getOwnerPws();
-  doneListEl.innerHTML=doneB.map(function(bk){
-    try{ return buildOrderCard(bk,sCls,ownerPws); }
-    catch(e){ return ''; }
-  }).join('');
+  // ── 按名字分組，折疊顯示 ──
+  var nameGroups={};
+  doneB.forEach(function(bk){
+    var name=bk.ownerName||'未知';
+    if(!nameGroups[name]) nameGroups[name]=[];
+    nameGroups[name].push(bk);
+  });
+  var html='';
+  Object.keys(nameGroups).sort().forEach(function(name){
+    var grp=nameGroups[name];
+    var groupId='dg-'+name.replace(/[^a-zA-Z0-9一-龥]/g,'');
+    var arrowId='arr-'+groupId;
+    html+='<div style="margin-bottom:10px;">'
+      +'<div onclick="(function(){var el=document.getElementById(\"'+groupId+'\");var arr=document.getElementById(\"'+arrowId+'\");var show=el.style.display!==\'none\';el.style.display=show?\'none\':\'block\';arr.textContent=show?\'▼\':\'▲\';})()";style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
+      +'<span>👤 '+name+'</span>'
+      +'<span style="font-size:.76rem;color:var(--tl);font-weight:400;">（'+grp.length+'筆）</span>'
+      +'<span id="'+arrowId+'" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
+      +'</div>'
+      +'<div id="'+groupId+'" style="display:none;margin-top:4px;">'
+      +grp.map(function(bk){try{return buildOrderCard(bk,sCls,ownerPws);}catch(e){return '';}}).join('')
+      +'</div>'
+      +'</div>';
+  });
+  doneListEl.innerHTML=html;
 }
 
 

@@ -1135,8 +1135,14 @@ function calcBv2(bk){
   const urgent=bk.urgent||0;
   const manualAdjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
   const manualAdj=manualAdjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0);
-  const total=svcSub+transportTotal+urgent+manualAdj;
-  return{normSvcSub,holSvcSub,cnySvcSub,addonSub,extraSub,svcSub,transportTotal,urgent,manualAdj,total,totalSessions,holSessions,cnySessions:cnySessions||0,normSessions};
+  // ── 保母附加費（加入客戶端總計）──
+  var sitterExtraTotal=(function(){
+    var fees=bk.sitterExtraFees||[];
+    if(typeof fees==='string'){try{fees=JSON.parse(fees);}catch(e){fees=[];}}
+    return fees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+  })();
+  const total=svcSub+transportTotal+urgent+manualAdj+sitterExtraTotal;
+  return{normSvcSub,holSvcSub,cnySvcSub,addonSub,extraSub,svcSub,transportTotal,urgent,manualAdj,sitterExtraTotal,total,totalSessions,holSessions,cnySessions:cnySessions||0,normSessions};
 }
 
 const SITTER_RATE=200;
@@ -7465,8 +7471,14 @@ function calcBv2(bk){
   const urgent=bk.urgent||0;
   const manualAdjs=Array.isArray(bk.manualAdjs)?bk.manualAdjs:(bk.manualAdj?[{amount:bk.manualAdj,reason:'調整'}]:[]);
   const manualAdj=manualAdjs.reduce((s,x)=>s+(parseInt(x.amount)||0),0);
-  const total=svcSub+transportTotal+urgent+manualAdj;
-  return{normSvcSub,holSvcSub,cnySvcSub,addonSub,extraSub,svcSub,transportTotal,urgent,manualAdj,total,totalSessions,holSessions,cnySessions:cnySessions||0,normSessions};
+  // ── 保母附加費（加入客戶端總計）──
+  var sitterExtraTotal=(function(){
+    var fees=bk.sitterExtraFees||[];
+    if(typeof fees==='string'){try{fees=JSON.parse(fees);}catch(e){fees=[];}}
+    return fees.reduce(function(s,f){return s+(f.unitPrice||0)*(f.times||0);},0);
+  })();
+  const total=svcSub+transportTotal+urgent+manualAdj+sitterExtraTotal;
+  return{normSvcSub,holSvcSub,cnySvcSub,addonSub,extraSub,svcSub,transportTotal,urgent,manualAdj,sitterExtraTotal,total,totalSessions,holSessions,cnySessions:cnySessions||0,normSessions};
 }
 
 const SITTER_RATE=200;

@@ -2571,6 +2571,18 @@ function showDetail(bookId){
     rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
   }
 
+  // ── 保母附加費用（後台加入，顯示在對帳明細）──
+  var extraFeesList=bk.sitterExtraFees||[];
+  if(typeof extraFeesList==='string'){try{extraFeesList=JSON.parse(extraFeesList);}catch(e){extraFeesList=[];}}
+  if(extraFeesList.length){
+    rows+=R('<span style="color:#FF6D00;font-weight:900;">➕ 保母附加費用</span>','','','');
+    extraFeesList.forEach(function(f){
+      if(!f.name)return;
+      var fAmt=(f.unitPrice||0)*(f.times||1);
+      rows+=R('　└ '+f.name+(f.sitter?' ('+f.sitter+')':''),f.unitPrice||0,'× '+(f.times||1)+'次',fAmt);
+    });
+  }
+
   // 折扣（從資料庫bk.discounts讀取，顯示折扣資訊）
   var grossTotal=cal.total+manualAdj2;
   if(discAmt>0){
@@ -8682,6 +8694,18 @@ function showDetail(bookId){
     });
   } else if(bk.transport>0){
     rows+=R('車馬費',bk.transport,'× '+totalSessions+'次',(bk.transport)*totalSessions);
+  }
+
+  // ── 保母附加費用（後台加入，顯示在對帳明細）──
+  var extraFeesList=bk.sitterExtraFees||[];
+  if(typeof extraFeesList==='string'){try{extraFeesList=JSON.parse(extraFeesList);}catch(e){extraFeesList=[];}}
+  if(extraFeesList.length){
+    rows+=R('<span style="color:#FF6D00;font-weight:900;">➕ 保母附加費用</span>','','','');
+    extraFeesList.forEach(function(f){
+      if(!f.name)return;
+      var fAmt=(f.unitPrice||0)*(f.times||1);
+      rows+=R('　└ '+f.name+(f.sitter?' ('+f.sitter+')':''),f.unitPrice||0,'× '+(f.times||1)+'次',fAmt);
+    });
   }
 
   // 折扣（從資料庫bk.discounts讀取，顯示折扣資訊）

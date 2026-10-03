@@ -1099,14 +1099,53 @@ function toggleSalDetail(id){
   var arrow=btn.querySelector('span');
   if(arrow) arrow.textContent=visible?'▼ 明細':'▲ 收起';
 }
+// 假日集合（2026+2027）
+var _TW_HOL_S=new Set(["2026-02-14","2026-02-15","2026-02-16","2026-02-17","2026-02-18","2026-02-19","2026-02-20","2026-02-21","2026-02-22","2026-02-27","2026-02-28","2026-03-01","2026-04-03","2026-04-04","2026-04-05","2026-04-06","2026-05-01","2026-05-02","2026-05-03","2026-06-19","2026-06-20","2026-06-21","2026-09-25","2026-09-26","2026-09-27","2026-09-28","2026-10-09","2026-10-10","2026-10-11","2026-12-25","2026-12-26","2026-12-27","2027-01-01","2027-01-02","2027-01-03","2027-02-05","2027-02-06","2027-02-07","2027-02-08","2027-02-09","2027-02-10","2027-02-11","2027-02-28","2027-03-01","2027-04-03","2027-04-04","2027-04-05","2027-04-06","2027-04-30","2027-05-01","2027-06-07","2027-06-08","2027-06-09","2027-09-14","2027-09-15","2027-09-16","2027-10-10","2027-10-11","2027-12-25","2027-12-27"]);
 function calcSitterSalary(b){
   const mySess=getMySessions(b,ME?.name||'');
-  const sessions=mySess||(b.dateSlotData?.length?b.dateSlotData.reduce((s,d)=>s+(d.slots||[]).length,0):((b.days||0)*(b.tpd||1)));
-  // 服務費率從 pet_fees_sitter 讀取
   var pfSitter=(_sitterSiteSettings&&(_sitterSiteSettings.pet_fees_sitter||_sitterSiteSettings.pet_extra_fees))||{};
-  var _isHol=b.isHoliday||false;
-  const svcRate=_isHol?Number(pfSitter.holRate||pfSitter.svcRate||300):Number(pfSitter.svcRate||pfSitter.rate||200);
-  const svcTotal=svcRate*sessions;
+  var dayRate=Number(pfSitter.svcRate||pfSitter.rate||200);
+  var holRate=Number(pfSitter.holRate||pfSitter.svcRate||300);
+
+  // ── 逐日逐時段計算平日/連假費率 ──
+  var svcTotal=0;
+  var holSessions=0;
+  var daySessions=0;
+  var sessions=0;
+  var dateSlots=b.dateSlotData||[];
+  if(dateSlots.length){
+    dateSlots.forEach(function(ds){
+      var slots=ds.slots||[];
+      // 此保母是否有此日期的時段
+      if(mySess){
+        var mySlots=0;
+        var assigns=[];
+        try{assigns=JSON.parse(b.assignedTo||'[]');}catch(e){}
+        assigns.forEach(function(a){
+          if((ME&&a.sitter===ME.name)&&a.date===ds.date) mySlots+=(a.slots||slots).length;
+        });
+        if(!mySlots) return;
+        slots=assigns.filter(function(a){return (ME&&a.sitter===ME.name)&&a.date===ds.date;}).reduce(function(acc,a){return acc.concat(a.slots||slots);}, []);
+        if(!slots.length) slots=ds.slots||[];
+      }
+      var cnt=slots.length;
+      if(!cnt) return;
+      sessions+=cnt;
+      if(_TW_HOL_S.has(ds.date)){
+        holSessions+=cnt; svcTotal+=holRate*cnt;
+      } else {
+        daySessions+=cnt; svcTotal+=dayRate*cnt;
+      }
+    });
+  }
+  if(!sessions){
+    sessions=mySess||((b.days||0)*(b.tpd||1));
+    var _isHol=b.isHoliday||false;
+    var svcRate=_isHol?holRate:dayRate;
+    svcTotal=svcRate*sessions;
+    holSessions=_isHol?sessions:0;
+    daySessions=_isHol?0:sessions;
+  }
   // 加購費：優先用 addonItems（各自日期），否則舊格式
   const ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();
   var addonTotal=0;
@@ -1141,7 +1180,7 @@ function calcSitterSalary(b){
   const myTransport=ME?.name?getMyTransport(b,ME.name):(b.transport||0);
   const transportTotal=myTransport*sessions;
   const total=svcTotal+addonTotal+extraTotal+transportTotal;
-  return{sessions,svcRate,svcTotal,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
+  return{sessions,svcTotal,holSessions,daySessions,dayRate,holRate,addonTotal,extraTotal,transport:myTransport,transportTotal,total};
 }
 function getMyTransport(b, myName){
   // 從 assigned_to 找此保母的車馬費，若無則用訂單預設值
@@ -1473,13 +1512,14 @@ async function renderCases(){
         row+='<div style="font-weight:900;color:var(--pk);margin-bottom:10px;font-family:Nunito,sans-serif;font-size:.92rem;">💰 費用明細（'+ME.name+'）</div>';
 
         // 基本照護
-        var _rateLabel=b.isHoliday?'連假':'平日';
-        var _pfDisp2=getPetExtraFee();
-        var _holRate=Number((_sitterSiteSettings&&_sitterSiteSettings.pet_fees_sitter&&_sitterSiteSettings.pet_fees_sitter.holRate)||(_pfDisp2.holRate)||300);
-        var _dayRate=Number(sal.svcRate||200);
         row+='<div style="font-weight:800;color:#555;margin-bottom:6px;font-size:.8rem;letter-spacing:.05em;">📋 照護費用</div>';
-        row+='<div style="font-size:.74rem;color:var(--tl);margin-bottom:4px;">平日費率：<strong>$'+_dayRate+'/次</strong>　連假費率：<strong>$'+_holRate+'/次</strong></div>';
-        row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐾 到府照護（'+_rateLabel+'）</span><span style="font-family:Nunito;">$'+sal.svcRate+' × '+sal.sessions+'次 = <strong style="color:var(--pk);">$'+sal.svcTotal.toLocaleString()+'</strong></span></div>';
+        row+='<div style="font-size:.74rem;color:var(--tl);margin-bottom:4px;">平日費率：<strong>$'+sal.dayRate+'/次</strong>　連假費率：<strong>$'+sal.holRate+'/次</strong></div>';
+        if(sal.daySessions>0){
+          row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐾 到府照護（平日）</span><span style="font-family:Nunito;">$'+sal.dayRate+' × '+sal.daySessions+'次 = <strong style="color:var(--pk);">$'+(sal.dayRate*sal.daySessions).toLocaleString()+'</strong></span></div>';
+        }
+        if(sal.holSessions>0){
+          row+='<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #FFE4EC;"><span>🐾 到府照護（連假）</span><span style="font-family:Nunito;">$'+sal.holRate+' × '+sal.holSessions+'次 = <strong style="color:var(--pk);">$'+(sal.holRate*sal.holSessions).toLocaleString()+'</strong></span></div>';
+        }
 
         if(petCount>1){
           var _pfDisp=getPetExtraFee();
@@ -1893,11 +1933,9 @@ async function renderSalaryView(){
     var detailId='salDetail-'+b.id;
     var calSal=calcSitterSalary(b);
     var detailRows='';
-    var _rLbl=b.isHoliday?'連假':'平日';
-    var _pfS=getPetExtraFee();
-    var _hR=Number((_sitterSiteSettings&&_sitterSiteSettings.pet_fees_sitter&&_sitterSiteSettings.pet_fees_sitter.holRate)||300);
-    detailRows+='<div style="font-size:.72rem;color:var(--tl);margin-bottom:2px;">費率：平日 $'+calSal.svcRate+' / 連假 $'+_hR+'/次</div>';
-    detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🏠 照護費（'+_rLbl+'）</span><span><strong>$'+calSal.svcRate+'×'+calSal.sessions+'次 = $'+calSal.svcTotal.toLocaleString()+'</strong></span></div>';
+    detailRows+='<div style="font-size:.72rem;color:var(--tl);margin-bottom:2px;">費率：平日 $'+calSal.dayRate+' / 連假 $'+calSal.holRate+'/次</div>';
+    if(calSal.daySessions>0) detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🏠 照護費（平日）</span><span><strong>$'+calSal.dayRate+'×'+calSal.daySessions+'次 = $'+(calSal.dayRate*calSal.daySessions).toLocaleString()+'</strong></span></div>';
+    if(calSal.holSessions>0) detailRows+='<div style="display:flex;justify-content:space-between;padding:3px 0;"><span>🏠 照護費（連假）</span><span><strong>$'+calSal.holRate+'×'+calSal.holSessions+'次 = $'+(calSal.holRate*calSal.holSessions).toLocaleString()+'</strong></span></div>';
     if(calSal.addonTotal>0){
       var _AP=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price);});return r;})();
       (b.addonItems||[]).forEach(function(item){if(item&&item.name)detailRows+='<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--tl);"><span>　└ '+item.name+(item.qty>1?'×'+item.qty+'隻':'')+'</span><span>$'+item.unitPrice+'</span></div>';});

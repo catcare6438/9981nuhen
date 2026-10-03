@@ -1198,7 +1198,7 @@ async function ownerLogin(){
   if(!firstBook){alert('找不到訂單 id='+matchedId+'\n現有ids:'+allBooks.slice(0,3).map(function(b){return b.id;}).join(','));document.getElementById('ownerErr').style.display='block';return;}
 
   currentOwnerPhone=firstBook.ownerPhone;
-  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return String(a.id)>String(b.id)?1:-1;});
+  var myBooks=allBooks.filter(function(x){return x.ownerPhone&&x.ownerPhone===currentOwnerPhone;}).sort(function(a,b){return String(b.id)>String(a.id)?1:-1;}); // 新至舊
 
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';
@@ -1224,6 +1224,15 @@ async function ownerLogin(){
 
   try{
     await renderAllOrders(myBooks);
+    // 自動展開最新一筆訂單（第一筆）的費用明細
+    setTimeout(function(){
+      var firstDetail=document.querySelector('.detail-toggle');
+      if(firstDetail&&!firstDetail.classList.contains('open')){
+        firstDetail.click();
+      }
+      // 捲動到頁面頂部
+      window.scrollTo({top:0,behavior:'smooth'});
+    },300);
   }catch(e){
     // Keep mainScreen visible even on error
     document.getElementById('loginScreen').style.display='none';

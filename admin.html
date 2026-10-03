@@ -789,7 +789,6 @@ function dbRowToOrder(r){
         <div class="topbar-title" id="pageTitle">📋 訂單管理</div>
       </div>
       <div class="topbar-right">
-        <button class="btn btn-sm" onclick="backfillVisitData()" style="background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;font-size:.78rem;">🏠 補填家訪</button>
         <button class="btn btn-y" onclick="exportAll()">📥 匯出全部</button>
         <button class="btn btn-pk btn-sm" onclick="refreshAll()">🔄</button>
       </div>
@@ -1565,6 +1564,80 @@ function toggleOrderCard(id){
 }
 
 // ── 補填家訪資料：找舊單 visit_notes/visit_photos 補到新單 ──
+
+var _visitFillTarget=null;
+var _visitFillSource=null;
+
+async function showVisitFillModal(bookId, phoneEnc){
+  _visitFillTarget=bookId;
+  _visitFillSource=null;
+  var body=document.getElementById('visitFillBody');
+  var confirmBtn=document.getElementById('visitFillConfirm');
+  if(!body||!confirmBtn) return;
+  body.innerHTML='<div style="color:var(--tl);padding:10px;">⏳ 搜尋同客戶舊單...</div>';
+  document.getElementById('visitFillMod').style.display='flex';
+  confirmBtn.disabled=true;
+
+  try{
+    var phone=decodeURIComponent(phoneEnc);
+    var res=await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?owner_phone='+encodeURIComponent(phone));
+    var rows=await res.json();
+    var orders=(Array.isArray(rows)?rows:[]).filter(function(r){
+      return String(r.id)!==String(bookId)&&(r.visit_notes||r.visit_date||(r.visit_photos&&r.visit_photos.length));
+    });
+
+    if(!orders.length){
+      body.innerHTML='<div style="padding:14px;color:var(--tl);text-align:center;">此客戶沒有其他含家訪資料的訂單</div>';
+      return;
+    }
+
+    body.innerHTML='<div style="margin-bottom:10px;color:var(--tl);font-size:.78rem;">選擇要從哪筆訂單複製家訪資料，填入訂單 #'+bookId+'：</div>'
+      +orders.map(function(r){
+        var photos=[];
+        try{photos=Array.isArray(r.visit_photos)?r.visit_photos:(typeof r.visit_photos==='string'?JSON.parse(r.visit_photos||'[]'):[]);}catch(e){}
+        return '<label style="display:flex;gap:10px;padding:10px;border:1.5px solid var(--pk3);border-radius:10px;cursor:pointer;margin-bottom:8px;background:#FFF5F8;">'
+          +'<input type="radio" name="visitSrc" value="'+r.id+'" style="margin-top:2px;" onchange="selectVisitSource(this,'+JSON.stringify({notes:r.visit_notes||'',date:r.visit_date||'',photos:photos}).replace(/"/g,'&quot;')+')">'
+          +'<div>'
+          +'<div style="font-weight:800;color:var(--pk);">訂單#'+r.id+' 　'+( r.start_date||r.startDate||'')+'</div>'
+          +(r.visit_date?'<div style="font-size:.78rem;color:var(--tl);">📅 家訪日期：'+r.visit_date+'</div>':'')
+          +(r.visit_notes?'<div style="font-size:.78rem;color:#555;margin-top:2px;">📝 '+r.visit_notes.substring(0,60)+'</div>':'')
+          +(photos.length?'<div style="font-size:.76rem;color:var(--tl);">🖼 家訪照片 '+photos.length+' 張</div>':'')
+          +'</div>'
+          +'</label>';
+      }).join('');
+  }catch(e){
+    body.innerHTML='<div style="color:red;padding:10px;">讀取失敗：'+e.message+'</div>';
+  }
+}
+
+function selectVisitSource(radio, data){
+  _visitFillSource=data;
+  var confirmBtn=document.getElementById('visitFillConfirm');
+  if(confirmBtn) confirmBtn.disabled=false;
+}
+
+async function doVisitFill(){
+  if(!_visitFillTarget||!_visitFillSource) return;
+  var confirmBtn=document.getElementById('visitFillConfirm');
+  if(confirmBtn){confirmBtn.disabled=true;confirmBtn.textContent='⏳ 填入中...';}
+  try{
+    await fetch('https://catwoli-api.catwoli6644.workers.dev/orders?id='+_visitFillTarget,{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        visit_notes:_visitFillSource.notes||'',
+        visit_date:_visitFillSource.date||'',
+        visit_photos:JSON.stringify(_visitFillSource.photos||[])
+      })
+    });
+    alert('✅ 家訪資料已成功填入訂單 #'+_visitFillTarget);
+    closeM('visitFillMod');
+    refreshAll();
+  }catch(e){
+    alert('填入失敗：'+e.message);
+  }finally{
+    if(confirmBtn){confirmBtn.disabled=false;confirmBtn.textContent='✅ 填入選擇的資料';}
+  }
+}
 async function backfillVisitData(){
   if(!confirm('將掃描所有訂單，找出缺少家訪資料的訂單並從同一飼主的舊單補填。\n確定執行？')) return;
   var orders=allBks||[];
@@ -1913,6 +1986,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
+      +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
@@ -8035,6 +8109,7 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
+      +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
@@ -12235,5 +12310,17 @@ document.addEventListener('click',e=>{
   </div>
 </div>
 
+
+    <!-- 補填家訪 Modal -->
+    <div class="m-ov" id="visitFillMod">
+      <div class="m-box" style="width:520px;max-width:96vw;max-height:85vh;overflow-y:auto;">
+        <div class="m-title">🏠 補填家訪資料</div>
+        <div class="m-body" id="visitFillBody" style="font-size:.84rem;"></div>
+        <div style="display:flex;gap:8px;margin-top:14px;">
+          <button class="btn btn-pk" id="visitFillConfirm" onclick="doVisitFill()" style="flex:1;" disabled>✅ 填入選擇的資料</button>
+          <button class="btn btn-ghost" onclick="closeM('visitFillMod')" style="flex:1;">關閉</button>
+        </div>
+      </div>
+    </div>
 </body>
 </html>

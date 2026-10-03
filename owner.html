@@ -1360,12 +1360,15 @@ function buildOrderHTML(bk,orderNum,defaultOpen,myReview,orderIdx,ownerHasReview
   }
 
   return `
-    <div style="margin-bottom:10px;text-align:center;">
+    ${orderIdx===0?`<div style="margin:0 0 18px;text-align:center;">
       <button onclick="repeatOrder('${bk.id}')"
-        style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#FF4F7B,#FF8FAB);color:#fff;border:none;border-radius:30px;font-size:1rem;font-weight:900;cursor:pointer;box-shadow:0 4px 18px rgba(255,79,123,.45);animation:repeatPulse 1.5s infinite;letter-spacing:.05em;width:100%;">
-        🔄 再次預約（一鍵帶入上次資料）
+        style="display:inline-flex;align-items:center;gap:10px;padding:13px 36px;background:linear-gradient(135deg,#2C2C54,#6B2D8B);color:#fff;border:none;border-radius:50px;font-size:.95rem;font-weight:800;cursor:pointer;box-shadow:0 6px 24px rgba(107,45,139,.35);letter-spacing:.08em;transition:all .2s;border:1.5px solid rgba(255,255,255,.15);">
+        <span style="font-size:1.1rem;">✦</span>
+        <span>再次預約</span>
+        <span style="font-size:.75rem;opacity:.8;font-weight:400;border-left:1px solid rgba(255,255,255,.3);padding-left:10px;margin-left:2px;">資料自動帶入</span>
       </button>
-    </div>
+    </div>`:''}
+
     <div class="order-header" onclick="toggleOrder('${bk.id}')">
       <div style="display:flex;align-items:center;gap:10px;">
         <span class="order-num">📋 ${orderNum}</span>
@@ -2267,7 +2270,7 @@ function buildOwnerDetailHTML(bk){
       bk.caution?('<div style="color:#C05000;">⚠️ 注意事項：'+bk.caution.replace(/\n/g,'<br>')+'</div>'):'',
       (bk.visitPhotos&&bk.visitPhotos.length)?
         '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">'
-        +bk.visitPhotos.map(function(p,i){return '<img src="'+p+'" class="pet-thumb" data-name="家訪照片" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">';}).join('')
+        +bk.visitPhotos.map(function(p,i){return '<img src="'+p+'" class="pet-thumb" onclick="openLightbox(this)" data-name="家訪照片" style="width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:1.5px solid #7DD3FC;">';}).join('')
         +'</div>':'',
       '</div></div>'
     ].join(''):'',

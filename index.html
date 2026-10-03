@@ -386,7 +386,12 @@ function orderToDbRow(b){
     coupon_used:b.couponUsed||'',ref_code:b.refCode||'',
     discounts:b.discounts||0,total:b.total||0,
     status:b.status||'待確認',
-    assigned_to:b.assignedTo||''
+    assigned_to:b.assignedTo||'',
+    visit_notes:b.visitNotes||'',
+    caution:b.caution||'',
+    visit_photos:b.visitPhotos&&b.visitPhotos.length?b.visitPhotos:[],
+    visit_date:b.visitDate||'',
+    owner_pw:b.ownerPw||''
   };
 }
 function dbRowToOrder(r){
@@ -536,7 +541,7 @@ function dbRowToOrder(r){
 
   <div class="card">
     <div class="card-title">🐾 主要服務</div>
-    <div class="hprice-note" id="holidayNote">🎊 連假特別價：尊寵陪伴 $550 ｜ 汪孩散步 $500 ｜ 安心陪伴 $500　　🧧 春節過年：尊寵陪伴 $600 ｜ 汪孩散步 $550 ｜ 安心陪伴 $550</div>
+    <div class="hprice-note" id="holidayNote">🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000</div>
     <div class="svc-grid" id="svcGrid">
       <div class="svc on" data-key="companion" data-base="300" onclick="toggleSvc(this)">
         <div class="svc-ico">🏠</div>
@@ -710,7 +715,7 @@ function dbRowToOrder(r){
       </div>
     </div>
     <div style="margin-top:14px;background:var(--y2);border-radius:12px;padding:12px 16px;font-size:.8rem;color:#7A5C00;" id="extraPriceNotice">
-      ⚡ 急件加收：24-48H +$100 ｜ 24H內 +$200<br>🎊 連假特別價：尊寵陪伴 $550 ｜ 汪孩散步 $500 ｜ 安心陪伴 $500　　🧧 春節過年：尊寵陪伴 $600 ｜ 汪孩散步 $550 ｜ 安心陪伴 $550<br>💬 其他服務歡迎 LINE 詳談：<strong>@099nuhen</strong>
+      ⚡ 急件加收：24-48H +$100 ｜ 24H內 +$200<br>🎊 連假特別價：到府陪伴 $450 ｜ 遛狗服務 $350 ｜ 到府＋遛狗 $750　　🧧 春節過年：到府陪伴 $600 ｜ 遛狗服務 $500 ｜ 到府＋遛狗 $1000<br>💬 其他服務歡迎 LINE 詳談：<strong>@099nuhen</strong>
     </div>
   </div>
 </div>
@@ -1739,6 +1744,12 @@ async function submitBook(){
     total,
     status:'待確認',
     assignedTo:JSON.stringify(getDateSlotsForSubmit()),
+    // 再次預約：帶入舊單的家訪資料
+    visitNotes:document.getElementById('visitNotes')?.value||document.getElementById('homeVisitNote')?.value||'',
+    caution:document.getElementById('caution')?.value||document.getElementById('petCaution')?.value||'',
+    visitPhotos:window._reBookVisitPhotos||[],
+    visitDate:window._reBookVisitDate||'',
+    ownerPw:window._reBookOwnerPw||'',
   };
   try{
     await dbInsertOrder(b);
@@ -2298,6 +2309,19 @@ async function prefillFromOldOrder(){
     if(visitNotesEl&&(old.visit_notes||old.home_visit_note)) visitNotesEl.value=old.visit_notes||old.home_visit_note||'';
     var cautionEl=document.getElementById('caution')||document.getElementById('petCaution');
     if(cautionEl&&old.caution) cautionEl.value=old.caution;
+    // 家訪照片、密碼：存入全域供 submitBook 帶入新單
+    window._reBookVisitPhotos=(function(){try{var v=old.visit_photos;return Array.isArray(v)?v:(typeof v==='string'?JSON.parse(v||'[]'):[]);}catch(e){return[];}})();
+    window._reBookVisitDate=old.visit_date||old.visitDate||'';
+    // 密碼：先從 orders 取，若空則查 owner_passwords 表
+    window._reBookOwnerPw=old.owner_pw||old.ownerPw||'';
+    if(!window._reBookOwnerPw){
+      try{
+        var pwRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords?book_id='+encodeURIComponent(fromId));
+        var pwData=await pwRes.json();
+        var pwRow=Array.isArray(pwData)?pwData[0]:pwData;
+        if(pwRow&&pwRow.password) window._reBookOwnerPw=pwRow.password;
+      }catch(e){}
+    }
 
     // ── 隱藏不需重填的區塊，只顯示日期和寵物資料 ──
     // 把「飼主資料」區折疊並顯示摘要

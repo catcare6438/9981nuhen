@@ -1107,30 +1107,12 @@ function calcSitterSalary(b){
   var dayRate=Number(pfSitter.svcRate||pfSitter.rate||200);
   var holRate=Number(pfSitter.holRate||pfSitter.svcRate||300);
 
-  // ── 逐日逐時段計算平日/連假費率 ──
-  var svcTotal=0;
-  var holSessions=0;
-  var daySessions=0;
-  var sessions=0;
+  // ── 逐日核對假日（直接用 dateSlotData 的日期對照假日集合）──
+  var holSessions=0, daySessions=0, svcTotal=0;
   var dateSlots=b.dateSlotData||[];
   if(dateSlots.length){
     dateSlots.forEach(function(ds){
-      var slots=ds.slots||[];
-      // 此保母是否有此日期的時段
-      if(mySess){
-        var mySlots=0;
-        var assigns=[];
-        try{assigns=JSON.parse(b.assignedTo||'[]');}catch(e){}
-        assigns.forEach(function(a){
-          if((ME&&a.sitter===ME.name)&&a.date===ds.date) mySlots+=(a.slots||slots).length;
-        });
-        if(!mySlots) return;
-        slots=assigns.filter(function(a){return (ME&&a.sitter===ME.name)&&a.date===ds.date;}).reduce(function(acc,a){return acc.concat(a.slots||slots);}, []);
-        if(!slots.length) slots=ds.slots||[];
-      }
-      var cnt=slots.length;
-      if(!cnt) return;
-      sessions+=cnt;
+      var cnt=(ds.slots||[]).length||1;
       if(_TW_HOL_S.has(ds.date)){
         holSessions+=cnt; svcTotal+=holRate*cnt;
       } else {
@@ -1138,13 +1120,12 @@ function calcSitterSalary(b){
       }
     });
   }
+  var sessions=holSessions+daySessions;
+  // fallback：若無 dateSlotData 則用 mySess 和 isHoliday
   if(!sessions){
     sessions=mySess||((b.days||0)*(b.tpd||1));
-    var _isHol=b.isHoliday||false;
-    var svcRate=_isHol?holRate:dayRate;
-    svcTotal=svcRate*sessions;
-    holSessions=_isHol?sessions:0;
-    daySessions=_isHol?0:sessions;
+    if(b.isHoliday){ holSessions=sessions; svcTotal=holRate*sessions; }
+    else{ daySessions=sessions; svcTotal=dayRate*sessions; }
   }
   // 加購費：優先用 addonItems（各自日期），否則舊格式
   const ADDON_P=(function(){var r={餵藥:50,點藥:50,擦藥:50,舒緩按摩:100,剪指甲:80,協助排便導尿:80,收信:30,澆花:30,倒垃圾:50,'倒垃圾(每天)':50,'倒垃圾(單次)':30};((_sitterSiteSettings&&_sitterSiteSettings.addon_prices)||[]).forEach(function(a){if(a.key&&a.price)r[a.key]=Number(a.price)||r[a.key]||0;});return r;})();

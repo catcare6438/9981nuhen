@@ -789,6 +789,7 @@ function dbRowToOrder(r){
         <div class="topbar-title" id="pageTitle">📋 訂單管理</div>
       </div>
       <div class="topbar-right">
+        <button class="btn btn-sm" onclick="backfillVisitData()" style="background:#E8F5E9;color:#2E7D32;border:1.5px solid #A5D6A7;font-size:.78rem;">🏠 補填家訪</button>
         <button class="btn btn-y" onclick="exportAll()">📥 匯出全部</button>
         <button class="btn btn-pk btn-sm" onclick="refreshAll()">🔄</button>
       </div>
@@ -1682,6 +1683,16 @@ function toggleDoneOrders(){
   if(icon) icon.textContent=show?'▲':'▼';
 }
 
+function toggleDoneGroup(hd){
+  var gid=hd.dataset.gid;
+  var el=document.getElementById(gid);
+  if(!el) return;
+  var open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  var arrow=hd.querySelector('.done-grp-arrow');
+  if(arrow) arrow.textContent=open?'▼':'▲';
+}
+
 async function renderDoneOrders(){
   var b=await getB();
   var doneB=b.filter(function(x){return x.status==='已完成';});
@@ -1708,17 +1719,16 @@ async function renderDoneOrders(){
   Object.keys(nameGroups).sort().forEach(function(name){
     var grp=nameGroups[name];
     var groupId='dg-'+name.replace(/[^a-zA-Z0-9一-龥]/g,'');
-    var arrowId='arr-'+groupId;
     html+='<div style="margin-bottom:10px;">'
-      +'<div onclick="(function(){var el=document.getElementById(\"'+groupId+'\");var arr=document.getElementById(\"'+arrowId+'\");var show=el.style.display!==\'none\';el.style.display=show?\'none\':\'block\';arr.textContent=show?\'▼\':\'▲\';})()";style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
+      +'<div class="done-grp-hd" data-gid="'+groupId+'" onclick="toggleDoneGroup(this)" style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
       +'<span>👤 '+name+'</span>'
       +'<span style="font-size:.76rem;color:var(--tl);font-weight:400;">（'+grp.length+'筆）</span>'
-      +'<span id="'+arrowId+'" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
+      +'<span class="done-grp-arrow" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
       +'</div>'
       +'<div id="'+groupId+'" style="display:none;margin-top:4px;">'
       +grp.map(function(bk){try{return buildOrderCard(bk,sCls,ownerPws);}catch(e){return '';}}).join('')
       +'</div>'
-      +'</div>';
+      +'</div>';+'</div>';
   });
   doneListEl.innerHTML=html;
 }
@@ -7831,17 +7841,16 @@ async function renderDoneOrders(){
   Object.keys(nameGroups).sort().forEach(function(name){
     var grp=nameGroups[name];
     var groupId='dg-'+name.replace(/[^a-zA-Z0-9一-龥]/g,'');
-    var arrowId='arr-'+groupId;
     html+='<div style="margin-bottom:10px;">'
-      +'<div onclick="(function(){var el=document.getElementById(\"'+groupId+'\");var arr=document.getElementById(\"'+arrowId+'\");var show=el.style.display!==\'none\';el.style.display=show?\'none\':\'block\';arr.textContent=show?\'▼\':\'▲\';})()";style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
+      +'<div class="done-grp-hd" data-gid="'+groupId+'" onclick="toggleDoneGroup(this)" style="display:flex;align-items:center;gap:8px;padding:9px 14px;background:linear-gradient(90deg,var(--pk4),#fff);border-radius:10px;cursor:pointer;border:1.5px solid var(--pk3);font-weight:800;font-size:.88rem;">'
       +'<span>👤 '+name+'</span>'
       +'<span style="font-size:.76rem;color:var(--tl);font-weight:400;">（'+grp.length+'筆）</span>'
-      +'<span id="'+arrowId+'" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
+      +'<span class="done-grp-arrow" style="margin-left:auto;color:var(--pk);font-size:.9rem;">▼</span>'
       +'</div>'
       +'<div id="'+groupId+'" style="display:none;margin-top:4px;">'
       +grp.map(function(bk){try{return buildOrderCard(bk,sCls,ownerPws);}catch(e){return '';}}).join('')
       +'</div>'
-      +'</div>';
+      +'</div>';+'</div>';
   });
   doneListEl.innerHTML=html;
 }

@@ -1114,9 +1114,20 @@ function calcSitterSalary(b){
   var dayRate=Number(pfSitter.svcRate||pfSitter.rate||200);
   var holRate=Number(pfSitter.holRate||pfSitter.svcRate||300);
 
-  // ── 逐日核對假日（直接用 dateSlotData 的日期對照假日集合）──
+  // ── 逐日核對假日：從 assignedTo 或 dateSlotData 取日期條目 ──
   var holSessions=0, daySessions=0, svcTotal=0;
-  var dateSlots=b.dateSlotData||[];
+  // 嘗試從 assignedTo 取日期條目（含 date 欄位的項目）
+  var dateSlots=[];
+  try{
+    var _raw=b.assignedTo||b.dateSlotData||'';
+    var _arr=typeof _raw==='string'?JSON.parse(_raw||'[]'):(Array.isArray(_raw)?_raw:[]);
+    dateSlots=_arr.filter(function(a){return a&&a.date;});
+  }catch(e){}
+  // 若 assignedTo 無日期條目，嘗試 dateSlotData
+  if(!dateSlots.length&&b.dateSlotData&&Array.isArray(b.dateSlotData)){
+    dateSlots=b.dateSlotData.filter(function(a){return a&&a.date;});
+  }
+
   if(dateSlots.length){
     dateSlots.forEach(function(ds){
       var cnt=(ds.slots||[]).length||1;
@@ -1128,7 +1139,7 @@ function calcSitterSalary(b){
     });
   }
   var sessions=holSessions+daySessions;
-  // fallback：若無 dateSlotData 則用 mySess 和 isHoliday
+  // fallback：若無法取得日期，使用 mySess 和整單 isHoliday
   if(!sessions){
     sessions=mySess||((b.days||0)*(b.tpd||1));
     if(b.isHoliday){ holSessions=sessions; svcTotal=holRate*sessions; }

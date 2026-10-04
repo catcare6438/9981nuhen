@@ -391,7 +391,6 @@ function orderToDbRow(b){
     caution:b.caution||'',
     visit_photos:b.visitPhotos&&b.visitPhotos.length?b.visitPhotos:[],
     visit_date:b.visitDate||'',
-    owner_pw:b.ownerPw||''
   };
 }
 function dbRowToOrder(r){
@@ -1749,10 +1748,16 @@ async function submitBook(){
     caution:document.getElementById('caution')?.value||document.getElementById('petCaution')?.value||'',
     visitPhotos:window._reBookVisitPhotos||[],
     visitDate:window._reBookVisitDate||'',
-    ownerPw:window._reBookOwnerPw||'',
   };
   try{
     await dbInsertOrder(b);
+    // 再次預約：把舊密碼複製到新訂單的 owner_passwords
+    if(window._reBookOwnerPw&&b.id){
+      fetch('https://catwoli-api.catwoli6644.workers.dev/owner_passwords',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({book_id:String(b.id),password:window._reBookOwnerPw})
+      }).catch(function(e){console.warn('[reBook] 密碼複製失敗:',e.message);});
+    }
     sendNewOrderNotify(b).catch(()=>{});
     // 標記優惠券已使用（只能用一次）
     if(validCoupon){

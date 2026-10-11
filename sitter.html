@@ -1405,6 +1405,16 @@ async function renderCases(){
   for(const bk of myCases){
     _repsMap[bk.id]=(await getReps(bk.id)).filter(r=>r.sitter===ME.name);
   }
+  // 保母端計算後同步薪資到後台（salary_amounts）
+  try{
+    var _saveAmt={};
+    myCases.forEach(function(bk){ _saveAmt[ME.name+'_'+bk.id]=calcSitterSalary(bk).total; });
+    fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':'neon_worker_auth'},
+      body:JSON.stringify({key:'salary_amounts',value:_saveAmt})
+    }).catch(function(){});
+  }catch(e){}
   const cl=document.getElementById('caseList');
   if(!myCases.length){cl.innerHTML=`<div class="empty">目前沒有指派案件 🐾<br>請等待管理員指派</div>`;return;}
   const sCls={待確認:'bw',已確認:'bg',服務中:'bg',已完成:'bd'};
@@ -1916,9 +1926,30 @@ async function renderSalaryView(){
       if(r.key==='salary_notes'){
         salaryNotes=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
       }
+
     });
   }catch(e){}
 
+  // 已完成訂單薪資同步到後台
+  try{
+    var _saveDoneAmt={};
+    done.forEach(function(bk){ _saveDoneAmt[ME.name+'_'+bk.id]=calcSitterSalary(bk).total; });
+    // 讀取現有 salary_amounts 合併後再存（不覆蓋其他保母的資料）
+    fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings')
+      .then(function(r){return r.json();})
+      .then(function(rows){
+        var existing={};
+        (Array.isArray(rows)?rows:[]).forEach(function(r){
+          if(r.key==='salary_amounts') existing=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+        });
+        var merged=Object.assign({},existing,_saveDoneAmt);
+        return fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings',{
+          method:'POST',
+          headers:{'Content-Type':'application/json','x-api-key':'neon_worker_auth'},
+          body:JSON.stringify({key:'salary_amounts',value:merged})
+        });
+      }).catch(function(){});
+  }catch(e){}
   var grand=0;
   var rows=done.map(function(b){
     var sal=calcSitterSalary(b).total;

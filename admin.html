@@ -3013,6 +3013,7 @@ async function renderSalary(){
     // 載入薪資支付記錄
     var salaryPaid={};
     var salaryNotes={};
+    var sitterSalaryAmounts={};
     try{
       var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
       var spRows=await spRes.json();
@@ -3022,6 +3023,9 @@ async function renderSalary(){
         }
         if(r.key==='salary_notes'){
           salaryNotes=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+        }
+        if(r.key==='salary_amounts'){
+          sitterSalaryAmounts=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
         }
       });
     }catch(e){}
@@ -3049,7 +3053,17 @@ async function renderSalary(){
           +'<div style="font-size:.74rem;color:var(--tl);">'+( bk.startDate||'')+(bk.endDate&&bk.endDate!==bk.startDate?' ~ '+bk.endDate:'')+' ｜ '+sal.sessions+'次</div>'
           +'<div style="font-size:.74rem;color:var(--tl);">服務$'+sal.svcTotal+(sal.addonTotal?' + 加購$'+sal.addonTotal:'')+(sal.extraTotal?' + 後台費$'+sal.extraTotal:'')+(sal.transportTotal?' + 車馬$'+sal.transportTotal:'')+'</div>'
           +'</div>'
-          +'<div style="font-size:1.1rem;font-weight:900;color:var(--pk);">$'+sal.total.toLocaleString()+'</div>'
+          +(function(){
+            var sAmt=sitterSalaryAmounts[key];
+            var dispAmt=(sAmt!=null)?sAmt:sal.total;
+            var badge=(sAmt!=null)
+              ?'<div style="font-size:.68rem;color:#059669;font-weight:700;">✅ 褓姆端確認</div>'
+              :'<div style="font-size:.68rem;color:#9CA3AF;">（後台試算）</div>';
+            var diff=(sAmt!=null&&sAmt!==sal.total)
+              ?'<div style="font-size:.7rem;color:#DC2626;font-weight:700;">⚠️ 後台試算$'+sal.total+'</div>'
+              :'';
+            return '<div style="text-align:right;"><div style="font-size:1.1rem;font-weight:900;color:var(--pk);">$'+dispAmt.toLocaleString()+'</div>'+badge+diff+'</div>';
+          })()
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">'
           +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:700;">'
@@ -9156,6 +9170,7 @@ async function renderSalary(){
     // 載入薪資支付記錄
     var salaryPaid={};
     var salaryNotes={};
+    var sitterSalaryAmounts={};
     try{
       var spRes=await fetch('https://catwoli-api.catwoli6644.workers.dev/site_settings');
       var spRows=await spRes.json();
@@ -9165,6 +9180,9 @@ async function renderSalary(){
         }
         if(r.key==='salary_notes'){
           salaryNotes=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
+        }
+        if(r.key==='salary_amounts'){
+          sitterSalaryAmounts=(typeof r.value==='string')?JSON.parse(r.value||'{}'):(r.value||{});
         }
       });
     }catch(e){}
@@ -9192,7 +9210,17 @@ async function renderSalary(){
           +'<div style="font-size:.74rem;color:var(--tl);">'+( bk.startDate||'')+(bk.endDate&&bk.endDate!==bk.startDate?' ~ '+bk.endDate:'')+' ｜ '+sal.sessions+'次</div>'
           +'<div style="font-size:.74rem;color:var(--tl);">服務$'+sal.svcTotal+(sal.addonTotal?' + 加購$'+sal.addonTotal:'')+(sal.extraTotal?' + 後台費$'+sal.extraTotal:'')+(sal.transportTotal?' + 車馬$'+sal.transportTotal:'')+'</div>'
           +'</div>'
-          +'<div style="font-size:1.1rem;font-weight:900;color:var(--pk);">$'+sal.total.toLocaleString()+'</div>'
+          +(function(){
+            var sAmt=sitterSalaryAmounts[key];
+            var dispAmt=(sAmt!=null)?sAmt:sal.total;
+            var badge=(sAmt!=null)
+              ?'<div style="font-size:.68rem;color:#059669;font-weight:700;">✅ 褓姆端確認</div>'
+              :'<div style="font-size:.68rem;color:#9CA3AF;">（後台試算）</div>';
+            var diff=(sAmt!=null&&sAmt!==sal.total)
+              ?'<div style="font-size:.7rem;color:#DC2626;font-weight:700;">⚠️ 後台試算$'+sal.total+'</div>'
+              :'';
+            return '<div style="text-align:right;"><div style="font-size:1.1rem;font-weight:900;color:var(--pk);">$'+dispAmt.toLocaleString()+'</div>'+badge+diff+'</div>';
+          })()
           +'</div>'
           +'<div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">'
           +'<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:.82rem;font-weight:700;">'

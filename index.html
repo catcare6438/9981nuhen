@@ -2252,8 +2252,9 @@ async function prefillFromOldOrder(){
     if(typeof pd==='string'){try{pd=JSON.parse(pd);}catch(e){pd=[];}}
     var cats=pd.filter(function(p){return p.type==='cat';});
     var dogs=pd.filter(function(p){return p.type==='dog';});
-    var catCount=cats.length||1;
-    var dogCount=dogs.length||0;
+    // 優先用 pet_data 中的數量；若 pet_data 空則 fallback 到 cat_count/dog_count 欄位
+    var catCount=cats.length||Number(old.cat_count)||0;
+    var dogCount=dogs.length||Number(old.dog_count)||0;
     // 更新計數（petCounts 為模組層級 let 變數，不會掛在 window 上，需直接賦值）
     petCounts.cat=catCount;
     petCounts.dog=dogCount;
@@ -2263,6 +2264,13 @@ async function prefillFromOldOrder(){
     if(typeof checkExtraPetNotice==='function') checkExtraPetNotice();
     // 重新渲染寵物表單，再填入詳細資料
     if(typeof renderPetForms==='function') renderPetForms();
+    // 輔助：找特定寵物容器（第 i 個），避免跨寵物 selector 污染
+    function _getPetContainer(type,i){
+      var cont=document.getElementById(type==='cat'?'catForms':'dogForms');
+      if(!cont)return null;
+      var allPetDivs=Array.from(cont.querySelectorAll('[id$="_name"]')).map(function(el){return el.closest('div[style*="border-radius:16px"]');});
+      return allPetDivs[i]||null;
+    }
     setTimeout(function(){
       // 填入每隻貓咪資料
       cats.forEach(function(p,i){
@@ -2272,17 +2280,18 @@ async function prefillFromOldOrder(){
         if(nameEl&&p.name) nameEl.value=p.name;
         if(genderEl&&p.gender) genderEl.value=p.gender;
         if(ageEl&&p.age) ageEl.value=p.age;
-        // 健康狀況 checkbox
-        if(p.health&&Array.isArray(p.health)){
+        // 健康狀況 checkbox：鎖定在該寵物容器內，避免跨格污染
+        var petDiv=_getPetContainer('cat',i);
+        if(petDiv&&p.health&&Array.isArray(p.health)){
           p.health.forEach(function(h){
-            var cb=document.querySelector('#catForms input[value="'+h+'"]');
+            var cb=petDiv.querySelector('input[type="checkbox"][value="'+h+'"]');
             if(cb){cb.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(cb);}
           });
         }
-        // 疫苗
-        if(p.vaccine){
-          var vEl=document.getElementById('cat'+i+'_vaccine');
-          if(vEl) vEl.value=p.vaccine;
+        // 疫苗：radio 用 name+value 選取
+        if(p.vaccine&&petDiv){
+          var vRad=petDiv.querySelector('input[name="cat'+i+'_vaccine"][value="'+p.vaccine+'"]');
+          if(vRad){vRad.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(vRad);}
         }
       });
       // 填入每隻狗狗資料
@@ -2293,15 +2302,16 @@ async function prefillFromOldOrder(){
         if(nameEl&&p.name) nameEl.value=p.name;
         if(genderEl&&p.gender) genderEl.value=p.gender;
         if(ageEl&&p.age) ageEl.value=p.age;
-        if(p.health&&Array.isArray(p.health)){
+        var petDiv=_getPetContainer('dog',i);
+        if(petDiv&&p.health&&Array.isArray(p.health)){
           p.health.forEach(function(h){
-            var cb=document.querySelector('#dogForms input[value="'+h+'"]');
+            var cb=petDiv.querySelector('input[type="checkbox"][value="'+h+'"]');
             if(cb){cb.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(cb);}
           });
         }
-        if(p.vaccine){
-          var vEl=document.getElementById('dog'+i+'_vaccine');
-          if(vEl) vEl.value=p.vaccine;
+        if(p.vaccine&&petDiv){
+          var vRad=petDiv.querySelector('input[name="dog'+i+'_vaccine"][value="'+p.vaccine+'"]');
+          if(vRad){vRad.checked=true;if(typeof styleHealthPill==='function')styleHealthPill(vRad);}
         }
       });
       calc();
@@ -2351,11 +2361,10 @@ async function prefillFromOldOrder(){
       }
     });
 
-    // ── LINE 不需再綁定：移除 LINE 說明區塊 ──
-    // 將在 submitBook 後不顯示 LINE 綁定倒數
-    window._skipLineBinding=true;
-    // 儲存舊訂單的 LINE User ID，送出新訂單後直接套用（不需再走 LINE 授權）
+    // ── LINE 綁定：若舊單有 LINE ID 則直接套用（跳過授權），否則仍走綁定流程 ──
     window._oldOwnerLineId=old.owner_line_id||'';
+    // 只有確實有舊 LINE ID 才跳過；若舊單沒有 LINE，新單還是要走授權
+    window._skipLineBinding=!!window._oldOwnerLineId;
 
     // ── 捲到日期選擇 ──
     setTimeout(function(){

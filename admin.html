@@ -678,7 +678,7 @@ function dbRowToOrder(r){
     id:String(r.id),ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
-    petData:(function(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}return[];  })(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petData:(function(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}return[];  })(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,petName:r.pet_name||'',
     petNotes:r.pet_notes||'',
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,
@@ -1373,9 +1373,23 @@ function openPetQuickFill(bookId){
   var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
   if(!bk)return;
   var pets=JSON.parse(JSON.stringify(bk.petData&&bk.petData.length?bk.petData:[]));
+  // fallback 1：pet_data 空，用 catCount/dogCount 建立空位
   if(!pets.length){
     for(var ci=0;ci<(bk.catCount||0);ci++) pets.push({type:'cat',name:'',photo:''});
     for(var di=0;di<(bk.dogCount||0);di++) pets.push({type:'dog',name:'',photo:''});
+  }
+  // fallback 2：catCount/dogCount 也是 0，改從 petName 文字欄拆名字
+  if(!pets.length&&bk.petName){
+    var _names=(bk.petName||'').split(/[、,，\s]+/).map(function(s){return s.trim();}).filter(Boolean);
+    var _totalCats=bk.catCount||1; // 預設貓
+    var _totalDogs=bk.dogCount||0;
+    // 若 name 數量大於 catCount+dogCount，全當貓
+    var _catNames=_names.slice(0,_totalCats||_names.length);
+    var _dogNames=_names.slice(_catNames.length,_catNames.length+(_totalDogs||0));
+    _catNames.forEach(function(n){pets.push({type:'cat',name:n,photo:''}); });
+    _dogNames.forEach(function(n){pets.push({type:'dog',name:n,photo:''}); });
+    // 若都沒拆到就把整個 petName 當一隻貓
+    if(!pets.length) pets.push({type:'cat',name:bk.petName,photo:''});
   }
   window._petQFPhotos={};
   window._petQFBookId=bookId;
@@ -7192,7 +7206,7 @@ function dbRowToOrder(r){
     id:String(r.id),ts:r.ts,
     ownerName:r.owner_name,ownerPhone:r.owner_phone,
     ownerLine:r.owner_line,ownerAddr:r.owner_addr,
-    petData:(function(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}return[];  })(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,
+    petData:(function(v){if(!v)return[];if(Array.isArray(v))return v;if(typeof v==='string'){try{var p=JSON.parse(v);return Array.isArray(p)?p:[];}catch(e){return[];}}return[];  })(r.pet_data),catCount:r.cat_count||0,dogCount:r.dog_count||0,petName:r.pet_name||'',
     petNotes:r.pet_notes||'',
     startDate:r.start_date,endDate:r.end_date,
     days:r.days||1,tpd:r.tpd||1,

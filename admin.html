@@ -1367,6 +1367,121 @@ async function uploadPetProfilePhoto(bookId, petIdx, dataUrl){
   showPetDetail(bookId);
 }
 
+// ── 🐾 快速補齊寵物資料 modal ──
+var _petQFCurrentIdx=null;
+function openPetQuickFill(bookId){
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk)return;
+  var pets=JSON.parse(JSON.stringify(bk.petData&&bk.petData.length?bk.petData:[]));
+  if(!pets.length){
+    for(var ci=0;ci<(bk.catCount||0);ci++) pets.push({type:'cat',name:'',photo:''});
+    for(var di=0;di<(bk.dogCount||0);di++) pets.push({type:'dog',name:'',photo:''});
+  }
+  window._petQFPhotos={};
+  window._petQFBookId=bookId;
+  window._petQFPets=pets;
+  var html='<div style="margin-bottom:12px;font-size:.82rem;color:var(--tl);">飼主：<strong>'+bk.ownerName+'</strong>　共 <strong>'+pets.length+'</strong> 隻毛孩</div>';
+  if(!pets.length){
+    html+='<div style="text-align:center;padding:20px;color:var(--tl);font-size:.84rem;">此訂單尚無寵物資料<br><span style="font-size:.76rem;">請先在「編輯」中設定貓/狗數量</span></div>';
+  }
+  pets.forEach(function(p,i){
+    var icon=p.type==='cat'?'🐱':'🐶';
+    var label=p.type==='cat'?'貓咪':'狗狗';
+    var avId='pqf-av-'+i;
+    var avHtml=p.photo
+      ?'<img src="'+p.photo+'" id="'+avId+'" onclick="triggerPetQFPhoto('+i+')" style="width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;display:block;" title="點擊更換">'
+      :'<div id="'+avId+'" onclick="triggerPetQFPhoto('+i+')" style="width:70px;height:70px;border-radius:50%;background:var(--pk4);border:3px dashed var(--pk3);display:flex;align-items:center;justify-content:center;font-size:2rem;cursor:pointer;" title="點擊上傳">'+icon+'</div>';
+    html+='<div style="display:flex;align-items:center;gap:14px;background:var(--pk4);border:1.5px solid var(--pk3);border-radius:14px;padding:12px 14px;margin-bottom:8px;">'
+      +'<div style="flex-shrink:0;text-align:center;">'+avHtml
+      +'<div style="font-size:.62rem;color:var(--pk);margin-top:4px;font-weight:800;">📷 點擊上傳</div></div>'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:.73rem;color:var(--tl);margin-bottom:5px;">'+icon+' 第'+(i+1)+'隻'+label+'</div>'
+      +'<input type="text" id="pqf-name-'+i+'" value="'+(p.name||'')+'" placeholder="輸入名字" '
+      +'style="width:100%;padding:9px 12px;border:1.5px solid var(--pk3);border-radius:9px;font-size:.9rem;font-weight:800;color:var(--pk);font-family:inherit;box-sizing:border-box;">'
+      +'</div></div>';
+  });
+  html+='<input type="file" id="petQFFileInput" accept="image/*" style="display:none;" onchange="handlePetQFFile(this)">';
+  if(pets.length){
+    html+='<button id="petQFSaveBtn" onclick="savePetQuickFill()" style="width:100%;padding:13px;background:linear-gradient(135deg,#FF8FAB,#FF5C7D);color:#fff;border:none;border-radius:13px;font-size:.95rem;font-weight:900;font-family:Nunito,sans-serif;cursor:pointer;margin-top:6px;box-shadow:0 3px 12px rgba(255,93,125,.35);">💾 儲存寵物資料</button>';
+  }
+  var modal=document.getElementById('petQFModal');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='petQFModal';
+    modal.className='m-ov';
+    modal.innerHTML='<div class="m-box" style="width:460px;"><h3>🐾 補齊寵物資料</h3><div id="petQFInner"></div><button class="btn btn-ghost" style="width:100%;margin-top:10px;padding:11px;border-radius:12px;" onclick="document.getElementById(\'petQFModal\').classList.remove(\'show\')">關閉</button></div>';
+    document.body.appendChild(modal);
+  }
+  document.getElementById('petQFInner').innerHTML=html;
+  modal.classList.add('show');
+}
+function triggerPetQFPhoto(idx){
+  _petQFCurrentIdx=idx;
+  var inp=document.getElementById('petQFFileInput');
+  if(inp){inp.value='';inp.click();}
+}
+function handlePetQFFile(inp){
+  var file=inp.files[0];
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var canvas=document.createElement('canvas');
+      var size=240;canvas.width=canvas.height=size;
+      var ctx=canvas.getContext('2d');
+      ctx.beginPath();ctx.arc(size/2,size/2,size/2,0,Math.PI*2);ctx.clip();
+      var sc=Math.min(size/img.width,size/img.height);
+      ctx.drawImage(img,(size-img.width*sc)/2,(size-img.height*sc)/2,img.width*sc,img.height*sc);
+      var dataUrl=canvas.toDataURL('image/jpeg',0.8);
+      window._petQFPhotos[_petQFCurrentIdx]=dataUrl;
+      var avEl=document.getElementById('pqf-av-'+_petQFCurrentIdx);
+      if(avEl){
+        var ni=document.createElement('img');
+        ni.src=dataUrl;ni.id='pqf-av-'+_petQFCurrentIdx;
+        ni.title='點擊更換';
+        ni.style.cssText='width:70px;height:70px;border-radius:50%;object-fit:cover;border:3px solid var(--pk3);cursor:pointer;display:block;';
+        ni.onclick=(function(ci){return function(){triggerPetQFPhoto(ci);};}(_petQFCurrentIdx));
+        avEl.replaceWith(ni);
+      }
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+async function savePetQuickFill(){
+  var bookId=window._petQFBookId;
+  var origPets=window._petQFPets||[];
+  var bk=(_bCache||[]).find(function(x){return String(x.id)===String(bookId);});
+  if(!bk)return;
+  var pets=origPets.map(function(p,i){
+    var m=Object.assign({},p);
+    var el=document.getElementById('pqf-name-'+i);
+    if(el) m.name=el.value.trim()||m.name||'';
+    if(window._petQFPhotos&&window._petQFPhotos[i]) m.photo=window._petQFPhotos[i];
+    return m;
+  });
+  var btn=document.getElementById('petQFSaveBtn');
+  if(btn){btn.disabled=true;btn.textContent='⏳ 儲存中…';}
+  var res=await _supa.from('orders').update({
+    pet_data:pets,
+    cat_count:pets.filter(function(p){return p.type==='cat';}).length,
+    dog_count:pets.filter(function(p){return p.type==='dog';}).length
+  }).eq('id',bookId);
+  if(res.error){alert('儲存失敗：'+res.error.message);if(btn){btn.disabled=false;btn.textContent='💾 儲存寵物資料';}return;}
+  bk.petData=pets;
+  bk.catCount=pets.filter(function(p){return p.type==='cat';}).length;
+  bk.dogCount=pets.filter(function(p){return p.type==='dog';}).length;
+  window._petQFPhotos={};
+  document.getElementById('petQFModal').classList.remove('show');
+  var cardEl=document.getElementById('oc-'+bookId);
+  if(cardEl&&typeof buildOrderCard==='function'){
+    var tmp=document.createElement('div');
+    tmp.innerHTML=buildOrderCard(bk,{待確認:'b-wait',已確認:'b-ok',接案中:'b-active',服務中:'b-ok',已完成:'b-done',已取消:'b-cancel'},_ownerPwCache||{});
+    cardEl.replaceWith(tmp.firstElementChild);
+  } else { renderOrders(); }
+}
+
 // ── PET FILE DOWNLOAD ──
 function downloadPetFile(bk){
   const SVC={companion:'到府陪伴',walk:'散步服務',both:'到府＋遛狗'};
@@ -2001,7 +2116,8 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
-      +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
+      +'<button class="oa-btn" style="background:#FFF0FA;border-color:#F9A8D4;color:#9D174D;font-weight:900;" onclick="openPetQuickFill(this.dataset.id)" data-id="'+bk.id+'">🐾 補齊資料</button>'
+    +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
@@ -2971,11 +3087,24 @@ async function renderSalary(){
 
   function calcOneSalary(bk, sitterName){
     var sessions=getMySessionsAdmin(bk,sitterName)||((bk.days||1)*(bk.tpd||1));
-    // ── 服務費率：區分平日/連假（與保母端 calcSitterSalary 一致）──
+    // ── 服務費率：逐日核對假日（與保母端 calcSitterSalary 一致）──
     var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
-    var _isHol=bk.isHoliday||false;
-    var svcRate=_isHol?Number(pfSitter.holRate||pfSitter.svcRate||300):Number(pfSitter.svcRate||200);
-    var svcTotal=svcRate*sessions;
+    var dayRate=Number(pfSitter.svcRate||pfSitter.rate||200);
+    var holRate=Number(pfSitter.holRate||pfSitter.svcRate||300);
+    // 建立假日 Set
+    var _holSet=new Set(((_siteSettings&&_siteSettings.holiday_dates)||[]).map(function(d){return typeof d==='string'?d:(d.date||'');}));
+    // 取此保母的日期條目
+    var _dateSlots=[];
+    try{var _raw=bk.assignedTo||'';var _arr=typeof _raw==='string'?JSON.parse(_raw||'[]'):(Array.isArray(_raw)?_raw:[]);_dateSlots=_arr.filter(function(a){return a&&a.date&&(!a.sitter||a.sitter===sitterName);});}catch(e){}
+    var holSessions=0,daySessions=0,svcTotal=0;
+    if(_dateSlots.length){
+      _dateSlots.forEach(function(ds){var cnt=(ds.slots||[]).length||1;if(_holSet.has(ds.date)){holSessions+=cnt;svcTotal+=holRate*cnt;}else{daySessions+=cnt;svcTotal+=dayRate*cnt;}});
+      sessions=holSessions+daySessions||sessions;
+    } else {
+      // fallback：無日期條目時用整單 isHoliday
+      var _isHol=bk.isHoliday||false;
+      svcTotal=(_isHol?holRate:dayRate)*sessions;
+    }
     // ── 寵物加收（與保母端一致）──
     var petFree=typeof pfSitter.free==='number'?pfSitter.free:2;
     var petUnit=typeof pfSitter.unit==='number'?pfSitter.unit:100;
@@ -8218,7 +8347,8 @@ function buildOrderCard(bk, sCls, ownerPws){
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#1B5E20;" onclick="openConfirmPayment(this.dataset.id)" data-id="'+bk.id+'">✅ 確認收款</button>'
     +'<button class="oa-btn" style="background:#FFF5F5;border-color:#FFBDBD;color:#E05252;" onclick="deleteOrder(this.dataset.id)" data-id="'+bk.id+'">🗑️ 刪除</button>'
     +'<button class="oa-btn" style="background:#E8F5E9;border-color:#A5D6A7;color:#2E7D32;" onclick="exportOrderPDF(this.dataset.id)" data-id="'+bk.id+'">📄 打包PDF</button>'
-      +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
+      +'<button class="oa-btn" style="background:#FFF0FA;border-color:#F9A8D4;color:#9D174D;font-weight:900;" onclick="openPetQuickFill(this.dataset.id)" data-id="'+bk.id+'">🐾 補齊資料</button>'
+    +'<button class="oa-btn" style="background:#FFF8E1;border-color:#FFD54F;color:#8B6000;" onclick="showVisitFillModal(\''+bk.id+'\',\''+encodeURIComponent(bk.ownerPhone||'')+'\')">🏠 補填家訪</button>'
     +'<button class="oa-btn" style="background:#FCE4EC;border-color:#F48FB1;color:#880E4F;" onclick="clearOrderData(this.dataset.id)" data-id="'+bk.id+'">🧹 清空資料</button>'
     +'</div>'
     +'<div id="detail-'+bk.id+'" style="display:none;margin-top:10px;border-top:1.5px solid var(--pk3);padding-top:10px;" onclick="event.stopPropagation()"></div>'
@@ -9128,11 +9258,24 @@ async function renderSalary(){
 
   function calcOneSalary(bk, sitterName){
     var sessions=getMySessionsAdmin(bk,sitterName)||((bk.days||1)*(bk.tpd||1));
-    // ── 服務費率：區分平日/連假（與保母端 calcSitterSalary 一致）──
+    // ── 服務費率：逐日核對假日（與保母端 calcSitterSalary 一致）──
     var pfSitter=(_siteSettings&&(_siteSettings.pet_fees_sitter||_siteSettings.pet_extra_fees))||{};
-    var _isHol=bk.isHoliday||false;
-    var svcRate=_isHol?Number(pfSitter.holRate||pfSitter.svcRate||300):Number(pfSitter.svcRate||200);
-    var svcTotal=svcRate*sessions;
+    var dayRate=Number(pfSitter.svcRate||pfSitter.rate||200);
+    var holRate=Number(pfSitter.holRate||pfSitter.svcRate||300);
+    // 建立假日 Set
+    var _holSet=new Set(((_siteSettings&&_siteSettings.holiday_dates)||[]).map(function(d){return typeof d==='string'?d:(d.date||'');}));
+    // 取此保母的日期條目
+    var _dateSlots=[];
+    try{var _raw=bk.assignedTo||'';var _arr=typeof _raw==='string'?JSON.parse(_raw||'[]'):(Array.isArray(_raw)?_raw:[]);_dateSlots=_arr.filter(function(a){return a&&a.date&&(!a.sitter||a.sitter===sitterName);});}catch(e){}
+    var holSessions=0,daySessions=0,svcTotal=0;
+    if(_dateSlots.length){
+      _dateSlots.forEach(function(ds){var cnt=(ds.slots||[]).length||1;if(_holSet.has(ds.date)){holSessions+=cnt;svcTotal+=holRate*cnt;}else{daySessions+=cnt;svcTotal+=dayRate*cnt;}});
+      sessions=holSessions+daySessions||sessions;
+    } else {
+      // fallback：無日期條目時用整單 isHoliday
+      var _isHol=bk.isHoliday||false;
+      svcTotal=(_isHol?holRate:dayRate)*sessions;
+    }
     // ── 寵物加收（與保母端一致）──
     var petFree=typeof pfSitter.free==='number'?pfSitter.free:2;
     var petUnit=typeof pfSitter.unit==='number'?pfSitter.unit:100;

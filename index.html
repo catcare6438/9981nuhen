@@ -2252,6 +2252,13 @@ async function prefillFromOldOrder(){
     if(typeof pd==='string'){try{pd=JSON.parse(pd);}catch(e){pd=[];}}
     var cats=pd.filter(function(p){return p.type==='cat';});
     var dogs=pd.filter(function(p){return p.type==='dog';});
+    // fallback：pet_data 空 + 無 cat/dog count 時，嘗試從 pet_name 文字欄拆解
+    if(!cats.length&&!dogs.length&&!Number(old.cat_count)&&!Number(old.dog_count)&&old.pet_name){
+      var _pnames=(old.pet_name||'').split(/[、,，\s]+/).map(function(s){return s.trim();}).filter(Boolean);
+      _pnames.forEach(function(n){pd.push({type:'cat',name:n,gender:'',age:'',health:[],vaccine:''});});
+      cats=pd.filter(function(p){return p.type==='cat';});
+      dogs=[];
+    }
     // 優先用 pet_data 中的數量；若 pet_data 空則 fallback 到 cat_count/dog_count 欄位
     var catCount=cats.length||Number(old.cat_count)||0;
     var dogCount=dogs.length||Number(old.dog_count)||0;
